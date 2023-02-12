@@ -11,28 +11,28 @@ app.listen(Config.app().port, function () {
     console.log(`nomctrl listening on port ${Config.app().port}!`);
 });
 
-app.get("/", function (req, res) {
+app.get("/", async (req, res) => {
     res.send("nomctrl up");
 });
 
-app.get("/status", function (req, res) {
-    res.send(execute("status"));
+app.get("/status", async (req, res) => {
+    res.send(await execute("status"));
 });
 
-app.get("/status/:args", function (req, res) {
-    res.send(execute(`status ${req.params.args}`));
+app.get("/status/:args", async (req, res) => {
+    res.send(await execute(`status ${req.params.args}`));
 });
 
-app.post("/cmd", function (req, res) {  
-    res.send(execute(req.body));
+app.post("/cmd", async (req, res) => {
+    res.send(await execute(req.body));
 });
 
-app.get("/cmd/:cmd", function (req, res) {  
-    res.send(execute(req.params.cmd));
+app.get("/cmd/:cmd", async (req, res) => {
+    res.send(await execute(req.params.cmd));
 });
 
-app.post("/do/:action", function (req, res) { 
-    res.send(execute(`do ${req.params.action}`));
+app.post("/do/:action", async (req, res) => {
+    res.send(await execute(`do ${req.params.action}`));
  });
 
 
@@ -46,7 +46,7 @@ const commands = {
 }
 
 // executes one command
-function execute (cmd = "") {
+async function execute (cmd = "") {
 
     function next(list = []) {
         if (!list)
@@ -78,8 +78,13 @@ function execute (cmd = "") {
         arg = next(args);
 
         // status of all devices
-        if (!arg) 
-            return Config.devices().map(device => { return devices.list[device.name].status() });
+        if (!arg) {
+            let result = {};
+            for await (let device of Config.devices()) {
+                result[device.name] = await devices.list[device.name].status();
+            }
+            return result;
+        }
 
         // status of a single device
         if (arg in devices.list)
@@ -90,7 +95,7 @@ function execute (cmd = "") {
         if (nodes.length > 0)
             return nodes.map(n => devices.list[n.device].status());
 
-        return `Error: ${arg} is neither a known device nor a known node`;
+        return jsonError(`Error: ${arg} is neither a known device nor a known node`);
 
     // DO
     } else if (arg.match(commands.DO)) {
@@ -122,15 +127,15 @@ function execute (cmd = "") {
         
         // ON / OFF / FLIP
         if (arg && (arg.match(tokens.ON) || arg.match(tokens.OFF) || arg.match(tokens.FLIP) )) {
-            nodes.forEach(n => { 
-                let device = devices.list[n.device];
+            for await (let node of nodes) {
+                let device = devices.list[node.device];
                 if (device.has(arg)) {
-                    device.set(arg);
+                    await device.set(arg);
                     done = true;
                 } else if (nodes.length == 1) {
                     errors.push(`Device ${device.name} of type ${device.type} has no setter ${arg}.`);
                 }
-            });
+            };
             arg = next(args)
         }
         
@@ -138,18 +143,18 @@ function execute (cmd = "") {
         if (arg && (arg.match(tokens.RGB) || arg.match(tokens.HEX))) {
             var color = Config.getRGB(arg);
             arg = next(args)
-            nodes.forEach(n => {
-                let name = n.device;
+            for await (let node of nodes) {
+                let name = ndoe.device;
                 let device = devices.list[name];
 
                 // set rgb only if device supports it
                 if (device.has("rgb")) {
-                    device.rgb(color);
+                    await device.rgb(color);
                     done = true;
                 } else if (nodes.length == 1) { 
                     errors.push(`Device ${name} of type ${device.type} does not support RGB.`);
                 }
-            });
+            };
         }
             
         // allow brightness percentage and on/off commands
@@ -172,13 +177,13 @@ function execute (cmd = "") {
             if (percent !== null) {
                 percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
-                nodes.forEach(n => {
+                for await (let node of nodes) {
                     let name = n.device;
                     let device = devices.list[name];
 
                     // set brightness if device supports it
                     if (device.has("brightness")) {
-                        device.brightness(percent);
+                        await device.brightness(percent);
                         done = true;
 
                         // additionally set on/off
@@ -187,30 +192,45 @@ function execute (cmd = "") {
 
                     // no brightness, but has "on": use threshold
                     } else if (percent >= Config.ctrl().brightness_threshold && device.has("on")) {
-                        device.on();
+                        await device.on();
                         done = true;
 
                     // no brightness, but has "off": use threshold
                     } else if (percent < Config.ctrl().brightness_threshold && device.has("off")) {
-                        device.off();
+                        await device.off();
                         done = true;
 
                     } else if (nodes.length == 1) {
                         errors.push(`Device ${name} does not support brightness control.`);
                     }
-                });
+                };
             }
         }
 
         if (errors.length > 0)
-            return `${errors.length} Errors:\n` + errors.join("\n");
+            return error(errors);
     }
 
     if (arg)
-        return `Warning: Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`;
+        return jsonWarning(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
     if (!done)
-        return "Warning: Nothing to do";
+        return jsonWarning("Nothing to do");
 
-    return "OK";
+    return jsonInfo("success");
+}
+
+
+// HELPERS
+
+function jsonError(messages) {
+    return JSON.stringify({"error" : message});
+}
+
+function jsonWarning(messages) {
+    return JSON.stringify({"warning" : message});
+}
+
+function jsonInfo(message) {
+    return JSON.stringify({"info" : message});
 }

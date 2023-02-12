@@ -4,14 +4,12 @@ class Utils {
 
     static async get(host, path, json = {}) {
       let url = `http://${host}${path}`;
-      
-      let response = await Axios.get(url).catch(function (error) { console.log("GET Error: " + error) });
-      if (response) return response.data;
+      return Axios.get(url).catch(e => console.error("GET: " + e)).then(r => (r ? r.data : "") );
     }
 
     static async post(host, path, json = {}) {
       let url = `http://${host}${path}`;
-      let response = await Axios.post(url, json).catch(function (error) { console.log("POST Error: " + error) });
+      let response = Axios.post(url, json).catch(e => console.error("POST: " + e));
       if (response) return response.data;
     }
 

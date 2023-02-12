@@ -14,7 +14,7 @@ class Device {
     hasSet(id) { return this.setter.includes(id); }
     hasGet(id) { return this.getter.includes(id); }
 
-    set(id, val) { 
+    async set(id, val) { 
         if (val)
             console.log(`set ${this.name} ${id} ${val}`);
         else 
@@ -29,7 +29,7 @@ class Device {
         console.error(`Device ${this.name} of type ${this.type} has no setter "${id}"`);
     }
 
-    get(id) { 
+    async get(id) { 
         console.log(`get ${this.name} ${id}`);
 
         if (this.getter.includes(id))
@@ -39,10 +39,10 @@ class Device {
     }
 
     // helpers
-    status() { return this.get("on");   }
-    on()     { return this.set("on");   }
-    off()    { return this.set("off");  }
-    flip()   { return this.set("flip"); }
+    async status() { return this.get("status"); }
+    async on()     { return this.set("on");     }
+    async off()    { return this.set("off");    }
+    async flip()   { return this.set("flip");   }
 }
 
 class HttpDevice extends Device {
