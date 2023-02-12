@@ -1,0 +1,14 @@
+{
+  "name": "nomctrl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "nomctrl.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "nom",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

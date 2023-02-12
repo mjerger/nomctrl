@@ -1,0 +1,68 @@
+{
+    "app" : {
+        "port" : 1337
+    },
+
+    "ctrl" : {
+        "brightness_threshold" : 50
+    },
+
+    "devices" : [
+        { "name" : "tasmota-s1", "type" : "tasmota", "host" : "tasmota-s1" },
+        { "name" : "tasmota-s2", "type" : "tasmota", "host" : "tasmota-s2" },
+        { "name" : "tasmota-s3", "type" : "tasmota", "host" : "tasmota-s3" },
+        { "name" : "tasmota-s4", "type" : "tasmota", "host" : "tasmota-s4" },
+        { "name" : "tasmota-s5", "type" : "tasmota", "host" : "tasmota-s5" },
+        { "name" : "tasmota-s6", "type" : "tasmota", "host" : "tasmota-s6" },
+
+        { "name" : "wled-desk" , "type" : "wled", "host" : "wled-desk" },
+        { "name" : "wled-stuff", "type" : "wled", "host" : "wled-stuff" },
+        { "name" : "wled-tv"   , "type" : "wled", "host" : "wled-tv" },
+        { "name" : "wled-sleep", "type" : "wled", "host" : "wled-sleep" }
+    ],
+
+    "nodes" : [
+        { "name" : "strings"    , "device" : "tasmota-s1" },
+        { "name" : "plants"     , "device" : "tasmota-s2" },
+        { "name" : "stuff-power", "device" : "tasmota-s3" },
+        { "name" : "tv-power"   , "device" : "tasmota-s4" },
+        { "name" : "grow"       , "device" : "tasmota-s5" },
+        { "name" : "grow-high"  , "device" : "tasmota-s6", "parent" : "grow" },
+
+        { "name" : "desk"       , "device" : "wled-desk" },
+        { "name" : "stuff"      , "device" : "wled-stuff", "parent" : "stuff-power" },
+        { "name" : "tv"         , "device" : "wled-tv"   , "parent" : "tv-power" },
+        { "name" : "sleep"      , "device" : "wled-sleep" }
+    ],
+
+    "groups" : [
+        { "name" : "living"   , "nodes"  : [ "desk", "strings", "plants", "stuff", "tv" ] },
+        { "name" : "bed"      , "nodes"  : [ "sleep" ] },
+        { "name" : "kitchen"  , "nodes"  : [ ] },
+        { "name" : "bath"     , "nodes"  : [ ] },
+        { "name" : "toilet"   , "nodes"  : [ ] },
+        { "name" : "hallway"  , "nodes"  : [ ] },
+        { "name" : "apartment", "groups" : [ "living", "bed", "kitchen", "bath", "toilet", "hallway" ] }
+    ],
+
+    "colors" : [
+        { "name" : "evening", "rgb" : [242,188,114] },
+        { "name" : "day"    , "hex" : "#ffe2ab" },
+        { "name" : "morning", "hex" : "#ffefef" },
+        { "name" : "reading", "hex" : "#ffefef" }
+    ],
+
+    "timers" : [
+        { "name" : "grow", "on" : "10:00", "off" : "22:00", "strict" : true }
+    ],
+
+    "actions" : [
+        { "name" : "morning",                    "do" : [ "set living morning 50%", "set bed morning 20%" ] },
+        { "name" : "day"    , "when" : "12:00" , "do" : [ "set living off", "set desk day", "set bed off" ] },
+        { "name" : "evening", "when" : "sunset", "do" : [ "set living day 100%" ] },
+        { "name" : "night"  , "when" : "10:00" , "do" : [ "set living evening 50%", "set bed 20%" ] },
+        { "name" : "couch"  ,                    "do" : [ "set living evening 50%", "set strings off", "set tv stuff evening 100%" ]},
+        { "name" : "bed"    ,                    "do" : [ "set apartment off", "set bed reading" ]},
+        { "name" : "sleep"  ,                    "do" : [ "set apartment off" ]}
+    ]
+}
