@@ -58,10 +58,10 @@ const drivers = {
                         super("tasmota", config.name, config.host);
                     }
                     
-                    get_status() { return Utils.get     (this.host, "/cm?cmnd=status")}
-                    set_on    () { return Utils.getAsync(this.host, "/cm?cmnd=power+on") }
-                    set_off   () { return Utils.getAsync(this.host, "/cm?cmnd=power+off") }
-                    set_flip  () { return Utils.getAsync(this.host, "/cm?cmnd=power+toggle") }
+                    async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
+                    async set_on    () { return Utils.get(this.host, "/cm?cmnd=power+on") }
+                    async set_off   () { return Utils.get(this.host, "/cm?cmnd=power+off") }
+                    async set_flip  () { return Utils.get(this.host, "/cm?cmnd=power+toggle") }
                 },
                 
     "wled"    : class WLED extends HttpDevice {
@@ -72,16 +72,16 @@ const drivers = {
                     }
                     
                     static set_path = "/json/state";
-                    get_status ()            { return Utils.get      (this.host, WLED.set_path) }
-                    set_on     ()            { return Utils.postAsync(this.host, WLED.set_path, { "on" : true  }) }
-                    set_off    ()            { return Utils.postAsync(this.host, WLED.set_path, { "on" : false }) }
-                    set_flip   ()            { return Utils.postAsync(this.host, WLED.set_path, { "on" : "t"   }) }
-                    set_rgb    (color)       { return Utils.postAsync(this.host, WLED.set_path, { "seg" : [ { "col" : color } ] }) }
-                    set_brightness (percent) { return Utils.postAsync(this.host, WLED.set_path, { "on" : true, "bri" : (percent*2.55) }) }
+                    async get_status ()            { return Utils.get (this.host, WLED.set_path) }
+                    async set_on     ()            { return Utils.post(this.host, WLED.set_path, { "on" : true  }) }
+                    async set_off    ()            { return Utils.post(this.host, WLED.set_path, { "on" : false }) }
+                    async set_flip   ()            { return Utils.post(this.host, WLED.set_path, { "on" : "t"   }) }
+                    async set_rgb    (color)       { return Utils.post(this.host, WLED.set_path, { "seg" : [ { "col" : [color] } ] }) }
+                    async set_brightness (percent) { return Utils.post(this.host, WLED.set_path, { "on" : true, "bri" : Math.floor(percent*2.55) }) }
                     
                     // helpers
-                    rgb(color)          { return this.set("rgb", color); }
-                    brightness(percent) { return this.set("brightness", percent); }
+                    async rgb(color)          { return this.set("rgb", color); }
+                    async brightness(percent) { return this.set("brightness", percent); }
                 },
 }
 

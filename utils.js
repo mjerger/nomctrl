@@ -1,60 +1,18 @@
-const http = require('http');
+const Axios = require('axios')
 
 class Utils {
 
-    static post(host, path, json = {}) {
-        // TODO async await thingy
-        return "Not Implemented";
+    static async get(host, path, json = {}) {
+      let url = `http://${host}${path}`;
+      
+      let response = await Axios.get(url).catch(function (error) { console.log("GET Error: " + error) });
+      if (response) return response.data;
     }
 
-    static postAsync(host, path, json = {}) {
-        const https = require("https");
-/*
-        const options = {
-          hostname: 'yourapi.com',
-          port: 443,
-          path: '/todos',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': data.length
-          }
-        }
-        
-        https
-          .request(options, resp => {
-            // log the data
-            resp.on("data", d => {
-              process.stdout.write(d);
-            });
-          })
-          .on("error", err => {
-            console.log("Error: " + err.message);
-          });
-
-        const options = {
-            hostname: 'www.google.com',
-            port: 80,
-            path: '/upload',
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(postData),
-            },
-          };
-*/
-       // http.post(url).on("error", (err) => { console.log("postAsync Error: " + err.message);});
-    }
-
-    static get(host, path) {
-        let url = `http://${host}${path}`;
-        // TODO async await thingy
-        return "Not Implemented";
-    }
-
-    static getAsync(host, path) {
-        let url = `http://${host}${path}`;
-        http.get(url).on("error", (err) => { console.log("getAsync Error: " + err.message);});
+    static async post(host, path, json = {}) {
+      let url = `http://${host}${path}`;
+      let response = await Axios.post(url, json).catch(function (error) { console.log("POST Error: " + error) });
+      if (response) return response.data;
     }
 
     static hexToRGB(hex) {

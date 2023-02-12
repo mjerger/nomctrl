@@ -136,7 +136,7 @@ function execute (cmd = "") {
         
         // COLOR is optional
         if (arg && (arg.match(tokens.RGB) || arg.match(tokens.HEX))) {
-            let color = Config.getRGB(arg);
+            var color = Config.getRGB(arg);
             arg = next(args)
             nodes.forEach(n => {
                 let name = n.device;
@@ -154,7 +154,7 @@ function execute (cmd = "") {
             
         // allow brightness percentage and on/off commands
         if (arg) {
-            let percent = 100;
+            var percent = color ? color.map(v => v/2.5).reduce((a,b) => a+b, 0) / 3 : null;
             if (arg.match(tokens.PERCENT)) {
                 percent = parseInt(arg);
                 if (percent < 0 || percent > 100)
@@ -169,25 +169,37 @@ function execute (cmd = "") {
             }
 
             // set brightness on all nodes
-            nodes.forEach(n => {
-                let name = n.device;
-                let device = devices.list[name];
+            if (percent !== null) {
+                percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
-                // set brightness only if device supports it; try to use on/off alternatively
-                if (device.has("brightness")) {
-                    device.brightness(percent);
-                    done = true;
-                } else if (percent >= Config.ctrl().brightness_threshold && device.has("on")) {
-                    device.on();
-                    done = true;
-                } else if (percent < Config.ctrl().brightness_threshold && device.has("off")) {
-                    device.off();
-                    done = true;
-                } else if (nodes.length == 1) {
-                    errors.push(`Device ${name} does not support brightness control.`);
-                }
+                nodes.forEach(n => {
+                    let name = n.device;
+                    let device = devices.list[name];
 
-            });
+                    // set brightness if device supports it
+                    if (device.has("brightness")) {
+                        device.brightness(percent);
+                        done = true;
+
+                        // additionally set on/off
+                        if (percent == 100 && device.has("on"))  device.on();
+                        if (percent == 0   && device.has("off")) device.off();
+
+                    // no brightness, but has "on": use threshold
+                    } else if (percent >= Config.ctrl().brightness_threshold && device.has("on")) {
+                        device.on();
+                        done = true;
+
+                    // no brightness, but has "off": use threshold
+                    } else if (percent < Config.ctrl().brightness_threshold && device.has("off")) {
+                        device.off();
+                        done = true;
+
+                    } else if (nodes.length == 1) {
+                        errors.push(`Device ${name} does not support brightness control.`);
+                    }
+                });
+            }
         }
 
         if (errors.length > 0)
