@@ -140,11 +140,11 @@ async function execute (cmd = "") {
         }
         
         // COLOR is optional
-        if (arg && (arg.match(tokens.RGB) || arg.match(tokens.HEX))) {
-            var color = Config.getRGB(arg);
+        let color = Config.getRGB(arg);
+        if (arg && color) {
             arg = next(args)
             for await (let node of nodes) {
-                let name = ndoe.device;
+                let name = node.device;
                 let device = devices.list[name];
 
                 // set rgb only if device supports it
@@ -159,7 +159,7 @@ async function execute (cmd = "") {
             
         // allow brightness percentage and on/off commands
         if (arg) {
-            var percent = color ? color.map(v => v/2.5).reduce((a,b) => a+b, 0) / 3 : null;
+            let percent = color ? color.map(v => v/2.5).reduce((a,b) => a+b, 0) / 3 : null;
             if (arg.match(tokens.PERCENT)) {
                 percent = parseInt(arg);
                 if (percent < 0 || percent > 100)
@@ -178,7 +178,7 @@ async function execute (cmd = "") {
                 percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
                 for await (let node of nodes) {
-                    let name = n.device;
+                    let name = node.device;
                     let device = devices.list[name];
 
                     // set brightness if device supports it
@@ -224,13 +224,13 @@ async function execute (cmd = "") {
 // HELPERS
 
 function jsonError(messages) {
-    return JSON.stringify({"error" : message});
+    return JSON.stringify({"error" : messages});
 }
 
 function jsonWarning(messages) {
-    return JSON.stringify({"warning" : message});
+    return JSON.stringify({"warning" : messages});
 }
 
-function jsonInfo(message) {
-    return JSON.stringify({"info" : message});
+function jsonInfo(messages) {
+    return JSON.stringify({"info" : messages});
 }
