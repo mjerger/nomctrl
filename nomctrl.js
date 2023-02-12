@@ -60,7 +60,7 @@ async function execute (cmd = "") {
         ON      : /^(on|true|yes|bright|full|max.*|ein|an)$/,
         OFF     : /^(off|false|no|none|aus|min.*)$/,
         FLIP    : /^(flip|toggle)$/,
-        PERCENT : /^(\d{2}|100|0+)%?$/,
+        PERCENT : /^(\d|\d{2}|100|0+)%?$/,
         VALUE   : /^\d+/,
         RGB     : /^\(\d+,\d+,\d+\)$/,
         HEX     : /^\#?[0-9a-fA-F]{6}$/
