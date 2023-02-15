@@ -1,7 +1,11 @@
 # nomctrl
 
 ## TODO
-- Actions
+- cmd: "set .. for 5m"
+- cmd: "fade hallway 100.. over 3s for 5m"
+- handle dependent nodes
+- cancel out conflicting device states when chaining dos
+- detect circular group definitions
 - Triggers
 - Timers
   * on/off

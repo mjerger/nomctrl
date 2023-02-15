@@ -71,7 +71,7 @@ async function execute (cmd = "") {
     let args = cmd.split(/\s+/).filter(a => a);
     let arg = next(args);
     if (!arg)
-        return "Error: empty command";
+        return jsonError("empty command");
     
     // STATUS
     if (arg.match(commands.STATUS)) {
@@ -81,7 +81,7 @@ async function execute (cmd = "") {
         if (!arg) {
             let result = {};
             for await (let device of Config.devices()) {
-                result[device.name] = await devices.list[device.name].status();
+                result[device.id] = await devices.list[device.id].status();
             }
             return result;
         }
@@ -95,14 +95,28 @@ async function execute (cmd = "") {
         if (nodes.length > 0)
             return nodes.map(n => devices.list[n.device].status());
 
-        return jsonError(`Error: ${arg} is neither a known device nor a known node`);
+        return jsonError(`"${arg}" is neither a known device nor a known node`);
 
     // DO
     } else if (arg.match(commands.DO)) {
-        while (action = Config.getAction(arg = next(args))) {
-            action.trigger();
-            done = true;
-        } 
+        arg = next(args)
+        while (arg) {
+            let action = Config.actions().find(a => a.id === arg);
+            if (!action)
+                return jsonError(`Action "${arg}" not found.`)
+
+            let cmds = action.do;
+            if (cmds.constructor == [].constructor) {
+                for (let i in cmds) {
+                    await execute(cmds[i]);
+                    done = true;
+                }
+            } else {
+                await execute(cmds);
+                done = true;
+            }
+            arg = next(args);
+        }
 
     // GET
     } else if (arg.match(commands.GET)) {
@@ -123,7 +137,7 @@ async function execute (cmd = "") {
         } 
 
         if (nodes.length == 0)
-            return "Error: No nodes found."
+            return jsonError("No nodes found.");
         
         // ON / OFF / FLIP
         if (arg && (arg.match(tokens.ON) || arg.match(tokens.OFF) || arg.match(tokens.FLIP) )) {
@@ -133,37 +147,43 @@ async function execute (cmd = "") {
                     await device.set(arg);
                     done = true;
                 } else if (nodes.length == 1) {
-                    errors.push(`Device ${device.name} of type ${device.type} has no setter ${arg}.`);
+                    errors.push(`Device ${device.id} of type ${device.type} has no setter ${arg}.`);
                 }
             };
             arg = next(args)
         }
         
-        // COLOR is optional
-        let color = Config.getRGB(arg);
-        if (arg && color) {
-            arg = next(args)
-            for await (let node of nodes) {
-                let name = node.device;
-                let device = devices.list[name];
-
-                // set rgb only if device supports it
-                if (device.has("rgb")) {
-                    await device.rgb(color);
-                    done = true;
-                } else if (nodes.length == 1) { 
-                    errors.push(`Device ${name} of type ${device.type} does not support RGB.`);
-                }
-            };
-        }
-            
-        // allow brightness percentage and on/off commands
+        // COLOR arg is optional
+        let color;
         if (arg) {
-            let percent = color ? color.map(v => v/2.5).reduce((a,b) => a+b, 0) / 3 : null;
+            color = Config.getRGB(arg);
+            if (color) {
+                arg = next(args)
+                for await (let node of nodes) {
+                    let id = node.device;
+                    let device = devices.list[id];
+
+                    // set rgb only if device supports it
+                    if (device.has("rgb")) {
+                        await device.rgb(color);
+                        // also turn on if cmd has no more args
+                        if (!arg)
+                            await device.on();
+                        done = true;
+                    } else if (nodes.length == 1) { 
+                        errors.push(`Device ${id} of type ${device.type} does not support RGB.`);
+                    }
+                }
+            }
+        }
+        
+        // allow brightness percentage and on/off commands
+        if (arg)  {
+            var percent;
             if (arg.match(tokens.PERCENT)) {
                 percent = parseInt(arg);
                 if (percent < 0 || percent > 100)
-                    errors.push(`Brightness must be a value between 0 and 100`)
+                    errors.push(`Brightness must be a value between 0 and 100.`)
                 arg = next(args);
             } else if (arg.match(tokens.ON)) {
                 percent = 100;
@@ -171,15 +191,17 @@ async function execute (cmd = "") {
             } else if (arg.match(tokens.OFF)) {
                 percent = 0;
                 arg = next(args);
+            } else {
+                errors.push(`Unknown argument "${arg}`);
             }
 
             // set brightness on all nodes
-            if (percent !== null) {
+            if (percent) {
                 percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
                 for await (let node of nodes) {
-                    let name = node.device;
-                    let device = devices.list[name];
+                    let id = node.device;
+                    let device = devices.list[id];
 
                     // set brightness if device supports it
                     if (device.has("brightness")) {
@@ -201,21 +223,21 @@ async function execute (cmd = "") {
                         done = true;
 
                     } else if (nodes.length == 1) {
-                        errors.push(`Device ${name} does not support brightness control.`);
+                        errors.push(`Device ${id} does not support brightness control.`);
                     }
                 };
             }
         }
 
         if (errors.length > 0)
-            return error(errors);
+            return jsonError(errors);
     }
 
     if (arg)
         return jsonWarning(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
     if (!done)
-        return jsonWarning("Nothing to do");
+        return jsonWarning("Nothing to do.");
 
     return jsonInfo("success");
 }

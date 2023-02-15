@@ -11,14 +11,14 @@ class Config {
     static actions() { return config.actions; }
     static timers()  { return config.timers;  }
 
-    // recursively find all nodes in groups belonging to name
-    static findNodes(name) {
+    // recursively find all nodes in groups belonging to id
+    static findNodes(id) {
 
         // recursive find, may return null, node, [node], or [node, node, ..], [node, null, ...]
-        function find(name) {
+        function find(id) {
 
             // go down into groups
-            let group = config.groups.find(g => g.name === name);
+            let group = config.groups.find(g => g.id === id);
             if (group) {
                 let nodes = [];
 
@@ -46,7 +46,7 @@ class Config {
             }
 
             // at the end, everything must be a node
-            let node = config.nodes.find(n => n.name === name);
+            let node = config.nodes.find(n => n.id === id);
             if (node)
                 return node;
 
@@ -54,7 +54,7 @@ class Config {
             return false;
         }
 
-        let nodes = find(name);
+        let nodes = find(id);
 
         // flatten and remove not found nodes
         nodes = [nodes].flat();
@@ -63,10 +63,10 @@ class Config {
     }
 
     // get defined colors as RGB
-    static getRGB(name) {
+    static getRGB(str) {
         
         // try to find it in config
-        let color = config.colors.find(c => c.name === name);
+        let color = config.colors.find(c => c.id === str);
         if (color) {
             if (color.rgb) 
                 return color.rgb
@@ -75,7 +75,7 @@ class Config {
         }
 
         // try raw hex value
-        if (color = Utils.hexToRGB(name))
+        if (color = Utils.hexToRGB(str))
             return color;
 
         // not found

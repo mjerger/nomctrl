@@ -14,15 +14,15 @@ class Utils {
     }
 
     static hexToRGB(hex) {
-        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        if (!result) {
-            console.error(`Invalid hex color ${hex}`);
+        let parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (!parsed) {
+          console.error(`Invalid hex color ${hex}`);
             return null;
         }
 
-        let r = parseInt(result[1], 16);
-        let g = parseInt(result[2], 16);
-        let b = parseInt(result[3], 16);
+        let r = parseInt(parsed[1], 16);
+        let g = parseInt(parsed[2], 16);
+        let b = parseInt(parsed[3], 16);
         return [r,g,b];
     }
 }

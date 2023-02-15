@@ -55,7 +55,7 @@ class HttpDevice extends Device {
 const drivers = {
     "tasmota" : class Tasmota extends HttpDevice {
                     constructor(config) { 
-                        super("tasmota", config.name, config.host);
+                        super("tasmota", config.id, config.host);
                     }
                     
                     async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
@@ -66,7 +66,7 @@ const drivers = {
                 
     "wled"    : class WLED extends HttpDevice {
                     constructor(config)  { 
-                        super("wled", config.name, config.host);
+                        super("wled", config.id, config.host);
                         this.setter.push(this.rgb.name, 
                                          this.brightness.name);
                     }
@@ -91,9 +91,9 @@ class Devices
     constructor() {
         Config.devices().forEach( cfg => {
             if (!cfg.type in drivers) {
-                console.error(`Config Error: Device ${cfg.name} has unknown device type ${cfg.type}.`);
+                console.error(`Config Error: Device ${cfg.id} has unknown device type ${cfg.type}.`);
             } else {
-                this.list[cfg.name] = new drivers[cfg.type](cfg);
+                this.list[cfg.id] = new drivers[cfg.type](cfg);
             }
         });
     }
