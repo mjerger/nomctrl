@@ -31,10 +31,13 @@ app.get("/cmd/:cmd", async (req, res) => {
     res.send(await execute(req.params.cmd));
 });
 
-app.post("/do/:action", async (req, res) => {
-    res.send(await execute(`do ${req.params.action}`));
+app.post("/do", async (req, res) => {
+    res.send(await execute(`do ${req.body}`));
  });
 
+app.get("/do/:action", async (req, res) => {
+    res.send(await execute(`do ${req.params.action}`));
+ });
 
 // COMMANDS
 
@@ -45,8 +48,70 @@ const commands = {
     SET    : 'set',         // set something on nodes
 }
 
-// executes one command
-async function execute (cmd = "") {
+// does command a override command b?
+function overrides(a, b) {
+    // same command
+    if (a === b) return true;
+
+    // off/on/flip has prio
+    if (a in ["on", "off", "flip"] && b in ["on", "off", "flip"]) {
+        return true;
+    }
+
+    return false;
+}
+
+async function execute(cmds) {
+
+    // make into list
+    if (typeof cmds === "string") {
+        if (cmds.indexOf(";") > -1)
+            cmds = cmds.split(/;/);
+        else
+            cmds = [cmds];
+    }
+
+    // parse all cmds into todos
+    let to_execute = [];
+    let errors = [];
+    for (let cmd of cmds) {
+        let [todo, e] = parse_cmd(cmd);
+        to_execute = to_execute.concat(todo);
+        errors = errors.concat(e);
+    }
+
+    // conflict filter:: last command in list overrides previous commands
+    if (to_execute.length > 1) {
+        for (let i = 0; i < to_execute.length-1; i++) {
+            for (let j = i+1; j < to_execute.length; j++) {
+                // same device
+                if (to_execute[i][0] === to_execute[j][0]) {
+                    // next command in list overrides previous one
+                    if (overrides(to_execute[j][1], to_execute[i][1])) {
+                        to_execute.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // execute everything
+    for await (let todo of to_execute) {
+        if (todo.length == 2)
+            devices.list[todo[0]][todo[1]]();
+        else if (todo.length == 3)
+            devices.list[todo[0]][todo[1]](todo[2]);
+    }
+
+    if (errors.length > 0)
+        return jsonError(errors);
+
+    return jsonInfo("success");
+}
+
+// parse one command
+function parse_cmd (cmd = "") {
 
     function next(list = []) {
         if (!list)
@@ -66,12 +131,13 @@ async function execute (cmd = "") {
         HEX     : /^\#?[0-9a-fA-F]{6}$/
     }
 
-    let done = false;
-
     let args = cmd.split(/\s+/).filter(a => a);
     let arg = next(args);
     if (!arg)
         return jsonError("empty command");
+
+    let todo = [];
+    let errors = [];
     
     // STATUS
     if (arg.match(commands.STATUS)) {
@@ -79,23 +145,26 @@ async function execute (cmd = "") {
 
         // status of all devices
         if (!arg) {
-            let result = {};
-            for await (let device of Config.devices()) {
-                result[device.id] = await devices.list[device.id].status();
+            for (let device of Config.devices()) {
+                todo.push([device.id, "status"]);
             }
-            return result;
         }
 
         // status of a single device
         if (arg in devices.list)
-            return devices.list[arg].status();
+            todo.push([arg, "status"]);
         
         // status of nodes
         let nodes = Config.findNodes(arg);
         if (nodes.length > 0)
-            return nodes.map(n => devices.list[n.device].status());
+            todo = nodes.map(n => [n.device, "status"]);
 
-        return jsonError(`"${arg}" is neither a known device nor a known node`);
+        // nothing found
+        if (todo.length == 0) {
+            errors.push(`"${arg}" is neither a known device nor a known node`);
+        }
+
+        return [todo, errors];
 
     // DO
     } else if (arg.match(commands.DO)) {
@@ -103,20 +172,24 @@ async function execute (cmd = "") {
         while (arg) {
             let action = Config.actions().find(a => a.id === arg);
             if (!action)
-                return jsonError(`Action "${arg}" not found.`)
+                errors.push(`Action "${arg}" not found.`);
 
             let cmds = action.do;
             if (cmds.constructor == [].constructor) {
-                for (let i in cmds) {
-                    await execute(cmds[i]);
-                    done = true;
+                for (let cmd of cmds) {
+                    let [t,e] = parse_cmd(cmd);
+                    todo = todo.concat(t);
+                    errors = errors.concat(e);
                 }
             } else {
-                await execute(cmds);
-                done = true;
+                let [t,e]= parse_cmd(cmd);
+                todo = todo.concat(t);
+                errors = errors.concat(e);
             }
             arg = next(args);
         }
+        
+        return [todo, errors];
 
     // GET
     } else if (arg.match(commands.GET)) {
@@ -124,8 +197,6 @@ async function execute (cmd = "") {
         
     // SET
     } else if (arg.match(commands.SET)) {
-
-        let errors = [];
 
         // read args until its not a node or group
         let nodes = [];
@@ -136,16 +207,17 @@ async function execute (cmd = "") {
             nodes = nodes.concat(nodesForArg.filter(n => n !== null))
         } 
 
-        if (nodes.length == 0)
-            return jsonError("No nodes found.");
+        if (nodes.length == 0) {
+            errors.push("No nodes found.");
+            return [todo, errors];
+        }
         
         // ON / OFF / FLIP
         if (arg && (arg.match(tokens.ON) || arg.match(tokens.OFF) || arg.match(tokens.FLIP) )) {
-            for await (let node of nodes) {
+            for (let node of nodes) {
                 let device = devices.list[node.device];
                 if (device.has(arg)) {
-                    await device.set(arg);
-                    done = true;
+                    todo.push([node.device, arg])
                 } else if (nodes.length == 1) {
                     errors.push(`Device ${device.id} of type ${device.type} has no setter ${arg}.`);
                 }
@@ -159,17 +231,16 @@ async function execute (cmd = "") {
             color = Config.getRGB(arg);
             if (color) {
                 arg = next(args)
-                for await (let node of nodes) {
+                for (let node of nodes) {
                     let id = node.device;
                     let device = devices.list[id];
 
                     // set rgb only if device supports it
                     if (device.has("rgb")) {
-                        await device.rgb(color);
+                        todo.push([id, "rgb", color]);
                         // also turn on if cmd has no more args
                         if (!arg)
-                            await device.on();
-                        done = true;
+                            todo.push([id, "on"])
                     } else if (nodes.length == 1) { 
                         errors.push(`Device ${id} of type ${device.type} does not support RGB.`);
                     }
@@ -177,7 +248,7 @@ async function execute (cmd = "") {
             }
         }
         
-        // allow brightness percentage and on/off commands
+        // BRIGHTNESS percentage and on/off commands
         if (arg)  {
             var percent;
             if (arg.match(tokens.PERCENT)) {
@@ -199,28 +270,25 @@ async function execute (cmd = "") {
             if (percent) {
                 percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
-                for await (let node of nodes) {
+                for (let node of nodes) {
                     let id = node.device;
                     let device = devices.list[id];
 
                     // set brightness if device supports it
                     if (device.has("brightness")) {
-                        await device.brightness(percent);
-                        done = true;
+                        todo.push([id, "brightness", percent]);
 
                         // additionally set on/off
-                        if (percent == 100 && device.has("on"))  device.on();
-                        if (percent == 0   && device.has("off")) device.off();
+                        if (percent == 100 && device.has("on"))  todo.push([id, "on"]);
+                        if (percent == 0   && device.has("off")) todo.push([id, "off"]);
 
                     // no brightness, but has "on": use threshold
                     } else if (percent >= Config.ctrl().brightness_threshold && device.has("on")) {
-                        await device.on();
-                        done = true;
+                        todo.push([id, "on"]);
 
                     // no brightness, but has "off": use threshold
                     } else if (percent < Config.ctrl().brightness_threshold && device.has("off")) {
-                        await device.off();
-                        done = true;
+                        todo.push([id, "off"]);
 
                     } else if (nodes.length == 1) {
                         errors.push(`Device ${id} does not support brightness control.`);
@@ -229,17 +297,12 @@ async function execute (cmd = "") {
             }
         }
 
-        if (errors.length > 0)
-            return jsonError(errors);
     }
-
+        
     if (arg)
-        return jsonWarning(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
+        errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
-    if (!done)
-        return jsonWarning("Nothing to do.");
-
-    return jsonInfo("success");
+    return [todo, errors];
 }
 
 
