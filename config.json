@@ -26,21 +26,21 @@
     "nodes" : [
         { "id" : "strings"    , "device" : "s1", "class" : "light"},
         { "id" : "plants"     , "device" : "s2", "class" : "light" },
-        { "id" : "stuff-power", "device" : "s3", "class" : "power" },
-        { "id" : "media-power", "device" : "s4", "class" : "power" },
+        { "id" : "lego"       , "device" : "s3", "class" : "power" },
+        { "id" : "amp"        , "device" : "s4", "class" : "power" },
         { "id" : "grow"       , "device" : "s5", "class" : "light" },
-        { "id" : "grow-high"  , "device" : "s6", "class" : "light", "parent" : "grow" },
+        { "id" : "divider"    , "device" : "s6", "class" : "light"},
 
         { "id" : "desk"       , "device" : "w-desk" , "class" : "light" },
-        { "id" : "stuff"      , "device" : "w-stuff", "class" : "light", "parent" : "stuff-power" },
-        { "id" : "tv-light"   , "device" : "w-tv"   , "class" : "light", "parent" : "media-power" },
+        { "id" : "lego-light" , "device" : "w-stuff", "class" : "light", "parent" : "lego" },
+        { "id" : "tv-light"   , "device" : "w-tv"   , "class" : "light"},
         { "id" : "sleep"      , "device" : "w-sleep", "class" : "light" },
 
-        { "id" : "nomframe"    , "device" : "nn-nomframe", "class" : "light"}
+        { "id" : "nomframe"    , "device" : "nn-nomframe", "class" : "light", "parent" : "divider"}
     ],
 
     "groups" : [
-        { "id" : "living"   , "nodes"  : [ "desk", "strings", "plants", "stuff", "tv-light", "nomframe" ] },
+        { "id" : "living"   , "nodes"  : [ "desk", "strings", "plants", "lego", "lego-light", "tv-light", "divider", "nomframe", "amp" ] },
         { "id" : "bed"      , "nodes"  : [ "sleep" ] },
         { "id" : "kitchen"  , "nodes"  : [ ] },
         { "id" : "bath"     , "nodes"  : [ ] },
