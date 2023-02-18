@@ -18,7 +18,9 @@
         { "id" : "w-desk" , "type" : "wled", "host" : "wled-desk" },
         { "id" : "w-stuff", "type" : "wled", "host" : "wled-stuff" },
         { "id" : "w-tv"   , "type" : "wled", "host" : "wled-tv" },
-        { "id" : "w-sleep", "type" : "wled", "host" : "wled-sleep" }
+        { "id" : "w-sleep", "type" : "wled", "host" : "wled-sleep" },
+
+        { "id" : "nn-nomframe", "type" : "nomframe", "host" : "nomframe" }
     ],
 
     "nodes" : [
@@ -32,7 +34,9 @@
         { "id" : "desk"       , "device" : "w-desk" , "class" : "light" },
         { "id" : "stuff"      , "device" : "w-stuff", "class" : "light", "parent" : "stuff-power" },
         { "id" : "tv-light"   , "device" : "w-tv"   , "class" : "light", "parent" : "media-power" },
-        { "id" : "sleep"      , "device" : "w-sleep", "class" : "light" }
+        { "id" : "sleep"      , "device" : "w-sleep", "class" : "light" },
+
+        { "id" : "nomframe"    , "device" : "nn-nomframe", "class" : "light"}
     ],
 
     "groups" : [

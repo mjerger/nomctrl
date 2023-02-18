@@ -83,6 +83,21 @@ const drivers = {
                     async rgb(color)          { return this.set("rgb", color); }
                     async brightness(percent) { return this.set("brightness", percent); }
                 },
+
+    "nomframe" : class NomFrame extends HttpDevice {
+                    constructor(config) { 
+                        super("nomframe", config.id, config.host);
+                        this.setter.push(this.brightness.name);
+                    }
+                    async get_status()             { return "NOT IMPLEMENTED"; }
+                    async set_on    ()             { return Utils.get(this.host, "/r/on") }
+                    async set_off   ()             { return Utils.get(this.host, "/r/off") }
+                    async set_flip  ()             { return Utils.get(this.host, "/r/flip") }
+                    async set_brightness (percent) { return Utils.get(this.host, "/r/brightness?val=" + percent) }
+
+                    // helpers
+                    async brightness(percent) { return this.set("brightness", percent); }
+                },                
 }
 
 class Devices
