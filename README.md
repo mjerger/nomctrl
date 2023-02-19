@@ -7,7 +7,6 @@
 - detect circular group definitions
 - Triggers
 - Timers
-  * on/off
   * fading brightness + color
   * timer commands
 - Node status json format
