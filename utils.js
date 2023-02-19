@@ -59,10 +59,13 @@ class Utils {
         return list[closest];
     }
 
-
-    static jsonError(messages)   { return JSON.stringify({"error"   : messages}) }
-    static jsonWarning(messages) { return JSON.stringify({"warning" : messages}) }
-    static jsonInfo(messages)    { return JSON.stringify({"info"    : messages}) }
+    static next(list = []) {
+      if (!list)
+          return null;
+      let item = list[0];
+      list.shift()
+      return item;
+  }
 
 }
 

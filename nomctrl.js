@@ -1,18 +1,34 @@
-const Config  = require('./config.js');
-const Timers  = require('./timers.js');
-const Commands  = require('./commands.js');
-
-const timers  = new Timers();
+const Config   = require('./config.js');
+const Devices  = require('./devices.js');
+const Nodes    = require('./nodes.js');
+const Timers   = require('./timers.js');
+const Commands = require('./commands.js');
 
 const express = require("express");
 const app = express();
 
-// ROUTES
+// STARTUP
 
 app.listen(Config.app().port, function () {
-    timers.start();
+
+    console.log ("Loading config");
+
+    let success = Config.validate();
+    if (!success) process.exit(-1);
+
+    Devices.load(Config.devices());
+    Nodes.load(Config.nodes(), Config.groups());
+    Timers.load(Config.timers());
+
+    Devices.start();
+    Timers.start();
+
+    console.log(Nodes.groups);
     console.log(`nomctrl listening on port ${Config.app().port}!`);
 });
+
+
+// ROUTES
 
 app.get("/", async (req, res) => {
     res.send("nomctrl up");

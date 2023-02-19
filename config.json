@@ -11,7 +11,8 @@
             "lat"     : "48.78",
             "long"    : "9.18"
         },
-        "timer_seconds" : 60
+        "timer_interval_seconds" : 60,
+        "device_monitor_seconds" : 10
     },
 
     "devices" : [
@@ -53,7 +54,9 @@
         { "id" : "bath"     , "nodes"  : [ ] },
         { "id" : "toilet"   , "nodes"  : [ ] },
         { "id" : "hallway"  , "nodes"  : [ ] },
-        { "id" : "apartment", "groups" : [ "living", "bed", "kitchen", "bath", "toilet", "hallway" ] }
+        { "id" : "apartment", "groups" : [ "living", "bed", "kitchen", "bath", "toilet", "hallway" ] },
+
+        { "id" : "test1", "groups" : "test2"}
     ],
 
     "colors" : [

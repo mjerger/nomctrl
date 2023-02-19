@@ -44,32 +44,48 @@ class Timer {
 
 class Timers
 {
-    list = {};
+    static timers = {};
 
-    constructor() {
-        Config.timers().forEach( timer => {
-            if (timer.id in this.list) {
-                if ("node" in timer && this.list[timer.id].node === timer.node) {
-                    this.list[timer.id].merge(timer);
+    static load(cfg_timers, cfg_actions) {
+        console.log ("Loading timers...");
+        Timers.timers = {};
+        let error = false;
+
+        // Timer definitions
+        for (let cfg of cfg_timers) {
+            let id = cfg.id
+            if (id in Timers.timers) {
+                if ("node" in cfg && Timers.timers[id].node === cfg.node) {
+                    Timers.timers[id].merge(cfg);
                 } else {
-                    console.log(`Config Error: incompatible timer configuration on timer "${timer.id}"`);
+                    console.log(`Config Error: incompatible timer configuration on timer "${id}"`);
+                    error = true;
                 }
             } else {
-                this.list[timer.id] = new Timer(timer);
+                Timers.timers[id] = new Timer(cfg);
             }
-        });
+        }
+
+        // Actions with timers
+        // TODO
+
+        return error;
     }
 
-    async start() {
+    static get(id) {
+        return Timer.timers[id];
+    }
+
+    static async start() {
         console.log ("Starting timers");
-        this.tick();
+        Timers.tick();
     }
 
-    async tick() {
-        setTimeout(this.tick.bind(this), /* JS is weird */ Config.ctrl().timer_seconds * 1000);
+    static async tick() {
+        setTimeout(this.tick.bind(this), /* JS is weird */ Config.ctrl().timer_interval_seconds * 1000);
 
         // execute strict timers
-        for (const [id, timer] of Object.entries(this.list)) {
+        for (const [id, timer] of Object.entries(Timers.timers)) {
             if (!timer.strict)
                 continue;
             

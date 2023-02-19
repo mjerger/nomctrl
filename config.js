@@ -6,73 +6,38 @@ class Config {
     static app()     { return config.app;     }
     static ctrl()    { return config.ctrl;    }
     static devices() { return config.devices; }
-    static groups()  { return config.groups;  }
     static nodes()   { return config.nodes;   }
+    static groups()  { return config.groups;  }
     static actions() { return config.actions; }
     static timers()  { return config.timers;  }
+    static colors()  { return config.colors;  }
 
-    // recursively find all nodes in groups belonging to id
-    static findNodes(id, opts={}) {
-
-        // recursive find, may return null, node, [node], or [node, node, ..], [node, null, ...]
-        function find(id, opts={}) {
-
-            // go down into groups
-            let group = config.groups.find(g => g.id === id);
-            if (group) {
-                let nodes = [];
-
-                // group of groups
-                if (group.groups) {
-                    nodes = nodes.concat(group.groups.map(g => {let nodes = find(g, opts);
-                                                                if ([nodes].flat().includes(false))
-                                                                    console.error(`Config Error: group ${group} contains invalid group ${g}`);
-                                                                return nodes; })
-                                                     .flat()
-                                                     .filter(n => n !== false));
-                }
-
-                // groups of nodes
-                if (group.nodes) {
-                    nodes = nodes.concat(group.nodes.map(n => {let nodes = find(n, opts);
-                                                               if ([nodes].flat().includes(false))
-                                                                   console.error(`Config Error: group ${group} contains invalid node ${n}`);
-                                                               return nodes; })
-                                                    .flat()
-                                                    .filter(n => n !== false));
-                }
-
-                return nodes;
+    static validate() {
+        
+        // unique ids for devices, nodes, groups and colors
+        let ids = new Set();
+        let unique = true;
+        function check(item) { 
+            if(ids.has(item.id)) {
+                unique = false;
+                console.log(`Config Error: duplicate id ${item.id}`);
+            } else {
+                ids.add(item.id);
             }
-
-            // at the end, everything must be a node
-            let node = config.nodes.find(n => n.id === id);
-            if (node) {
-                // don't include strictly timer controlled nodes
-                if (!("include_timed" in opts)) {
-                    if (config.timers.find(t => t.node == id && t.strict && t.strict === true))
-                        return false;
-                }
-                return node;
-            }
-                
-
-            // nothing not found
-            return false;
         }
 
-        let nodes = find(id, opts);
+        this.devices().forEach(check);
+        this.nodes  ().forEach(check);
+        this.groups ().forEach(check);
+        this.colors ().forEach(check);
 
-        // flatten and remove not found nodes
-        nodes = [nodes].flat();
-        
-        return nodes;
+        return unique;
     }
 
     // get defined colors as RGB
-    static getRGB(str) {
+    static toColor(str) {
 
-        // aliase resolver
+        // alias resolver
         function resolve(color) {
             if (color.color) 
                 return resolve(config.colors.find(c => c.id === color.color));

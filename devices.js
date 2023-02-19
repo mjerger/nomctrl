@@ -2,65 +2,62 @@ const Config  = require('./config.js');
 const Utils   = require('./utils.js');
 
 class Device {
-    setter = [ "on", "off", "flip" ];
-    getter = [ "status" ];
+    setter = [];
+    getter = [];
+    
+    has(attr)    { return this.setter.includes(attr) || this.getter.includes(attr); }
+    hasSet(attr) { return this.setter.includes(attr); }
+    hasGet(attr) { return this.getter.includes(attr); }
 
-    constructor(type, name) { 
-        this.type = type;
-        this.name = name;
+    online = false;
+    last_seen = 0;
+    state = {};
+
+    constructor(cfg_device, is_multi_node = false) { 
+        this.id   = cfg_device.id;
+        this.type = cfg_device.type;
+        this.name = cfg_device.name;
+        this.is_multi_node = is_multi_node;
     }
 
-    has(action)    { return this.setter.includes(action) || this.getter.includes(action); }
-    hasSet(action) { return this.setter.includes(action); }
-    hasGet(action) { return this.getter.includes(action); }
+    async get(attr) {
+        return this.get_n(null, attr);
+    }
 
-    async set(action, val) { 
-        if (val)
-            console.log(`set ${this.name} ${action} ${val}`);
-        else 
-            console.log(`set ${this.name} ${action}`);
+    async set(attr, val) {
+        return this.set_n(null, attr, val);
+    }
 
-        if (this.hasSet(action)) 
+    async call(node, prefix, attr, val) {
+        if (node) {
             if (val !== undefined)
-                return this["set_" + action](val);
+                return this[prefix + "_" + attr](node, val);
             else
-                return this["set_" + action]();
-
-        console.error(`Device ${this.name} of type ${this.type} has no setter "${action}"`);
+                return this[prefix + "_" + attr](node);
+        } else {
+            if (val !== undefined)
+                return this[prefix + "_" + attr](val);
+            else
+                return this[prefix + "_" + attr]();
+        }
     }
 
-    async get(action) { 
-        console.log(`get ${this.name} ${action}`);
-
-        if (this.hasGet(action))
-            return this["get_" + action]();
-
-        console.error(`Device ${this.name} of type ${this.type} has no getter "${action}"`);
-    }
-
-    async do(action, val) {
-        if (this.hasSet(action)) return this.set(action, val);
-        if (this.hasGet(action)) return this.get(action, val);
-    }
-
-    // helpers
-    async status() { return this.get("status"); }
-    async on()     { return this.set("on");     }
-    async off()    { return this.set("off");    }
-    async flip()   { return this.set("flip");   }
 }
 
 class HttpDevice extends Device {
-    constructor(type, name, host) { 
-        super(type, name);
-        this.host = host; 
+    constructor(cfg_device) { 
+        super(cfg_device);
+        this.host = cfg_device.host; 
     }
 }
 
 const drivers = {
     "tasmota" : class Tasmota extends HttpDevice {
                     constructor(config) { 
-                        super("tasmota", config.id, config.host);
+                        super(config);
+
+                        this.setter = ["status", "on", "off", "flip",];
+                        this.getter = ["status", "state"];
                     }
                     
                     async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
@@ -72,51 +69,66 @@ const drivers = {
                 
     "wled"    : class WLED extends HttpDevice {
                     constructor(config)  { 
-                        super("wled", config.id, config.host);
-                        this.setter.push(this.rgb.name, 
-                                         this.brightness.name);
+                        super(config);
+                        this.setter = ["status", "on", "off", "flip", "rgb", "brightness"];
+                        this.getter = ["status", "state", "rgb", "brightness"];
                     }
                     
                     static set_path = "/json/state";
                     async get_status ()            { return Utils.get (this.host, WLED.set_path) }
+                    async get_state  ()            { return Utils.get (this.host, WLED.set_path) }
                     async set_on     ()            { return Utils.post(this.host, WLED.set_path, { "on" : true  }) }
                     async set_off    ()            { return Utils.post(this.host, WLED.set_path, { "on" : false }) }
                     async set_flip   ()            { return Utils.post(this.host, WLED.set_path, { "on" : "t"   }) }
                     async set_rgb    (color)       { return Utils.post(this.host, WLED.set_path, { "seg" : [ { "col" : [color] } ] }) }
                     async set_brightness (percent) { return Utils.post(this.host, WLED.set_path, { "on" : true, "bri" : Math.floor(percent*2.55) }) }
-                    
-                    // helpers
-                    async rgb(color)          { return this.set("rgb", color); }
-                    async brightness(percent) { return this.set("brightness", percent); }
                 },
 
     "nomframe" : class NomFrame extends HttpDevice {
                     constructor(config) { 
                         super("nomframe", config.id, config.host);
-                        this.setter.push(this.brightness.name);
+                        this.setter = ["status", "on", "off", "flip", "brightness"];
+                        this.getter = ["status", "state", "rgb"];
                     }
                     async get_status()             { return "NOT IMPLEMENTED"; }
                     async set_on    ()             { return Utils.get(this.host, "/r/on") }
                     async set_off   ()             { return Utils.get(this.host, "/r/off") }
                     async set_flip  ()             { return Utils.get(this.host, "/r/flip") }
                     async set_brightness (percent) { return Utils.get(this.host, "/r/brightness?val=" + percent) }
-
-                    // helpers
-                    async brightness(percent) { return this.set("brightness", percent); }
                 },                
 }
 
 class Devices
 {
-    list = {};
-    constructor() {
-        Config.devices().forEach( cfg => {
-            if (!cfg.type in drivers) {
-                console.error(`Config Error: Device ${cfg.id} has unknown device type ${cfg.type}.`);
+    static devices = {};
+
+    static load(cfg_devices) {
+        console.log ("Loading devices...");
+        Devices.device = {};
+        let error = false;
+
+        for (let cfg of cfg_devices) {
+            if (cfg.type in drivers) {
+                Devices.devices[cfg.id] = new drivers[cfg.type](cfg);
             } else {
-                this.list[cfg.id] = new drivers[cfg.type](cfg);
+                console.error(`Config Error: Device ${cfg.id} has unknown device type ${cfg.type}.`);
+                error = true;
             }
-        });
+        }
+        
+        return error;
+    }
+
+    static all() {
+        return Object.entries(Devices.devices);
+    }
+
+    static get(id) {
+        return Devices.devices[id];
+    }
+
+    static mark_online(id) {
+        Devices.devices[id].online = true;
     }
 
     static getDriver(type, host) {
@@ -127,32 +139,17 @@ class Devices
         return drivers.includes(type);
     }
 
-    find(nodeOrDeviceid) {
-        let device = this.list[nodeOrDeviceid];
-        if (device)
-            return device;
-        
-        let node = Config.nodes().find(n => n.id === nodeOrDeviceid);
-        if (node && node.device in this.list)
-            return this.list[node.device];
+    static async start() {
+        console.log ("Starting device monitor");
+        Devices.monitor();
     }
 
-    async set(id, action, val) {
-        let device = this.find(id);
-        if (device)
-            return device.set(action, val);
-    }
+    static async monitor() {
+        setTimeout(this.monitor.bind(this), /* JS is weird */ Config.ctrl().device_monitor_seconds * 1000);
 
-    async get(id, action, val) {
-        let device = this.find(id);
-        if (device) 
-            return device.get(action, val);
-    }
-
-    async do(id, action, val) {
-        let device = this.find(id);
-        if (device)
-            return device.do(action, val);
+        // TODO monitoring stuff
+        // 1) get state
+        // 2) set online state, device state, last seen date
     }
 }
 
