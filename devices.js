@@ -1,5 +1,5 @@
-const Utils   = require('./utils.js');
 const Config  = require('./config.js');
+const Utils   = require('./utils.js');
 
 class Device {
     setter = [ "on", "off", "flip" ];
@@ -10,32 +10,37 @@ class Device {
         this.name = name;
     }
 
-    has(id)    { return this.setter.includes(id) || this.getter.includes(id); }
-    hasSet(id) { return this.setter.includes(id); }
-    hasGet(id) { return this.getter.includes(id); }
+    has(action)    { return this.setter.includes(action) || this.getter.includes(action); }
+    hasSet(action) { return this.setter.includes(action); }
+    hasGet(action) { return this.getter.includes(action); }
 
-    async set(id, val) { 
+    async set(action, val) { 
         if (val)
-            console.log(`set ${this.name} ${id} ${val}`);
+            console.log(`set ${this.name} ${action} ${val}`);
         else 
-            console.log(`set ${this.name} ${id}`);
+            console.log(`set ${this.name} ${action}`);
 
-        if (this.setter.includes(id)) 
+        if (this.hasSet(action)) 
             if (val !== undefined)
-                return this["set_" + id](val);
+                return this["set_" + action](val);
             else
-                return this["set_" + id]();
+                return this["set_" + action]();
 
-        console.error(`Device ${this.name} of type ${this.type} has no setter "${id}"`);
+        console.error(`Device ${this.name} of type ${this.type} has no setter "${action}"`);
     }
 
-    async get(id) { 
-        console.log(`get ${this.name} ${id}`);
+    async get(action) { 
+        console.log(`get ${this.name} ${action}`);
 
-        if (this.getter.includes(id))
-            return this["get_" + id]();
+        if (this.hasGet(action))
+            return this["get_" + action]();
 
-        console.error(`Device ${this.name} of type ${this.type} has no getter "${id}"`);
+        console.error(`Device ${this.name} of type ${this.type} has no getter "${action}"`);
+    }
+
+    async do(action, val) {
+        if (this.hasSet(action)) return this.set(action, val);
+        if (this.hasGet(action)) return this.get(action, val);
     }
 
     // helpers
@@ -59,6 +64,7 @@ const drivers = {
                     }
                     
                     async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
+                    async get_state () { return { "state" : (Utils.get(this.host, "/cm?cmnd=status").Status.Power === 1) };}
                     async set_on    () { return Utils.get(this.host, "/cm?cmnd=power+on") }
                     async set_off   () { return Utils.get(this.host, "/cm?cmnd=power+off") }
                     async set_flip  () { return Utils.get(this.host, "/cm?cmnd=power+toggle") }
@@ -118,7 +124,35 @@ class Devices
     }
 
     static hasDriver(type) {
-        return type in drivers;
+        return drivers.includes(type);
+    }
+
+    find(nodeOrDeviceid) {
+        let device = this.list[nodeOrDeviceid];
+        if (device)
+            return device;
+        
+        let node = Config.nodes().find(n => n.id === nodeOrDeviceid);
+        if (node && node.device in this.list)
+            return this.list[node.device];
+    }
+
+    async set(id, action, val) {
+        let device = this.find(id);
+        if (device)
+            return device.set(action, val);
+    }
+
+    async get(id, action, val) {
+        let device = this.find(id);
+        if (device) 
+            return device.get(action, val);
+    }
+
+    async do(id, action, val) {
+        let device = this.find(id);
+        if (device)
+            return device.do(action, val);
     }
 }
 

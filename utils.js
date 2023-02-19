@@ -1,4 +1,6 @@
-const Axios = require('axios')
+const SunCalc = require('./suncalc.js');
+const Axios   = require('axios')
+const config  = require('./config.json');
 
 class Utils {
 
@@ -25,6 +27,43 @@ class Utils {
         let b = parseInt(parsed[3], 16);
         return [r,g,b];
     }
+
+    // parses something like "sunset" or "10:00"
+    static parseTime(string) {
+
+      const sunlight_times = ["sunrise", "sunriseEnd", "sunset", "sunsetEnd", "dusk", "dawn", "night", "nightEnd"];
+
+      // environment
+      if (sunlight_times.includes(string)) {
+        let times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
+        return times[string].getTime();
+      }
+      
+      // time
+      if (string.match(/^\d{1,2}:\d{2}$/)) {
+        let today = new Date().toISOString().split('T')[0];
+        return Date.parse(today + "T" + string);
+      }
+    }
+
+    // find closest time (epoch seconds) in a list that is closest to given time, 
+    // but not after now and return the item of the list with same index
+    static findClosest(times, list, time)
+    {
+        let closest = 0;
+        for (let i=0; i<times.length; i++) {
+            let t = times[i];
+            if (t > time || t < times[closest]) continue;
+            if (t > times[closest]) closest = i;
+        }
+        return list[closest];
+    }
+
+
+    static jsonError(messages)   { return JSON.stringify({"error"   : messages}) }
+    static jsonWarning(messages) { return JSON.stringify({"warning" : messages}) }
+    static jsonInfo(messages)    { return JSON.stringify({"info"    : messages}) }
+
 }
 
 module.exports = Utils;

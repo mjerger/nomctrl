@@ -4,7 +4,14 @@
     },
 
     "ctrl" : {
-        "brightness_threshold" : 50
+        "loc" : { 
+            "lang"    : "en",
+            "country" : "DE",
+            "city"    : "stuttgart",
+            "lat"     : "48.78",
+            "long"    : "9.18"
+        },
+        "timer_seconds" : 60
     },
 
     "devices" : [
@@ -24,19 +31,19 @@
     ],
 
     "nodes" : [
-        { "id" : "strings"    , "device" : "s1", "class" : "light"},
-        { "id" : "plants"     , "device" : "s2", "class" : "light" },
+        { "id" : "strings"    , "device" : "s1"},
+        { "id" : "plants"     , "device" : "s2" },
         { "id" : "lego"       , "device" : "s3", "class" : "power" },
         { "id" : "amp"        , "device" : "s4", "class" : "power" },
-        { "id" : "grow"       , "device" : "s5", "class" : "light" },
-        { "id" : "divider"    , "device" : "s6", "class" : "light"},
+        { "id" : "grow"       , "device" : "s5" },
+        { "id" : "divider"    , "device" : "s6"},
 
-        { "id" : "desk"       , "device" : "w-desk" , "class" : "light" },
-        { "id" : "lego-light" , "device" : "w-stuff", "class" : "light", "parent" : "lego" },
-        { "id" : "tv-light"   , "device" : "w-tv"   , "class" : "light"},
-        { "id" : "sleep"      , "device" : "w-sleep", "class" : "light" },
+        { "id" : "desk"       , "device" : "w-desk"  },
+        { "id" : "lego-light" , "device" : "w-stuff", "parent" : "lego" },
+        { "id" : "tv-light"   , "device" : "w-tv"   },
+        { "id" : "sleep"      , "device" : "w-sleep" },
 
-        { "id" : "nomframe"    , "device" : "nn-nomframe", "class" : "light", "parent" : "divider"}
+        { "id" : "nomframe"    , "device" : "nn-nomframe", "parent" : "divider"}
     ],
 
     "groups" : [
@@ -50,24 +57,30 @@
     ],
 
     "colors" : [
-        { "id" : "evening", "hex" : "#f29a1f" },
-        { "id" : "day"    , "hex" : "#ffe2ab" },
-        { "id" : "morning", "hex" : "#ffefef" },
-        { "id" : "reading", "hex" : "#f29a00" }
+        { "id" : "lime"   , "hex" : "#deff24" },
+        { "id" : "blue"   , "hex" : "#454ef2" },
+        { "id" : "green"  , "hex" : "#00f010" },
+        { "id" : "orange" , "hex" : "#f29a1f" },
+        
+        { "id" : "morning", "color" : "orange"  },
+        { "id" : "day"    , "color" : "lime"    },
+        { "id" : "evening", "color" : "orange"  },
+        { "id" : "reading", "hex"   : "#f29a00" }
     ],
 
     "timers" : [
-        { "id" : "grow", "on" : "10:00", "off" : "22:00", "strict" : true }
+        { "id" : "grow",   "node" : "grow",   "on" : "08:00", "off" : "21:00", "strict" : true },
+        { "id" : "plants", "node" : "plants", "on" : "10:00", "off" : "sunset", "strict" : true }
     ],
 
     "actions" : [
-        { "id" : "morning",                     "do" : [ "set living on morning 50%", "set bed on morning 20%" ] },
-        { "id" : "day"    , "at" : "12:00" ,    "do" : [ "set strings off", "set living day 100", "set bed off" ] },
-        { "id" : "evening", "at" : "env.sunset","do" : [ "set living evening 100%", "set plants off" ] },
-        { "id" : "night"  , "at" : "22:00" ,    "do" : [ "set living 20%", "set bed evening 20%" ] },
-        { "id" : "couch"  ,                     "do" : [ "set living 50%", "set strings off", "set tv stuff evening 100%" ]},
-        { "id" : "bed"    ,                     "do" : [ "set apartment off", "set bed reading" ]},
-        { "id" : "sleep"  ,                     "do" : "set apartment off"},
+        { "id" : "morning",                  "do" : [ "set living on day 50%", "set bed on morning 20%" ] },
+        { "id" : "day"    , "at" : "12:00" , "do" : [ "set living on day 100", "set strings off", "set bed off" ] },
+        { "id" : "evening", "at" : "sunset", "do" : [ "set living on evening 100%" ] },
+        { "id" : "couch"  ,                  "do" : [ "set living on reading 50%", "set strings off", "set tv stuff evening 100%" ]},
+        { "id" : "night"  , "at" : "22:00" , "do" : [ "set living on evening 20%", "set bed evening 20%" ] },
+        { "id" : "bed"    ,                  "do" : [ "set living off", "set bed reading"]},
+        { "id" : "sleep"  ,                  "do" : "set apartment off"},
         { "id" : "motion_example", "on" : "hallway.motion", "when" : "hallway.brightness < 10", "do" : "set hallway 70 for 5m"}
     ]
 }
