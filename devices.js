@@ -17,7 +17,7 @@ class Device {
         this.id   = cfg_device.id;
         this.type = cfg_device.type;
         this.name = cfg_device.name;
-        this.is_multi_node = is_multi_node;
+        this.multi_node = is_multi_node;
     }
 
     async get(attr) {

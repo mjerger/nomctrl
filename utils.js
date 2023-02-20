@@ -31,11 +31,9 @@ class Utils {
     // parses something like "sunset" or "10:00"
     static parseTime(string) {
 
-      const sunlight_times = ["sunrise", "sunriseEnd", "sunset", "sunsetEnd", "dusk", "dawn", "night", "nightEnd"];
-
-      // environment
-      if (sunlight_times.includes(string)) {
-        let times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
+      // environment (things like "sunset")
+      let times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
+      if (string in times) {
         return times[string].getTime();
       }
       
@@ -50,7 +48,7 @@ class Utils {
     // but not after now and return the item of the list with same index
     static findClosest(times, list, time)
     {
-        let closest = 0;
+        let closest = times.length-1; // start with the last one so we behave correctly over midnight
         for (let i=0; i<times.length; i++) {
             let t = times[i];
             if (t > time || t < times[closest]) continue;
@@ -58,15 +56,6 @@ class Utils {
         }
         return list[closest];
     }
-
-    static next(list = []) {
-      if (!list)
-          return null;
-      let item = list[0];
-      list.shift()
-      return item;
-  }
-
 }
 
 module.exports = Utils;

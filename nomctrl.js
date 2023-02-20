@@ -23,7 +23,6 @@ app.listen(Config.app().port, function () {
     Devices.start();
     Timers.start();
 
-    console.log(Nodes.groups);
     console.log(`nomctrl listening on port ${Config.app().port}!`);
 });
 

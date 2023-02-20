@@ -6,7 +6,7 @@ class Node {
     
     constructor(cfg_node) { 
         this.id = cfg_node.id;
-        this.device_id = cfg_node.device;
+        this.device = cfg_node.device;
         this.class = cfg_node.class;
         this.parent = cfg_node.parent;
     }
@@ -14,25 +14,25 @@ class Node {
     async get (attr) {
         console.log(`get ${this.id} ${attr}${val !== undefined ? " " + val : ""}`);
 
-        let device = Devices.get(this.device_id);
-        if (device.is_multi_node)
+        let device = Devices.get(this.device);
+        if (device.multi_node)
             return device.call(this, "get", attr, val);
         else
-            return device.call("get", attr, val);
+            return device.call(null, "get", attr, val);
     }
 
     async set (attr, val) {
         console.log(`set ${this.id} ${attr}${val !== undefined ? " " + val : ""}`);
 
-        let device = Devices.get(this.device_id);
-        if (device.is_multi_node)
+        let device = Devices.get(this.device);
+        if (device.multi_node)
             return device.call(this, "set", attr, val);
         else
-            return device.call("set", attr, val);
+            return device.call(null, "set", attr, val);
     }
 
     is_online () {
-        return Devices.get(this.device_id).online;
+        return Devices.get(this.device).online;
     }
 }
 
@@ -77,7 +77,7 @@ class Nodes
                     } else if (group_ids.includes(id)) {
                         console.log(`Config Error: Circular reference with group id "${id}"`);
                     } else if (cfg_group.id === id) {
-                        console.log(`Config Error: Group ${id} references itself"`);
+                        console.log(`Config Error: Group "${id}" references itself"`);
                     } else {
                         group_ids.push(id);
                         let sub_nodes = resolve(cfg, group_ids);
@@ -130,8 +130,9 @@ class Nodes
 
         // maybe a group id
         } else {
-            let grouped_nodes = Nodes.groups[id];
-            found_nodes = found_nodes.concat(grouped_nodes);
+            let group_nodes = Nodes.groups[id];
+            if (group_nodes)
+                found_nodes = found_nodes.concat(group_nodes);
         }
 
         // filter

@@ -85,7 +85,7 @@ class Timers
         setTimeout(this.tick.bind(this), /* JS is weird */ Config.ctrl().timer_interval_seconds * 1000);
 
         // execute strict timers
-        for (const [id, timer] of Object.entries(Timers.timers)) {
+        for await (const [id, timer] of Object.entries(Timers.timers)) {
             if (!timer.strict)
                 continue;
             
@@ -94,7 +94,7 @@ class Timers
             let currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
             console.log(`Timer ${id}: "${currentStateCmd}" for node ${timer.node}`);
-            Commands.execute(currentStateCmd, {"include_timed" : true});
+            await Commands.execute(currentStateCmd, {"include_timed" : true});
         }
 
     }

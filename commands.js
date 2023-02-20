@@ -3,6 +3,33 @@ const Utils   = require('./utils.js');
 const Devices = require('./devices.js');
 const Nodes   = require('./nodes.js');
 
+
+const commands = {
+    STATUS : 'status',      // return full status of a node
+    DO     : 'do',          // execute on of our configured actions
+    GET    : 'get',         // get something from nodes
+    SET    : 'set',         // set something on nodes
+}
+
+const tokens = {
+    ON      : /^(on|true|yes|bright|full|max.*|ein|an)$/,
+    OFF     : /^(off|false|no|none|aus|min.*)$/,
+    FLIP    : /^(flip|toggle)$/,
+    PERCENT : /^(\d|\d{2}|100|0+)%?$/,
+    VALUE   : /^\d+/,
+    RGB     : /^\(\d+,\d+,\d+\)$/,
+    HEX     : /^\#?[0-9a-fA-F]{6}$/
+}
+
+function next(list = []) {
+    if (!list)
+        return null;
+    let item = list[0];
+    list.shift()
+    return item;
+  }
+
+
 class Commands {
 
     static async execute(cmds, opts={}) {
@@ -110,29 +137,11 @@ class Commands {
     }
 
     
-
     // parse one command
     static parse (cmd = "", opts = {}) {
 
-        const commands = {
-            STATUS : 'status',      // return full status of a node
-            DO     : 'do',          // execute on of our configured actions
-            GET    : 'get',         // get something from nodes
-            SET    : 'set',         // set something on nodes
-        }
-
-        const tokens = {
-            ON      : /^(on|true|yes|bright|full|max.*|ein|an)$/,
-            OFF     : /^(off|false|no|none|aus|min.*)$/,
-            FLIP    : /^(flip|toggle)$/,
-            PERCENT : /^(\d|\d{2}|100|0+)%?$/,
-            VALUE   : /^\d+/,
-            RGB     : /^\(\d+,\d+,\d+\)$/,
-            HEX     : /^\#?[0-9a-fA-F]{6}$/
-        }
-
         let args = cmd.split(/\s+/).filter(a => a);
-        let arg = Utils.next(args);
+        let arg = next(args);
         if (!arg)
             return [[],[], "Empty command"];
 
@@ -146,12 +155,12 @@ class Commands {
 
         // DO
         } else if (arg.match(commands.DO)) {
-            arg = Utils.next(args);
+            arg = next(args);
             while (arg) {
                 let action = Config.actions().find(a => a.id === arg);
                 if (!action) {
                     errors.push(`Action "${arg}" not found.`);
-                    arg = Utils.next(args);
+                    arg = next(args);
                     continue;
                 }
 
@@ -167,7 +176,7 @@ class Commands {
                     todo = todo.concat(t);
                     errors = errors.concat(e);
                 }
-                arg = Utils.next(args);
+                arg = next(args);
             }
             
             return [todo, errors];
@@ -193,7 +202,7 @@ class Commands {
         let getter = [];
 
         // status of all devices
-        arg = Utils.next(args);
+        arg = next(args);
         if (!arg) {
             for (let device of Devices.all()) {
                 if (device.hasGet("status"))
@@ -232,7 +241,7 @@ class Commands {
         // read args until its not a node or group
         let nodes = [];
         let nodesForArg;
-        while (nodesForArg = Nodes.getNodes(arg = Utils.next(args), opts)) {
+        while ( (nodesForArg = Nodes.getNodes(arg = next(args), opts)).length > 0) {
             if (nodesForArg.includes(false)) // arg not a valid node, we done reading
                 break;
             nodes = nodes.concat(nodesForArg.filter(n => n !== null))
@@ -246,14 +255,14 @@ class Commands {
         // ON / OFF / FLIP
         if (arg && (arg.match(tokens.ON) || arg.match(tokens.OFF) || arg.match(tokens.FLIP) )) {
             for (let node of nodes) {
-                let device = devices.list[node.device];
+                let device = Devices.get(node.device);
                 if (device.has(arg)) {
                     setter.push([node.id, arg])
                 } else if (nodes.length == 1) {
                     errors.push(`Device ${device.id} type ${device.type} of node ${node.id} has no setter ${arg}.`);
                 }
             };
-            arg = Utils.next(args)
+            arg = next(args)
         }
         
         // COLOR arg is optional
@@ -261,7 +270,7 @@ class Commands {
         if (arg) {
             color = Config.toColor(arg);
             if (color) {
-                arg = Utils.next(args)
+                arg = next(args)
                 for (let node of nodes) {
                     let id = node.device;
                     let device = devices.list[id];
@@ -286,13 +295,13 @@ class Commands {
                 percent = parseInt(arg);
                 if (percent < 0 || percent > 100)
                     errors.push(`Brightness must be a value between 0 and 100.`)
-                arg = Utils.next(args);
+                arg = next(args);
             } else if (arg.match(tokens.ON)) {
                 percent = 100;
-                arg = Utils.next(args);
+                arg = next(args);
             } else if (arg.match(tokens.OFF)) {
                 percent = 0;
-                arg = Utils.next(args);
+                arg = next(args);
             } else {
                 errors.push(`Unknown argument "${arg}`);
             }

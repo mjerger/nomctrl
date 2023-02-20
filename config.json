@@ -56,7 +56,11 @@
         { "id" : "hallway"  , "nodes"  : [ ] },
         { "id" : "apartment", "groups" : [ "living", "bed", "kitchen", "bath", "toilet", "hallway" ] },
 
-        { "id" : "test1", "groups" : "test2"}
+        { "id" : "test1", "groups" : ["invalidgroup"]},
+        { "id" : "test2", "groups" : ["test2"]},
+        { "id" : "circular1", "groups" : ["circular2"]},
+        { "id" : "circular2", "groups" : ["circular3"]},
+        { "id" : "circular3", "groups" : ["circular1"]}
     ],
 
     "colors" : [
