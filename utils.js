@@ -48,7 +48,7 @@ class Utils {
     // but not after now and return the item of the list with same index
     static findClosest(times, list, time)
     {
-        let closest = times.length-1; // start with the last one so we behave correctly over midnight
+        let closest = 0; 
         for (let i=0; i<times.length; i++) {
             let t = times[i];
             if (t > time || t < times[closest]) continue;

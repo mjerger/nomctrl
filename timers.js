@@ -89,8 +89,12 @@ class Timers
             if (!timer.strict)
                 continue;
             
-            let times = timer.events.map(e => Utils.parseTime(e[0]));
-            let cmds  = timer.events.map(e => e[1]);
+            // we have take into account the events for yesterday, so timers can behave correctly during midnigh
+            let times_today = timer.events.map(e => Utils.parseTime(e[0]));
+            let times_yesterday = times_today.map(t => t - (3600*24*1000));
+            let times = times_yesterday.concat(times_today);
+            let cmds = timer.events.map(e => e[1]);
+            cmds = cmds.concat(cmds);
             let currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
             console.log(`Timer ${id}: "${currentStateCmd}" for node ${timer.node}`);
