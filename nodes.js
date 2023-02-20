@@ -11,8 +11,8 @@ class Node {
         this.parent = cfg_node.parent;
     }
 
-    async get (attr) {
-        console.log(`get ${this.id} ${attr}${val !== undefined ? " " + val : ""}`);
+    async get (attr, val=null) {
+        console.log(`get ${this.id} ${attr}${val ? " " + val : ""}`);
 
         let device = Devices.get(this.device);
         if (device.multi_node)
@@ -21,8 +21,8 @@ class Node {
             return device.call(null, "get", attr, val);
     }
 
-    async set (attr, val) {
-        console.log(`set ${this.id} ${attr}${val !== undefined ? " " + val : ""}`);
+    async set (attr, val=null) {
+        console.log(`set ${this.id} ${attr}${val ? " " + val : ""}`);
 
         let device = Devices.get(this.device);
         if (device.multi_node)
@@ -132,12 +132,12 @@ class Nodes
         } else {
             let group_nodes = Nodes.groups[id];
             if (group_nodes)
-                found_nodes = found_nodes.concat(group_nodes);
+                found_nodes = found_nodes.concat(group_nodes.map(id => Nodes.nodes[id]));
         }
 
         // filter
         if (!("include_timed" in opts)) {
-            found_nodes.filter(Config.timers().find(t => t.node == id && t.strict && t.strict === true))
+            found_nodes = found_nodes.filter(n => !Config.timers().find(t => t.node === n.id && t.strict && t.strict === true))
         }
 
         return found_nodes;

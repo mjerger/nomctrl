@@ -27,8 +27,7 @@ function next(list = []) {
     let item = list[0];
     list.shift()
     return item;
-  }
-
+}
 
 class Commands {
 
@@ -68,7 +67,7 @@ class Commands {
             errors = errors.concat(err);
         }
 
-        // stter conflicts: last command in list overrides previous commands, sometimes
+        // setter conflicts: last command in list overrides previous commands, sometimes
         if (setter.length > 1) {
             for (let i = 0; i < setter.length-1; i++) {
                 for (let j = i+1; j < setter.length; j++) {
@@ -77,7 +76,6 @@ class Commands {
                         // next command in list overrides previous one 
                         if (overrides(setter[j][1], setter[i][1])) {
                             setter.splice(i, 1);
-                            break; // TODO check if break or continue or what
                         }
                     }
                 }
@@ -91,7 +89,6 @@ class Commands {
                     // same id
                     if (getter[i][0] === getter[j][0]) {
                         getter.splice(i, 1);
-                        break; // TODO check if break or continue or what
                     }
                 }
             }
@@ -115,7 +112,7 @@ class Commands {
             if (s.length == 2) {
                 let [id, attr] = s;
                 set_results.push(Nodes.get(id).set(attr));
-            } else if (get.length == 3) {
+            } else if (s.length == 3) {
                 let [id, attr, val] = s;
                 set_results.push(Nodes.get(id).set(attr, val));
             }
@@ -167,19 +164,19 @@ class Commands {
                 let cmds = action.do;
                 if (cmds.constructor == [].constructor) {
                     for (let cmd of cmds) {
-                        let [t,e] = Commands.parse(cmd, opts);
-                        todo = todo.concat(t);
+                        let [g,s,e] = Commands.parse(cmd, opts);
+                        getter = getter.concat(g);
+                        setter = setter.concat(s);
                         errors = errors.concat(e);
                     }
                 } else {
-                    let [t,e]= Commands.parse(cmd, opts);
-                    todo = todo.concat(t);
+                    let [g,s,e]= Commands.parse(cmd, opts);
+                    getter = getter.concat(g);
+                    setter = setter.concat(s);
                     errors = errors.concat(e);
                 }
                 arg = next(args);
             }
-            
-            return [todo, errors];
 
         // GET
         } else if (arg.match(commands.GET)) {
@@ -191,9 +188,6 @@ class Commands {
             [setter, errors] = Commands.parse_set(arg, args, opts);
         }
             
-        if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
-
         return [getter, setter, errors];
     }
 
@@ -225,6 +219,9 @@ class Commands {
             errors.push(`"${arg}" is neither a known device nor a known node`);
         }
 
+        if (arg)
+            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
+
         return [getter, errors];
     }
 
@@ -253,16 +250,24 @@ class Commands {
         }
         
         // ON / OFF / FLIP
-        if (arg && (arg.match(tokens.ON) || arg.match(tokens.OFF) || arg.match(tokens.FLIP) )) {
-            for (let node of nodes) {
-                let device = Devices.get(node.device);
-                if (device.has(arg)) {
-                    setter.push([node.id, arg])
-                } else if (nodes.length == 1) {
-                    errors.push(`Device ${device.id} type ${device.type} of node ${node.id} has no setter ${arg}.`);
+        if (arg) {
+            let matched = false;
+            for (let token of [ [tokens.ON, "on"], [tokens.OFF, "off"], [tokens.FLIP, "flip"]]) {
+                if (arg.match(token[0])) {
+                    for (let node of nodes) {
+                        let device = Devices.get(node.device);
+                        if (device.has(token[1])) {
+                            setter.push([node.id, token[1]])
+                        } else if (nodes.length == 1) {
+                            errors.push(`Device ${device.id} type ${device.type} of node ${node.id} has no setter ${arg}.`);
+                        }
+                    };
+                    matched = true;
+                    break;
                 }
-            };
-            arg = next(args)
+            }
+            if (matched)
+                arg = next(args)
         }
         
         // COLOR arg is optional
@@ -273,7 +278,7 @@ class Commands {
                 arg = next(args)
                 for (let node of nodes) {
                     let id = node.device;
-                    let device = devices.list[id];
+                    let device = Devices.get(id);
 
                     // set rgb only if device supports it
                     if (device.has("rgb")) {
@@ -312,7 +317,7 @@ class Commands {
 
                 for (let node of nodes) {
                     let id = node.device;
-                    let device = devices.list[id];
+                    let device = Devices.get(id);
 
                     // set brightness if device supports it
                     if (device.has("brightness")) {
@@ -336,6 +341,9 @@ class Commands {
                 };
             }
         }
+
+        if (arg)
+            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
         return [setter, errors];
     }

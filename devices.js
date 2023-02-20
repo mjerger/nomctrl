@@ -57,7 +57,7 @@ const drivers = {
                         super(config);
 
                         this.setter = ["status", "on", "off", "flip",];
-                        this.getter = ["status", "state"];
+                        this.getter = ["status", "state"/*,"power"*/];
                     }
                     
                     async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
@@ -71,7 +71,7 @@ const drivers = {
                     constructor(config)  { 
                         super(config);
                         this.setter = ["status", "on", "off", "flip", "rgb", "brightness"];
-                        this.getter = ["status", "state", "rgb", "brightness"];
+                    this.getter = ["status", "state"/*, "rgb", "brightness"*/];
                     }
                     
                     static set_path = "/json/state";
@@ -86,9 +86,9 @@ const drivers = {
 
     "nomframe" : class NomFrame extends HttpDevice {
                     constructor(config) { 
-                        super("nomframe", config.id, config.host);
+                        super(config);
                         this.setter = ["status", "on", "off", "flip", "brightness"];
-                        this.getter = ["status", "state", "rgb"];
+                        this.getter = ["status"/*,"brightness"*/];
                     }
                     async get_status()             { return "NOT IMPLEMENTED"; }
                     async set_on    ()             { return Utils.get(this.host, "/r/on") }

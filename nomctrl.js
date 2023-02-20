@@ -26,7 +26,6 @@ app.listen(Config.app().port, function () {
     console.log(`nomctrl listening on port ${Config.app().port}!`);
 });
 
-
 // ROUTES
 
 app.get("/", async (req, res) => {
