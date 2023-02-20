@@ -57,11 +57,12 @@ const drivers = {
                         super(config);
 
                         this.setter = ["status", "on", "off", "flip",];
-                        this.getter = ["status", "state"/*,"power"*/];
+                        this.getter = ["status", "state", "power"];
                     }
                     
                     async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
-                    async get_state () { return { "state" : (Utils.get(this.host, "/cm?cmnd=status").Status.Power === 1) };}
+                    async get_state () { return { "state" : (Utils.get(this.host, "/cm?cmnd=status").Status.Power === 1) };} 
+                    async get_power()  { Utils.get(this.host, "cm?cmnd=Status+10"); } // TODO convert defined power object
                     async set_on    () { return Utils.get(this.host, "/cm?cmnd=power+on") }
                     async set_off   () { return Utils.get(this.host, "/cm?cmnd=power+off") }
                     async set_flip  () { return Utils.get(this.host, "/cm?cmnd=power+toggle") }
@@ -129,14 +130,6 @@ class Devices
 
     static mark_online(id) {
         Devices.devices[id].online = true;
-    }
-
-    static getDriver(type, host) {
-        return new drivers[type](host);
-    }
-
-    static hasDriver(type) {
-        return drivers.includes(type);
     }
 
     static async start() {
