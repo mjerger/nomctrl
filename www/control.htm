@@ -1,0 +1,50 @@
+<html lang="en" op="item">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>nomctrl</title>
+        <style>
+            body {
+                background-color: #111;
+            }
+            * {
+                font-family: monospace;
+                font-size: 20px;
+                font-weight: bold;
+                color: #EEE;
+            }
+            button { 
+                text-align:center;
+                width: 200px;
+                margin: 20px;
+                padding: 15px;
+                border-radius: 5px;
+                border: 1px solid #3775e6;
+                background: none;
+                color: #3775e6;
+            }
+            button:hover {
+                background:  #5590ff;
+                color: #0f2144;
+            }
+            div {
+                text-align: center;
+                vertical-align: middle;
+            }
+        </style>
+        
+    <head>
+    <body>
+        <div>
+            <br>
+            nomctrl
+            <br><br>
+            <button onclick="fetch('http://nompi:1337/cmd/do%20morning')">morning</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/do%20day')">day</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/do%20evening')">evening</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/do%20couch')">couch</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/do%20night')">night</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/set%20bed%20flip')">bed</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/set%20aparment off')">off</button><br>
+        </div>
+    </body>
+</html>

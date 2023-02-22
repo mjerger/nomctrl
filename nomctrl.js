@@ -7,9 +7,11 @@ const Commands = require('./commands.js');
 const express = require("express");
 const app = express();
 
+
 // STARTUP
 
 app.listen(Config.app().port, function () {
+    app.use(express.static('www'))
 
     console.log ("Loading config");
 
@@ -32,12 +34,13 @@ app.get("/", async (req, res) => {
     res.send("nomctrl up");
 });
 
-app.get("/status", async (req, res) => {
-    res.send(await Commands.execute("status"));
+app.get("/control.html", async (req, res) => {
+    res.send("nomctrl up");
 });
 
-app.get("/status/:args", async (req, res) => {
-    res.send(await Commands.execute(`status ${req.params.args}`));
+app.get("/status", async (req, res) => {
+    //TODO status page
+    res.send(await Commands.execute("status"));
 });
 
 app.post("/cmd", async (req, res) => {
