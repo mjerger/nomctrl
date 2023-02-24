@@ -11,24 +11,28 @@ class Node {
         this.parent = cfg_node.parent;
     }
 
+    hasSet(attr) {
+        const device = Devices.get(this.device);
+        return device && device.hasSet(attr);
+    }
+
+    hasGet(attr) {
+        const device = Devices.get(this.device);
+        return device && device.hasGet(attr);
+    }
+
     async get (attr, val=null) {
         console.log(`get ${this.id} ${attr}${val ? " " + val : ""}`);
 
-        let device = Devices.get(this.device);
-        if (device.multi_node)
-            return device.call(this, "get", attr, val);
-        else
-            return device.call(null, "get", attr, val);
+        const device = Devices.get(this.device);
+        return device.call(this, "get", attr, val);
     }
 
     async set (attr, val=null) {
         console.log(`set ${this.id} ${attr}${val ? " " + val : ""}`);
 
-        let device = Devices.get(this.device);
-        if (device.multi_node)
-            return device.call(this, "set", attr, val);
-        else
-            return device.call(null, "set", attr, val);
+        const device = Devices.get(this.device);
+        return device.call(this, "set", attr, val);
     }
 
     is_online () {
@@ -39,8 +43,8 @@ class Node {
 
 class Nodes
 {
-    static nodes = {};
-    static groups = {};
+    static nodes = new Map();
+    static groups = new Map();
 
     // Note: load after devices
     static load(cfg_nodes, cfg_groups) {
@@ -49,13 +53,13 @@ class Nodes
         let error = false;
         
         // load nodes
-        Nodes.nodes = {};
-        for (let cfg of cfg_nodes) {
+        Nodes.nodes.clear();
+        for (const cfg of cfg_nodes) {
 
             // device must exist
             let device = Devices.get(cfg.device);
             if (device) {
-                Nodes.nodes[cfg.id] = new Node(cfg);
+                Nodes.nodes.set(cfg.id, new Node(cfg));
             }
             else
             {
@@ -70,8 +74,8 @@ class Nodes
 
             // group references
             if (cfg_group.groups) {
-                for (let id of cfg_group.groups) {
-                    let cfg = Config.groups().find(g => g.id === id);
+                for (const id of cfg_group.groups) {
+                    const cfg = Config.groups().find(g => g.id === id);
                     if (!cfg) {
                         console.log(`Config Error: Group "${cfg_group.id}" contains reference to invalid group "${id}"`)
                     } else if (group_ids.includes(id)) {
@@ -80,7 +84,7 @@ class Nodes
                         console.log(`Config Error: Group "${id}" references itself"`);
                     } else {
                         group_ids.push(id);
-                        let sub_nodes = resolve(cfg, group_ids);
+                        const sub_nodes = resolve(cfg, group_ids);
                         node_ids = node_ids.concat(sub_nodes);
                     }
                 }
@@ -88,9 +92,9 @@ class Nodes
 
             // node references
             if (cfg_group.nodes) {
-                for (let id of cfg_group.nodes) {
+                for (const id of cfg_group.nodes) {
                     if (!Nodes.get(id)) {
-                        console.log(`Config Error: Group "${cfg.id}" contains reference to invalid node "${id}"`)
+                        console.log(`Config Error: Group "${cfg_group.id}" contains reference to invalid node "${id}"`)
                         error = true;
                     } else {
                         node_ids.push(id);
@@ -104,35 +108,37 @@ class Nodes
 
         // Load groups
         console.log ("Loading groups...");
-        Nodes.groups = {};
-        for (let cfg of cfg_groups) {
-            Nodes.groups[cfg.id] = resolve(cfg);
+        Nodes.groups.clear();
+        for (const cfg of cfg_groups) {
+            Nodes.groups.set(cfg.id,  resolve(cfg));
         }
     }
 
     static all() {
-        return Object.entries(Nodes.nodes);
+        const values =  Nodes.nodes.values();
+        return values;
     }
 
     static get(id) {
-        return Nodes.nodes[id];
+        return Nodes.nodes.get(id);
     }
 
+    
     // get list of nodes, either by node id or by group id; use opts for filtering
     static getNodes(id, opts={}) {
 
         let found_nodes = [];
 
         // simple node id
-        let node = Nodes.nodes[id];
+        const node = Nodes.nodes.get(id);
         if (node) {
             found_nodes.push(node);
 
         // maybe a group id
         } else {
-            let group_nodes = Nodes.groups[id];
+            const group_nodes = Nodes.groups.get(id);
             if (group_nodes)
-                found_nodes = found_nodes.concat(group_nodes.map(id => Nodes.nodes[id]));
+                found_nodes = found_nodes.concat(group_nodes.map(id => Nodes.nodes.get(id)));
         }
 
         // filter

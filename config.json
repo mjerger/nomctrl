@@ -71,8 +71,7 @@
         
         { "id" : "morning", "color" : "orange"  },
         { "id" : "day"    , "color" : "lime"    },
-        { "id" : "evening", "color" : "orange"  },
-        { "id" : "reading", "hex"   : "#f29a00" }
+        { "id" : "evening", "color" : "orange"  }
     ],
 
     "timers" : [
@@ -84,10 +83,9 @@
         { "id" : "morning",                  "do" : [ "set living on day 50%", "set bed on morning 20%" ] },
         { "id" : "day"    , "at" : "12:00" , "do" : [ "set living on day 100", "set strings off", "set bed off" ] },
         { "id" : "evening", "at" : "sunset", "do" : [ "set living on evening 100%" ] },
-        { "id" : "couch"  ,                  "do" : [ "set living on reading 50%", "set strings off", "set tv-light lego-light stuff divider evening 100", "set nomframe off"]},
-        { "id" : "night"  , "at" : "22:00" , "do" : [ "set living on evening 20%", "set bed evening 20%" ] },
-        { "id" : "bed"    ,                  "do" : [ "set living off", "set bed reading"]},
-        { "id" : "sleep"  ,                  "do" : [ "set apartment off" ]},
-        { "id" : "motion_example", "on" : "hallway.motion", "when" : "hallway.brightness < 10", "do" : "set hallway 70 for 5m"}
+        { "id" : "couch"  ,                  "do" : [ "set living on evening 50%", "set strings off", "set tv-light lego-light stuff divider evening 100%", "set nomframe off"]},
+        { "id" : "night"  , "at" : "22:00" , "do" : [ "set living on evening 25%", "set strings off", "set bed evening 25%" ] },
+        { "id" : "bed"    ,                  "do" : [ "set living off", "set bed on evening 15%"]},
+        { "id" : "sleep"  ,                  "do" : [ "set apartment off" ]}
     ]
 }

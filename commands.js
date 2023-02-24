@@ -96,19 +96,21 @@ class Commands {
         
         // call getters
         let get_results = [];
-        for await (let g of getter) {
+        for (let g of getter) {
             if (g.length == 2) {
-                let [id, attr] = g;
+                const [id, attr] = g;
                 get_results.push(Nodes.get(id).get(attr));
             } else if (g.length == 3) {
-                let [id, attr, val] = get;
+                const [id, attr, val] = g;
                 get_results.push(Nodes.get(id).get(attr, val));
             }
         }
 
+        get_results = await Promise.all(get_results);
+
         // call setter
         let set_results = []; // TODO maybe remove, not sure
-        for await (let s of setter) {
+        for (let s of setter) {
             if (s.length == 2) {
                 let [id, attr] = s;
                 set_results.push(Nodes.get(id).set(attr));
@@ -118,8 +120,10 @@ class Commands {
             }
         }
 
+        set_results = await Promise.all(set_results);
+
         let response = {};
-        if (get_results) {
+        if (get_results.length > 0) {
             response["results"] = get_results;
         }
 
@@ -194,40 +198,71 @@ class Commands {
 
     static parse_status(arg, args, opts = {}) {
         let getter = [];
+        let errors = [];
 
         // status of all devices
         arg = next(args);
         if (!arg) {
-            for (let device of Devices.all()) {
-                if (device.hasGet("status"))
-                    getter.push([device.id, "status"]);
+            const nodes = Nodes.all();
+            for (const node of Nodes.all()) {
+                if (node.hasGet("status"))
+                    getter.push([node.id, "status"]);
             }
+        } else {
+
+            // status of nodes
+            const nodes = Nodes.getNodes(arg, opts).filter(node => node.hasGet("status"));
+            if (nodes.length > 0)
+                getter = getter.concat(nodes.map(node => [node.id, "status"]));
+            else
+                errors.push(`"${arg}" is not a node or status command`); 
+
+            // TODO other special status commands
         }
-
-        // status of a single device
-        let device = Devices.get(arg);
-        if (device && device.hasGet("status"))
-            getter.push([arg, "status"]);
-        
-        // status of nodes
-        let nodes = Nodes.getNodes(arg, opts);
-        if (nodes.length > 0)
-            getter = getter.concat(nodes.map(n => [n.device, "status"]));
-
-        // nothing found
-        if (todo.length == 0) {
-            errors.push(`"${arg}" is neither a known device nor a known node`);
-        }
-
-        if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
         return [getter, errors];
     }
 
 
     static parse_get (arg, args, opts = {}) {
-        // TODO
+        let getter = [];
+        let errors = [];
+
+        // read args until its not a node or group
+        let nodes = [];
+        let nodesForArg;
+        while ( (nodesForArg = Nodes.getNodes(arg = next(args), opts)).length > 0) {
+            if (nodesForArg.includes(false)) // arg not a valid node, we done reading
+                break;
+            nodes = nodes.concat(nodesForArg.filter(n => n !== null))
+        } 
+
+        if (nodes.length == 0) {
+            errors.push("No nodes found.");
+            return [getter, errors];
+        }
+
+        // No further arg? get status
+        if (!arg) {
+            arg = "state"
+        } else {
+            while (arg)
+            {
+                for (let node of nodes) {
+                    if (node.hasGet(arg))
+                        getter.push([node.id, arg]);
+                    else if(nodes.length == 1)
+                        errors.push(`Node "${node.id}" does not have a getter "${arg}"`);
+                }
+                arg = next(args);
+            }
+        }
+
+        if (arg)
+            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
+
+
+        return [getter, errors];
     }
     
 
@@ -256,7 +291,7 @@ class Commands {
                 if (arg.match(token[0])) {
                     for (let node of nodes) {
                         let device = Devices.get(node.device);
-                        if (device.has(token[1])) {
+                        if (device.hasSet(token[1])) {
                             setter.push([node.id, token[1]])
                         } else if (nodes.length == 1) {
                             errors.push(`Device ${device.id} type ${device.type} of node ${node.id} has no setter ${arg}.`);
@@ -281,7 +316,7 @@ class Commands {
                     let device = Devices.get(id);
 
                     // set rgb only if device supports it
-                    if (device.has("rgb")) {
+                    if (device.hasSet("color")) {
                         setter.push([node.id, "rgb", color]);
                         // also turn on if cmd has no more args
                         if (!arg)
@@ -324,8 +359,8 @@ class Commands {
                         setter.push([node.id, "brightness", percent]);
 
                         // additionally set on/off
-                        if (percent == 100 && device.has("on"))  setter.push([node.id, "on"]);
-                        if (percent == 0   && device.has("off")) setter.push([node.id, "off"]);
+                        if (percent == 100 && device.hasSet("on"))  setter.push([node.id, "on"]);
+                        if (percent == 0   && device.hasSet("off")) setter.push([node.id, "off"]);
 
                     // no brightness, but has "on": use threshold
                     } else if (node.thresh && percent >= node.thresh && device.has("on") && node.class !== "power") {

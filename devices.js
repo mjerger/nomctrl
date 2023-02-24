@@ -5,7 +5,6 @@ class Device {
     setter = [];
     getter = [];
     
-    has(attr)    { return this.setter.includes(attr) || this.getter.includes(attr); }
     hasSet(attr) { return this.setter.includes(attr); }
     hasGet(attr) { return this.getter.includes(attr); }
 
@@ -20,16 +19,9 @@ class Device {
         this.multi_node = is_multi_node;
     }
 
-    async get(attr) {
-        return this.get_n(null, attr);
-    }
-
-    async set(attr, val) {
-        return this.set_n(null, attr, val);
-    }
-
     async call(node, prefix, attr, val) {
-        if (node) {
+        if (this.is_multi_node) {
+            assert(node);
             if (val !== undefined)
                 return this[prefix + "_" + attr](node, val);
             else
@@ -55,14 +47,13 @@ const drivers = {
     "tasmota" : class Tasmota extends HttpDevice {
                     constructor(config) { 
                         super(config);
-
                         this.setter = ["status", "on", "off", "flip",];
                         this.getter = ["status", "state", "power"];
                     }
                     
                     async get_status() { return Utils.get(this.host, "/cm?cmnd=status")}
                     async get_state () { return { "state" : (Utils.get(this.host, "/cm?cmnd=status").Status.Power === 1) };} 
-                    async get_power()  { Utils.get(this.host, "cm?cmnd=Status+10"); } // TODO convert defined power object
+                    async get_power () { Utils.get(this.host, "cm?cmnd=Status+10"); } // TODO convert defined power object
                     async set_on    () { return Utils.get(this.host, "/cm?cmnd=power+on") }
                     async set_off   () { return Utils.get(this.host, "/cm?cmnd=power+off") }
                     async set_flip  () { return Utils.get(this.host, "/cm?cmnd=power+toggle") }
@@ -71,18 +62,20 @@ const drivers = {
     "wled"    : class WLED extends HttpDevice {
                     constructor(config)  { 
                         super(config);
-                        this.setter = ["status", "on", "off", "flip", "rgb", "brightness"];
-                    this.getter = ["status", "state"/*, "rgb", "brightness"*/];
+                        this.setter = ["status", "on", "off", "flip", "color", "brightness"];
+                        this.getter = ["status", "state", "color", "brightness"];
                     }
                     
                     static set_path = "/json/state";
-                    async get_status ()            { return Utils.get (this.host, WLED.set_path) }
-                    async get_state  ()            { return Utils.get (this.host, WLED.set_path) }
-                    async set_on     ()            { return Utils.post(this.host, WLED.set_path, { "on" : true  }) }
-                    async set_off    ()            { return Utils.post(this.host, WLED.set_path, { "on" : false }) }
-                    async set_flip   ()            { return Utils.post(this.host, WLED.set_path, { "on" : "t"   }) }
-                    async set_rgb    (color)       { return Utils.post(this.host, WLED.set_path, { "seg" : [ { "col" : [color] } ] }) }
-                    async set_brightness (percent) { return Utils.post(this.host, WLED.set_path, { "on" : true, "bri" : Math.floor(percent*2.55) }) }
+                    async get_status     ()            { return Utils.get (this.host, WLED.set_path) }
+                    async get_state      ()            { return (await Utils.get (this.host, WLED.set_path)).on; }
+                    async get_brightness ()            { return (await Utils.get (this.host, WLED.set_path)).bri / 2.55 }
+                    async get_color      ()            { return (await Utils.get (this.host, WLED.set_path)).seg[0].col[0]; }
+                    async set_on         ()            { return Utils.post(this.host, WLED.set_path, { "on" : true  }) }
+                    async set_off        ()            { return Utils.post(this.host, WLED.set_path, { "on" : false }) }
+                    async set_flip       ()            { return Utils.post(this.host, WLED.set_path, { "on" : "t"   }) }
+                    async set_color      (color)       { return Utils.post(this.host, WLED.set_path, { "seg" : [ { "col" : [color] } ] }) }
+                    async set_brightness (percent)     { return Utils.post(this.host, WLED.set_path, { "on" : true, "bri" : Math.floor(percent*2.55) }) }
                 },
 
     "nomframe" : class NomFrame extends HttpDevice {
@@ -101,16 +94,16 @@ const drivers = {
 
 class Devices
 {
-    static devices = {};
+    static devices = new Map();
 
     static load(cfg_devices) {
         console.log ("Loading devices...");
-        Devices.device = {};
+        Devices.devices.clear();
         let error = false;
 
-        for (let cfg of cfg_devices) {
+        for (const cfg of cfg_devices) {
             if (cfg.type in drivers) {
-                Devices.devices[cfg.id] = new drivers[cfg.type](cfg);
+                Devices.devices.set(cfg.id, new drivers[cfg.type](cfg));
             } else {
                 console.error(`Config Error: Device ${cfg.id} has unknown device type ${cfg.type}.`);
                 error = true;
@@ -121,15 +114,15 @@ class Devices
     }
 
     static all() {
-        return Object.entries(Devices.devices);
+        return Devices.devices.values();
     }
 
     static get(id) {
-        return Devices.devices[id];
+        return Devices.devices.get(id);
     }
 
     static mark_online(id) {
-        Devices.devices[id].online = true;
+        Devices.devices.get(id).online = true;
     }
 
     static async start() {

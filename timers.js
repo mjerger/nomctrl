@@ -44,25 +44,25 @@ class Timer {
 
 class Timers
 {
-    static timers = {};
+    static timers = new Map();
 
     static load(cfg_timers, cfg_actions) {
         console.log ("Loading timers...");
-        Timers.timers = {};
+        Timers.timers.clear();
         let error = false;
 
         // Timer definitions
-        for (let cfg of cfg_timers) {
-            let id = cfg.id
-            if (id in Timers.timers) {
-                if ("node" in cfg && Timers.timers[id].node === cfg.node) {
-                    Timers.timers[id].merge(cfg);
+        for (const cfg of cfg_timers) {
+            const id = cfg.id
+            if (Timers.timers.has(id)) {
+                if ("node" in cfg && Timers.timers.get(id).node === cfg.node) {
+                    Timers.timers.set(id,merge(cfg));
                 } else {
-                    console.log(`Config Error: incompatible timer configuration on timer "${id}"`);
+                    console.log(`Config Errr: incompatible timer configuration on timer "${id}"`);
                     error = true;
                 }
             } else {
-                Timers.timers[id] = new Timer(cfg);
+                Timers.timers.set(id, new Timer(cfg));
             }
         }
 
@@ -90,12 +90,12 @@ class Timers
                 continue;
             
             // we have take into account the events for yesterday, so timers can behave correctly during midnigh
-            let times_today = timer.events.map(e => Utils.parseTime(e[0]));
-            let times_yesterday = times_today.map(t => t - (3600*24*1000));
-            let times = times_yesterday.concat(times_today);
+            const times_today = timer.events.map(e => Utils.parseTime(e[0]));
+            const times_yesterday = times_today.map(t => t - (3600*24*1000));
+            const times = times_yesterday.concat(times_today);
             let cmds = timer.events.map(e => e[1]);
             cmds = cmds.concat(cmds);
-            let currentStateCmd = Utils.findClosest(times, cmds, Date.now());
+            const currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
             console.log(`Timer ${id}: "${currentStateCmd}" for node ${timer.node}`);
             await Commands.execute(currentStateCmd, {"include_timed" : true});

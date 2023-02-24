@@ -23,7 +23,7 @@ Examples of understood commands
  `set apartment off; set bedroom 20%`
  `set nightstand on for 30m`
  `set livingroom fade from 0 (255,0,0) to 100 #0000FF for 60s`
- `set apartment fireplace`
+ `set apartment fireplace` (pattern)
  
  #### Getter
  `get amplifier state`
