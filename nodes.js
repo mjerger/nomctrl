@@ -11,6 +11,14 @@ class Node {
         this.parent = cfg_node.parent;
     }
 
+    getter() {
+        return Devices.get(this.device).getter;
+    }
+    
+    setter() {
+        return Devices.get(this.device).setter;
+    }
+    
     hasSet(attr) {
         const device = Devices.get(this.device);
         return device && device.hasSet(attr);

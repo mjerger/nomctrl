@@ -260,13 +260,17 @@ class Commands {
             return [getter, errors];
         }
 
-        // No further arg? get status
+        // No attribute arg? get all getters of all nodes
         if (!arg) {
-            arg = "state"
+            for (const node of nodes) {
+                for (const g of node.getter()) {
+                    getter.push([node.id, g]);
+                }
+            }
         } else {
             while (arg)
             {
-                for (let node of nodes) {
+                for (const node of nodes) {
                     if (node.hasGet(arg))
                         getter.push([node.id, arg]);
                     else if(nodes.length == 1)

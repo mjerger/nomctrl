@@ -4,7 +4,7 @@ const config  = require('./config.json');
 
 class Utils {
 
-    static async get(host, path, json = {}) {
+    static async get(host, path) {
       let url = `http://${host}${path}`;
       return Axios.get(url).catch(e => console.error("GET: " + e)).then(r => (r ? r.data : "") );
     }
