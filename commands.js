@@ -167,14 +167,14 @@ class Commands {
 
         if (todo.setter) {
             // setter conflicts: last command in list overrides previous commands, sometimes
-            if (setter.length > 1) {
-                for (let i = 0; i < setter.length-1; i++) {
-                    for (let j = i+1; j < setter.length; j++) {
+            if (todo.setter.length > 1) {
+                for (let i = 0; i < todo.setter.length-1; i++) {
+                    for (let j = i+1; j < todo.setter.length; j++) {
                         // same device
-                        if (setter[i][0] === setter[j][0]) {
+                        if (todo.setter[i][0] === todo.setter[j][0]) {
                             // next command in list overrides previous one 
-                            if (overrides(setter[j][1], setter[i][1])) {
-                                setter.splice(i, 1);
+                            if (overrides(todo.setter[j][1], todo.setter[i][1])) {
+                                todo.setter.splice(i, 1);
                             }
                         }
                     }
@@ -183,7 +183,7 @@ class Commands {
 
             // call setter
             let set_results = []; 
-            for (const s of setter) {
+            for (const s of todo.setter) {
                 if (s.length == 2) {
                     const [id, attr] = s;
                     set_results.push(Nodes.get(id).set(attr));
@@ -225,7 +225,7 @@ class Commands {
 
         // DO
         } else if (arg.match(commands.DO)) {
-            return Commands.parse_do(arg, args);
+            return Commands.parse_do(arg, args, opts);
 
         // GET
         } else if (arg.match(commands.GET)) {
@@ -272,7 +272,7 @@ class Commands {
         return results;
     }
 
-    static parse_do (arg, args)  {
+    static parse_do (arg, args, opts = {})  {
         let todo = {};
 
         arg = next(args);
@@ -291,7 +291,7 @@ class Commands {
                     todo = merge(todo, Commands.parse(cmd, opts));
                 }
             } else {
-                todo = merge(todo, Commands.parse(cmd, opts));
+                todo = merge(todo, Commands.parse(cmds, opts));
             }
             arg = next(args);
         }
@@ -409,12 +409,12 @@ class Commands {
 
                     // set rgb only if device supports it
                     if (device.hasSet("color")) {
-                        setter.push([node.id, "rgb", color]);
+                        setter.push([node.id, "color", color]);
                         // also turn on if cmd has no more args
                         if (!arg)
                             setter.push([node.id, "on"])
                     } else if (nodes.length == 1) { 
-                        errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support RGB.`);
+                        errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
                     }
                 }
             }
@@ -447,7 +447,7 @@ class Commands {
                     const device = Devices.get(id);
 
                     // set brightness if device supports it
-                    if (device.has("brightness")) {
+                    if (device.hasSet("brightness")) {
                         setter.push([node.id, "brightness", percent]);
 
                         // additionally set on/off
@@ -455,11 +455,11 @@ class Commands {
                         if (percent == 0   && device.hasSet("off")) setter.push([node.id, "off"]);
 
                     // no brightness, but has "on": use threshold
-                    } else if (node.thresh && percent >= node.thresh && device.has("on") && node.class !== "power") {
+                    } else if (node.thresh && percent >= node.thresh && device.hasSet("on") && node.class !== "power") {
                         setter.push([node.id, "on"]);
 
                     // no brightness, but has "off": use threshold
-                    } else if (node.thresh && percent < node.thresh && device.has("off") && node.class !== "power") {
+                    } else if (node.thresh && percent < node.thresh && device.hasSet("off") && node.class !== "power") {
                         setter.push([node.id, "off"]);
 
                     } else if (nodes.length == 1) {
