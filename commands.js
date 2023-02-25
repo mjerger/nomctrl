@@ -4,14 +4,14 @@ const Devices = require('./devices.js');
 const Nodes   = require('./nodes.js');
 
 
-const commands = {
+const CMDS = {
     STATUS : 'status',      // return full status of a node
     DO     : 'do',          // execute on of our configured actions
     GET    : 'get',         // get something from nodes
     SET    : 'set',         // set something on nodes
 }
 
-const tokens = {
+const TOKENS = {
     ON      : /^(on|true|yes|bright|full|max.*|ein|an)$/,
     OFF     : /^(off|false|no|none|aus|min.*)$/,
     FLIP    : /^(flip|toggle)$/,
@@ -21,7 +21,12 @@ const tokens = {
     HEX     : /^\#?[0-9a-fA-F]{6}$/
 }
 
-const funcs = ['sum', 'max', 'min', 'avg'];
+const FUNCS = {
+    SUM : /^sum$/,
+    AVG : /^(avg|average)$/,
+    MIN : /^(min|minimum)$/,
+    MAX : /^(max|maximum)$/
+}
 
 function next(list = []) {
     if (!list)
@@ -61,7 +66,6 @@ class Commands {
     static async execute(cmds, opts={}) {
         let results = {};
 
-
         //
         // 1) PARSE
         //
@@ -88,10 +92,9 @@ class Commands {
         if (todo.getter) {
 
             // remove duplicate getters
-            const count = todo.getter.length;
-            if (count > 1) {
-                for (let i = 0; i < count-1; i++) {
-                    for (let j = i+1; j < count; j++) {
+            if (todo.getter.length > 1) {
+                for (let i = 0; i < todo.getter.length-1; i++) {
+                    for (let j = i+1; j < todo.getter.length; j++) {
                         // same id
                         if (todo.getter[i][0] === todo.getter[j][0]) {
                             todo.getter.splice(i, 1);
@@ -118,6 +121,12 @@ class Commands {
 
             // apply calc funcs
             if (todo.calc) {
+                let calc;
+                for (const func of Object.entries(FUNCS)) {
+                    if (todo.calc.match(func[1])) {
+                        calc = FUNCS[func[0]];
+                    }
+                }
 
                 // collect attributes
                 let attrs = [];
@@ -126,32 +135,39 @@ class Commands {
                         if (!attrs.includes(attr)) 
                             attrs.push(attr);
 
-
                 // calc
                 for (const attr of attrs) {
+
                     // pre
                     let res_val = 0;
-                    switch (todo.calc) {
-                        case "min": res_val = Number.MAX_SAFE_INTEGER; break; 
-                        case "max": res_val = Number.MIN_SAFE_INTEGER; break;
+                    switch (calc) {
+                        case FUNCS.MIN: res_val = Number.MAX_SAFE_INTEGER; break; 
+                        case FUNCS.MAX: res_val = Number.MIN_SAFE_INTEGER; break;
                     }
                     // iter
                     let count = 0;
                     for (const id in get_results) {
                         if (attr in get_results[id]) {
-                            count += 1;
+                            // get val
                             const val = get_results[id][attr]; 
-                            switch (todo.calc) {
-                                case "sum": res_val += val; break;
-                                case "avg": res_val += val; break;
-                                case "min": res_val = Math.min(res_val, val); break;
-                                case "max": res_val = Math.max(res_val, val); break;
+                            if (typeof val != "number")
+                            {
+                                results = merge(results, { errors : [`Value type "${typeof val}" of attribute "${attr}" not supported by "${todo.calc}"`]});
+                                continue;
+                            }
+
+                            count += 1;
+                            switch(calc) {
+                                case FUNCS.SUM: res_val += val; break;
+                                case FUNCS.AVG: res_val += val; break;
+                                case FUNCS.MIN: res_val = Math.min(res_val, val); break;
+                                case FUNCS.MAX: res_val = Math.max(res_val, val); break;
                             }
                         }
                     }
                     // post
-                    switch (todo.calc) {
-                        case "avg" : res_val /= count; break;
+                    switch (calc) {
+                        case FUNCS.AVG : res_val /= count; break;
                     }
 
                     results[attr + "_" + todo.calc] = res_val;
@@ -220,19 +236,19 @@ class Commands {
             return { errors: ["Empty command"] };
 
         // STATUS
-        if (arg.match(commands.STATUS)) {
+        if (arg.match(CMDS.STATUS)) {
             return Commands.parse_status(arg, args, opts);
 
         // DO
-        } else if (arg.match(commands.DO)) {
+        } else if (arg.match(CMDS.DO)) {
             return Commands.parse_do(arg, args, opts);
 
         // GET
-        } else if (arg.match(commands.GET)) {
+        } else if (arg.match(CMDS.GET)) {
             return Commands.parse_get(arg, args, opts);
             
         // SET
-        } else if (arg.match(commands.SET)) {
+        } else if (arg.match(CMDS.SET)) {
             return Commands.parse_set(arg, args, opts);
         }
             
@@ -307,9 +323,14 @@ class Commands {
         arg = next(args)
 
         // optional calc function comes first
-        if (arg && funcs.includes(arg)) {
-            calc = arg;
-            arg = next(args);
+        if (arg) {
+            for (const func of Object.entries(FUNCS)) {
+                if (arg.match(func[1])) {
+                    calc = func[0].toLowerCase();
+                    arg = next(args);
+                    break;
+                }
+            }
         }
 
         // read args until its not a node or group
@@ -379,7 +400,7 @@ class Commands {
         // ON / OFF / FLIP
         if (arg) {
             let matched = false;
-            for (const token of [ [tokens.ON, "on"], [tokens.OFF, "off"], [tokens.FLIP, "flip"]]) {
+            for (const token of [ [TOKENS.ON, "on"], [TOKENS.OFF, "off"], [TOKENS.FLIP, "flip"]]) {
                 if (arg.match(token[0])) {
                     for (const node of nodes) {
                         const device = Devices.get(node.device);
@@ -423,15 +444,15 @@ class Commands {
         // BRIGHTNESS percentage and on/off commands for lights
         if (arg)  {
             var percent;
-            if (arg.match(tokens.PERCENT)) {
+            if (arg.match(TOKENS.PERCENT)) {
                 percent = parseInt(arg);
                 if (percent < 0 || percent > 100)
                     errors.push(`Brightness must be a value between 0 and 100.`)
                 arg = next(args);
-            } else if (arg.match(tokens.ON)) {
+            } else if (arg.match(TOKENS.ON)) {
                 percent = 100;
                 arg = next(args);
-            } else if (arg.match(tokens.OFF)) {
+            } else if (arg.match(TOKENS.OFF)) {
                 percent = 0;
                 arg = next(args);
             } else {

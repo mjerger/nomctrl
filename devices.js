@@ -120,8 +120,8 @@ const drivers = {
                         return result;
                     }
                     
-                    async get_status       () { let val = this._get(); }
-                    async get_state        () { let val = this._get("Status", "Power"); return val === 1;} 
+                    async get_status       () { return this._get(); }
+                    async get_state        () { let val = await this._get("Status", "Power"); return val === 1;} 
                     async get_power_status () { return this._get_power_status(); }
                     async get_power        () { return this._get_energy("Power"); }
                     async get_energy       () { return this._get_energy("Total"); }
@@ -152,7 +152,7 @@ const drivers = {
                     async _get_segment(idx=0) { 
                         let res = await Utils.get (this.host, WLED.set_path);
                         if (res && "seg" in res && res.seg.length > 0) {
-                            return res.seg[0];
+                            return res.seg[idx];
                         }
                         return null;
                     }
@@ -160,9 +160,9 @@ const drivers = {
                     
                     static set_path = "/json/state";
                     async get_status     ()            { return this._get(); }
-                    async get_state      ()            { const val = this._get("status", "on"); return val ? val : null; }
-                    async get_brightness ()            { const val = this._get("bri");          return val ? Math.floor(val / 2.55) : null; }
-                    async get_color      ()            { const val = this._get_segment();       return val ? val.col[0] : null; }
+                    async get_state      ()            { const val = await this._get("status", "on"); return val ? val : null; }
+                    async get_brightness ()            { const val = await this._get("bri");          return val ? Math.floor(val / 2.55) : null; }
+                    async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
                     async set_on         ()            { return Utils.post(this.host, WLED.set_path, { "on" : true  }) }
                     async set_off        ()            { return Utils.post(this.host, WLED.set_path, { "on" : false }) }
                     async set_flip       ()            { return Utils.post(this.host, WLED.set_path, { "on" : "t"   }) }
