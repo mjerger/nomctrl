@@ -21,6 +21,8 @@ const tokens = {
     HEX     : /^\#?[0-9a-fA-F]{6}$/
 }
 
+const funcs = ['sum', 'max', 'min', 'avg'];
+
 function next(list = []) {
     if (!list)
         return null;
@@ -29,24 +31,36 @@ function next(list = []) {
     return item;
 }
 
+// merge arrays of object b into arrays of object a and return a
+function merge(a, b) {
+    for (let x in b) {
+        if (!(x in a)) a[x] = b[x];
+        else           a[x] = a[x].concat(b[x]);
+    }
+
+    return a;
+}
+
+// does command a override command b?
+function overrides(a, b) {
+    // same command
+    if (a === b) return true;
+
+    // off/on/flip has prio
+    if (["on", "off", "flip"].includes(a) && 
+        ["on", "off", "flip"].includes(b))
+    {
+        return true;
+    }
+
+    return false;
+}
+
 class Commands {
 
     static async execute(cmds, opts={}) {
+        let results = {};
 
-        // does command a override command b?
-        function overrides(a, b) {
-            // same command
-            if (a === b) return true;
-
-            // off/on/flip has prio
-            if (["on", "off", "flip"].includes(a) && 
-                ["on", "off", "flip"].includes(b))
-            {
-                return true;
-            }
-
-            return false;
-        }
 
         //
         // 1) PARSE
@@ -61,46 +75,89 @@ class Commands {
         }
 
         // parse all cmds into todos
-        let getter = [];
-        let setter = [];
-        let errors = [];
+        let todo = {};
         for (const cmd of cmds) {
-            const [get, set, err] = Commands.parse(cmd, opts);
-            getter = getter.concat(get);
-            setter = setter.concat(set);
-            errors = errors.concat(err);
+             let res = Commands.parse(cmd, opts);
+             todo = merge(todo, res);
         }
-
 
         //
         // 2) EXECUTE GETTER
         //
 
-        // remove duplicate getters
-        if (getter.length > 1) {
-            for (let i = 0; i < getter.length-1; i++) {
-                for (let j = i+1; j < getter.length; j++) {
-                    // same id
-                    if (getter[i][0] === getter[j][0]) {
-                        getter.splice(i, 1);
+        if (todo.getter) {
+
+            // remove duplicate getters
+            const count = todo.getter.length;
+            if (count > 1) {
+                for (let i = 0; i < count-1; i++) {
+                    for (let j = i+1; j < count; j++) {
+                        // same id
+                        if (todo.getter[i][0] === todo.getter[j][0]) {
+                            todo.getter.splice(i, 1);
+                        }
                     }
                 }
             }
-        }
-        
-        // call getters
-        let get_results = {};
-        for (const g of getter) {
-            const [id, attr] = g;
-            if (!(id in get_results))
-                get_results[id] = {};
-            get_results[id][attr] = Nodes.get(id).get(attr)
-        }
+            
+            // call getters
+            let get_results = {};
+            for (const g of todo.getter) {
+                const [id, attr] = g;
+                if (!(id in get_results))
+                    get_results[id] = {};
+                get_results[id][attr] = Nodes.get(id).get(attr)
+            }
 
-        // await results
-        for (const id in get_results) {
-            for (const attr in get_results[id]) {
-                get_results[id][attr] = await get_results[id][attr];
+            // await results
+            for (const id in get_results) {
+                for (const attr in get_results[id]) {
+                    get_results[id][attr] = await get_results[id][attr];
+                }
+            }
+
+            // apply calc funcs
+            if (todo.calc) {
+
+                // collect attributes
+                let attrs = [];
+                for (const id in get_results)
+                    for (const attr in get_results[id])
+                        if (!attrs.includes(attr)) 
+                            attrs.push(attr);
+
+
+                // calc
+                for (const attr of attrs) {
+                    // pre
+                    let res_val = 0;
+                    switch (todo.calc) {
+                        case "min": res_val = Number.MAX_SAFE_INTEGER; break; 
+                        case "max": res_val = Number.MIN_SAFE_INTEGER; break;
+                    }
+                    // iter
+                    let count = 0;
+                    for (const id in get_results) {
+                        if (attr in get_results[id]) {
+                            count += 1;
+                            const val = get_results[id][attr]; 
+                            switch (todo.calc) {
+                                case "sum": res_val += val; break;
+                                case "avg": res_val += val; break;
+                                case "min": res_val = Math.min(res_val, val); break;
+                                case "max": res_val = Math.max(res_val, val); break;
+                            }
+                        }
+                    }
+                    // post
+                    switch (todo.calc) {
+                        case "avg" : res_val /= count; break;
+                    }
+
+                    results[attr + "_" + todo.calc] = res_val;
+                }
+            } else {
+                results = get_results;
             }
         }
         
@@ -108,51 +165,49 @@ class Commands {
         // 3) EXECUTE SETTER
         //
 
-        // setter conflicts: last command in list overrides previous commands, sometimes
-        if (setter.length > 1) {
-            for (let i = 0; i < setter.length-1; i++) {
-                for (let j = i+1; j < setter.length; j++) {
-                    // same device
-                    if (setter[i][0] === setter[j][0]) {
-                        // next command in list overrides previous one 
-                        if (overrides(setter[j][1], setter[i][1])) {
-                            setter.splice(i, 1);
+        if (todo.setter) {
+            // setter conflicts: last command in list overrides previous commands, sometimes
+            if (setter.length > 1) {
+                for (let i = 0; i < setter.length-1; i++) {
+                    for (let j = i+1; j < setter.length; j++) {
+                        // same device
+                        if (setter[i][0] === setter[j][0]) {
+                            // next command in list overrides previous one 
+                            if (overrides(setter[j][1], setter[i][1])) {
+                                setter.splice(i, 1);
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // call setter
-        let set_results = []; 
-        for (const s of setter) {
-            if (s.length == 2) {
-                const [id, attr] = s;
-                set_results.push(Nodes.get(id).set(attr));
-            } else if (s.length == 3) {
-                const [id, attr, val] = s;
-                set_results.push(Nodes.get(id).set(attr, val));
+            // call setter
+            let set_results = []; 
+            for (const s of setter) {
+                if (s.length == 2) {
+                    const [id, attr] = s;
+                    set_results.push(Nodes.get(id).set(attr));
+                } else if (s.length == 3) {
+                    const [id, attr, val] = s;
+                    set_results.push(Nodes.get(id).set(attr, val));
+                }
             }
+            set_results = await Promise.all(set_results);
+            // TODO do something with result?
         }
-        set_results = await Promise.all(set_results);
 
         //
         // 4) OUTPUT
         //
 
-        let response = {};
-        if (getter.length > 0) {
-            response["results"] = get_results;
+        if (results.errors && results.errors.length > 0) {
+            results.status = "error";
+        }
+        else {
+            results.status = "success";
         }
 
-        if (errors.length > 0) {
-            response["errors"] = errors;
-            response["status"] = "error";
-        } else {
-            response["status"] = "success";
-        }
-
-        return JSON.stringify(response);
+        return JSON.stringify(results);
     }
 
     
@@ -162,55 +217,26 @@ class Commands {
         let args = cmd.split(/\s+/).filter(a => a);
         let arg = next(args);
         if (!arg)
-            return [[],[], "Empty command"];
+            return { errors: ["Empty command"] };
 
-        let getter = [];
-        let setter = [];
-        let errors = [];
-        
         // STATUS
         if (arg.match(commands.STATUS)) {
-            [getter, errors] = Commands.parse_status(arg, args, opts);
+            return Commands.parse_status(arg, args, opts);
 
         // DO
         } else if (arg.match(commands.DO)) {
-            arg = next(args);
-            while (arg) {
-                let action = Config.actions().find(a => a.id === arg);
-                if (!action) {
-                    errors.push(`Action "${arg}" not found.`);
-                    arg = next(args);
-                    continue;
-                }
-
-                let cmds = action.do;
-                if (cmds.constructor == [].constructor) {
-                    for (let cmd of cmds) {
-                        let [g,s,e] = Commands.parse(cmd, opts);
-                        getter = getter.concat(g);
-                        setter = setter.concat(s);
-                        errors = errors.concat(e);
-                    }
-                } else {
-                    let [g,s,e]= Commands.parse(cmd, opts);
-                    getter = getter.concat(g);
-                    setter = setter.concat(s);
-                    errors = errors.concat(e);
-                }
-                arg = next(args);
-            }
+            return Commands.parse_do(arg, args);
 
         // GET
         } else if (arg.match(commands.GET)) {
-            [getter, errors] = Commands.parse_get(arg, args, opts);
-            
+            return Commands.parse_get(arg, args, opts);
             
         // SET
         } else if (arg.match(commands.SET)) {
-            [setter, errors] = Commands.parse_set(arg, args, opts);
+            return Commands.parse_set(arg, args, opts);
         }
             
-        return [getter, setter, errors];
+        return { errors : ["Nothing to do"] };
     }
 
 
@@ -238,26 +264,67 @@ class Commands {
             // TODO other special status commands
         }
 
-        return [getter, errors];
+        
+        let results = {}
+        if (getter.length > 0) results.getter = getter;
+        if (errors.length > 0) results.errors = errors;
+
+        return results;
+    }
+
+    static parse_do (arg, args)  {
+        let todo = {};
+
+        arg = next(args);
+        while (arg) {
+            const action = Config.actions().find(a => a.id === arg);
+            if (!action) {
+                if (!(errors in todo)) errors.todo = {};
+                todo.errors.push(`Action "${arg}" not found.`);
+                arg = next(args);
+                continue;
+            }
+
+            const cmds = action.do;
+            if (cmds.constructor == [].constructor) {
+                for (const cmd of cmds) {
+                    todo = merge(todo, Commands.parse(cmd, opts));
+                }
+            } else {
+                todo = merge(todo, Commands.parse(cmd, opts));
+            }
+            arg = next(args);
+        }
+
+        return todo;
     }
 
 
     static parse_get (arg, args, opts = {}) {
         let getter = [];
         let errors = [];
+        let calc;
+        arg = next(args)
+
+        // optional calc function comes first
+        if (arg && funcs.includes(arg)) {
+            calc = arg;
+            arg = next(args);
+        }
 
         // read args until its not a node or group
         let nodes = [];
         let nodesForArg;
-        while ( (nodesForArg = Nodes.getNodes(arg = next(args), opts)).length > 0) {
+        while ( (nodesForArg = Nodes.getNodes(arg, opts)).length > 0) {
             if (nodesForArg.includes(false)) // arg not a valid node, we done reading
                 break;
             nodes = nodes.concat(nodesForArg.filter(n => n !== null))
+            arg = next(args);
         } 
 
+        // no nodes? use all nodes
         if (nodes.length == 0) {
-            errors.push("No nodes found.");
-            return [getter, errors];
+            nodes = Nodes.all();
         }
 
         // No attribute arg? get all getters of all nodes
@@ -283,8 +350,12 @@ class Commands {
         if (arg)
             errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
+        let results = {}
+        if (getter.length > 0) results.getter = getter;
+        if (errors.length > 0) results.errors = errors;
+        if (calc) results.calc = calc;
 
-        return [getter, errors];
+        return results;
     }
     
 
@@ -302,17 +373,16 @@ class Commands {
         } 
 
         if (nodes.length == 0) {
-            errors.push("No nodes found.");
-            return [setter, errors];
+            return {errors : ["No nodes found."]};
         }
         
         // ON / OFF / FLIP
         if (arg) {
             let matched = false;
-            for (let token of [ [tokens.ON, "on"], [tokens.OFF, "off"], [tokens.FLIP, "flip"]]) {
+            for (const token of [ [tokens.ON, "on"], [tokens.OFF, "off"], [tokens.FLIP, "flip"]]) {
                 if (arg.match(token[0])) {
-                    for (let node of nodes) {
-                        let device = Devices.get(node.device);
+                    for (const node of nodes) {
+                        const device = Devices.get(node.device);
                         if (device.hasSet(token[1])) {
                             setter.push([node.id, token[1]])
                         } else if (nodes.length == 1) {
@@ -333,9 +403,9 @@ class Commands {
             color = Config.toColor(arg);
             if (color) {
                 arg = next(args)
-                for (let node of nodes) {
-                    let id = node.device;
-                    let device = Devices.get(id);
+                for (const node of nodes) {
+                    const id = node.device;
+                    const device = Devices.get(id);
 
                     // set rgb only if device supports it
                     if (device.hasSet("color")) {
@@ -372,9 +442,9 @@ class Commands {
             if (percent) {
                 percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
-                for (let node of nodes) {
-                    let id = node.device;
-                    let device = Devices.get(id);
+                for (const node of nodes) {
+                    const id = node.device;
+                    const device = Devices.get(id);
 
                     // set brightness if device supports it
                     if (device.has("brightness")) {
@@ -402,9 +472,12 @@ class Commands {
         if (arg)
             errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
 
-        return [setter, errors];
-    }
+        let results = {}
+        if (setter.length > 0) results.setter = setter;
+        if (errors.length > 0) results.errors = errors;
 
+        return results;
+    }
 }
 
 module.exports = Commands;

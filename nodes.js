@@ -16,7 +16,7 @@ class Node {
     }
     
     setter() {
-        return Devices.get(this.device).setter;
+        return Devices.get(this.device).setteer;
     }
     
     hasSet(attr) {
