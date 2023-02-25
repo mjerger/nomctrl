@@ -70,12 +70,12 @@ class Fader
         if (this.attr === 'color') {
             let rgb = [];
             for (let i=0; i<3; i++) {
-                rgb[i] = Utils.lerp(this.from[i], this.to[i], fac);
+                rgb[i] = Math.floor(Utils.lerp(this.from[i], this.to[i], fac));
             }
             return rgb;
 
         } else if (this.attr === 'brightness') {
-            const val = Utils.lerp(this.from, this.to, fac);
+            const val = Math.floor(Utils.lerp(this.from, this.to, fac));
             return val;
         }
 
@@ -83,7 +83,14 @@ class Fader
     }
 
     has_new_value(time) {
-        return (this.get_value(time) !== this.last_value);
+        const cur = this.get_value(time);
+        if (this.attr === 'color') {
+            return cur[0] !== this.last_value[0] || 
+                   cur[1] !== this.last_value[1] || 
+                   cur[2] !== this.last_value[2];
+        } else {
+            return cur !== this.last_value;
+        }
     }
 
     is_active(time) {
@@ -169,7 +176,7 @@ class Timers
         }
 
         // tick again
-        setTimeout(this.tick_faders.bind(this), 100);
+        setTimeout(this.tick_faders.bind(this), 2000);
     }
 
     static async tick_static_timers(execute) {

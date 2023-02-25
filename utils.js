@@ -18,7 +18,6 @@ class Utils {
     static hexToRGB(hex) {
         let parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         if (!parsed) {
-          console.error(`Invalid hex color ${hex}`);
             return null;
         }
 
