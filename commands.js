@@ -2,6 +2,7 @@ const Config  = require('./config.js');
 const Utils   = require('./utils.js');
 const Devices = require('./devices.js');
 const Nodes   = require('./nodes.js');
+const Timers  = require('./timers.js');
 
 
 const CMDS = {
@@ -9,16 +10,21 @@ const CMDS = {
     DO     : 'do',          // execute on of our configured actions
     GET    : 'get',         // get something from nodes
     SET    : 'set',         // set something on nodes
+    FADE   : 'fade',        // fade something
 }
 
 const TOKENS = {
-    ON      : /^(on|true|yes|bright|full|max.*|ein|an)$/,
-    OFF     : /^(off|false|no|none|aus|min.*)$/,
-    FLIP    : /^(flip|toggle)$/,
-    PERCENT : /^(\d|\d{2}|100|0+)%?$/,
-    VALUE   : /^\d+/,
-    RGB     : /^\(\d+,\d+,\d+\)$/,
-    HEX     : /^\#?[0-9a-fA-F]{6}$/
+    ON       : /^(on|true|yes|bright|full|max.*|ein|an)$/,
+    OFF      : /^(off|false|no|none|aus|min.*)$/,
+    FLIP     : /^(flip|toggle)$/,
+    PERCENT  : /^(\d|\d{2}|100|0+)%?$/,
+    INT      : /^\d+/,
+    RGB      : /^\(\d+,\d+,\d+\)$/,
+    HEX      : /^\#?[0-9a-fA-F]{6}$/,
+    FOR      : /^for$/,
+    DURATION : /^\d+[m|s|h|d]$/,
+    FOR_OVER : /^(for|over)$/,
+    TO       : /^to$/
 }
 
 const FUNCS = {
@@ -36,24 +42,14 @@ function next(list = []) {
     return item;
 }
 
-// merge arrays of object b into arrays of object a and return a
-function merge(a, b) {
-    for (let x in b) {
-        if (!(x in a)) a[x] = b[x];
-        else           a[x] = a[x].concat(b[x]);
-    }
-
-    return a;
-}
-
 // does command a override command b?
 function overrides(a, b) {
     // same command
     if (a === b) return true;
 
     // off/on/flip has prio
-    if (["on", "off", "flip"].includes(a) && 
-        ["on", "off", "flip"].includes(b))
+    if (['on', 'off', 'flip'].includes(a) && 
+        ['on', 'off', 'flip'].includes(b))
     {
         return true;
     }
@@ -63,198 +59,130 @@ function overrides(a, b) {
 
 class Commands {
 
-    static async execute(cmds, opts={}) {
-        let results = {};
+    // helpers
+    static parse_nodes(arg, args, opts = {}) {
+        let nodes = [];
 
-        //
-        // 1) PARSE
-        //
+        let nodesForArg;
+        while (arg && (nodesForArg = Nodes.getNodes(arg, opts)).length > 0) {
+            if (nodesForArg.includes(false)) // arg not a valid node, we done reading
+                break;
+            nodes = nodes.concat(nodesForArg.filter(n => n !== null))
+            arg = next(args)
+        } 
 
-        // make into list
-        if (typeof cmds === "string") {
-            if (cmds.indexOf(";") > -1)
-                cmds = cmds.split(/;/);
-            else
-                cmds = [cmds];
+        if (nodes.length == 0) {
+            return {errors : ['No nodes found.']};
         }
 
-        // parse all cmds into todos
-        let todo = {};
-        for (const cmd of cmds) {
-             let res = Commands.parse(cmd, opts);
-             todo = merge(todo, res);
-        }
-
-        //
-        // 2) EXECUTE GETTER
-        //
-
-        if (todo.getter) {
-
-            // remove duplicate getters
-            if (todo.getter.length > 1) {
-                for (let i = 0; i < todo.getter.length-1; i++) {
-                    for (let j = i+1; j < todo.getter.length; j++) {
-                        // same id
-                        if (todo.getter[i][0] === todo.getter[j][0]) {
-                            todo.getter.splice(i, 1);
-                        }
-                    }
-                }
-            }
-            
-            // call getters
-            let get_results = {};
-            for (const g of todo.getter) {
-                const [id, attr] = g;
-                if (!(id in get_results))
-                    get_results[id] = {};
-                get_results[id][attr] = Nodes.get(id).get(attr)
-            }
-
-            // await results
-            for (const id in get_results) {
-                for (const attr in get_results[id]) {
-                    get_results[id][attr] = await get_results[id][attr];
-                }
-            }
-
-            // apply calc funcs
-            if (todo.calc) {
-                let calc;
-                for (const func of Object.entries(FUNCS)) {
-                    if (todo.calc.match(func[1])) {
-                        calc = FUNCS[func[0]];
-                    }
-                }
-
-                // collect attributes
-                let attrs = [];
-                for (const id in get_results)
-                    for (const attr in get_results[id])
-                        if (!attrs.includes(attr)) 
-                            attrs.push(attr);
-
-                // calc
-                for (const attr of attrs) {
-
-                    // pre
-                    let res_val = 0;
-                    switch (calc) {
-                        case FUNCS.MIN: res_val = Number.MAX_SAFE_INTEGER; break; 
-                        case FUNCS.MAX: res_val = Number.MIN_SAFE_INTEGER; break;
-                    }
-                    // iter
-                    let count = 0;
-                    for (const id in get_results) {
-                        if (attr in get_results[id]) {
-                            // get val
-                            const val = get_results[id][attr]; 
-                            if (typeof val != "number")
-                            {
-                                results = merge(results, { errors : [`Value type "${typeof val}" of attribute "${attr}" not supported by "${todo.calc}"`]});
-                                continue;
-                            }
-
-                            count += 1;
-                            switch(calc) {
-                                case FUNCS.SUM: res_val += val; break;
-                                case FUNCS.AVG: res_val += val; break;
-                                case FUNCS.MIN: res_val = Math.min(res_val, val); break;
-                                case FUNCS.MAX: res_val = Math.max(res_val, val); break;
-                            }
-                        }
-                    }
-                    // post
-                    switch (calc) {
-                        case FUNCS.AVG : res_val /= count; break;
-                    }
-
-                    results[attr + "_" + todo.calc] = res_val;
-                }
-            } else {
-                results = get_results;
+        args.unshift(arg);
+        return nodes;
+    }
+    
+    static parse_percent(arg) {
+        if (arg !== undefined) {
+            if (arg.match(TOKENS.PERCENT)) {
+                return parseInt(arg);
+            } else if (arg.match(TOKENS.ON)) {
+                return 100;
+            } else if (arg.match(TOKENS.OFF)) {
+                return 0;
             }
         }
-        
-        //
-        // 3) EXECUTE SETTER
-        //
-
-        if (todo.setter) {
-            // setter conflicts: last command in list overrides previous commands, sometimes
-            if (todo.setter.length > 1) {
-                for (let i = 0; i < todo.setter.length-1; i++) {
-                    for (let j = i+1; j < todo.setter.length; j++) {
-                        // same device
-                        if (todo.setter[i][0] === todo.setter[j][0]) {
-                            // next command in list overrides previous one 
-                            if (overrides(todo.setter[j][1], todo.setter[i][1])) {
-                                todo.setter.splice(i, 1);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // call setter
-            let set_results = []; 
-            for (const s of todo.setter) {
-                if (s.length == 2) {
-                    const [id, attr] = s;
-                    set_results.push(Nodes.get(id).set(attr));
-                } else if (s.length == 3) {
-                    const [id, attr, val] = s;
-                    set_results.push(Nodes.get(id).set(attr, val));
-                }
-            }
-            set_results = await Promise.all(set_results);
-            // TODO do something with result?
-        }
-
-        //
-        // 4) OUTPUT
-        //
-
-        if (results.errors && results.errors.length > 0) {
-            results.status = "error";
-        }
-        else {
-            results.status = "success";
-        }
-
-        return JSON.stringify(results);
+        return null;
     }
 
+    static parse_duration(arg) {
+        if (arg !== undefined) {
+            if (arg.match(TOKENS.DURATION)) {
+                const val = parseInt(arg);
+                if (val < 0) return 0;
+                switch (arg.slice(-1)) {
+                    case 's' : return val;
+                    case 'm' : return val * 60;
+                    case 'h' : return val * 3600;
+                    case 'd' : return val * 3600*24;
+                }
+            }
+        }
+        return 0;
+    }
+
+    static parse_color(arg) {
+
+        // alias resolver
+        function resolve(color) {
+            if (color.color) 
+                return resolve(Config.colors().find(c => c.id === color.color));
+            else
+                return color;
+        }
+        
+        // try to find it in config
+        let color = Config.colors().find(c => c.id === arg);
+        if (color) {
+            color = resolve(color);
+            if (color.rgb) 
+                return color.rgb
+            else if (color.hex) 
+                return Utils.hexToRGB(color.hex);
+        }
+
+        // try raw hex value
+        if (color = Utils.hexToRGB(arg))
+            return color;
+
+        // not found
+        return null;
+    }
     
     // parse one command
-    static parse (cmd = "", opts = {}) {
+    static parse (cmd = '', opts = {}) {
 
         let args = cmd.split(/\s+/).filter(a => a);
         let arg = next(args);
+        let results;
         if (!arg)
-            return { errors: ["Empty command"] };
+            return { errors: ['Empty command'] };
 
         // STATUS
         if (arg.match(CMDS.STATUS)) {
-            return Commands.parse_status(arg, args, opts);
-
+            arg = next(args);
+            results = Commands.parse_status(arg, args, opts);
+e
         // DO
         } else if (arg.match(CMDS.DO)) {
-            return Commands.parse_do(arg, args, opts);
+            arg = next(args);
+            results = Commands.parse_do(arg, args, opts);
 
         // GET
         } else if (arg.match(CMDS.GET)) {
-            return Commands.parse_get(arg, args, opts);
+            arg = next(args);
+            results = Commands.parse_get(arg, args, opts);
             
         // SET
         } else if (arg.match(CMDS.SET)) {
-            return Commands.parse_set(arg, args, opts);
-        }
-            
-        return { errors : ["Nothing to do"] };
-    }
+            arg = next(args);
+            results = Commands.parse_set(arg, args, opts);
 
+        // FADE
+        } else if (arg.match(CMDS.FADE)) {
+            arg = next(args);
+            results = Commands.parse_fade(arg, args, opts);
+        }
+
+        if (arg)
+            results = Utils.merge(results, { errors : `Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}` });
+
+        if (results.faders && results.faders.length > 0 || 
+            results.setter && results.setter.length > 0 || 
+            results.getter && results.getter.length > 0) 
+        {
+            return results;
+        }
+     
+        return { errors : ['Nothing to do'] };
+    }
 
     static parse_status(arg, args, opts = {}) {
         let getter = [];
@@ -265,17 +193,17 @@ class Commands {
         if (!arg) {
             const nodes = Nodes.all();
             for (const node of Nodes.all()) {
-                if (node.hasGet("status"))
-                    getter.push([node.id, "status"]);
+                if (node.hasGet('status'))
+                    getter.push([node.id, 'status']);
             }
         } else {
 
             // status of nodes
-            const nodes = Nodes.getNodes(arg, opts).filter(node => node.hasGet("status"));
+            const nodes = Nodes.getNodes(arg, opts).filter(node => node.hasGet('status'));
             if (nodes.length > 0)
-                getter = getter.concat(nodes.map(node => [node.id, "status"]));
+                getter = getter.concat(nodes.map(node => [node.id, 'status']));
             else
-                errors.push(`"${arg}" is not a node or status command`); 
+                errors.push(`'${arg}' is not a node or status command`); 
 
             // TODO other special status commands
         }
@@ -296,7 +224,7 @@ class Commands {
             const action = Config.actions().find(a => a.id === arg);
             if (!action) {
                 if (!(errors in todo)) errors.todo = {};
-                todo.errors.push(`Action "${arg}" not found.`);
+                todo.errors.push(`Action '${arg}' not found.`);
                 arg = next(args);
                 continue;
             }
@@ -304,10 +232,10 @@ class Commands {
             const cmds = action.do;
             if (cmds.constructor == [].constructor) {
                 for (const cmd of cmds) {
-                    todo = merge(todo, Commands.parse(cmd, opts));
+                    todo = Utils.merge(todo, Commands.parse(cmd, opts));
                 }
             } else {
-                todo = merge(todo, Commands.parse(cmds, opts));
+                todo = Utils.merge(todo, Commands.parse(cmds, opts));
             }
             arg = next(args);
         }
@@ -362,14 +290,14 @@ class Commands {
                     if (node.hasGet(arg))
                         getter.push([node.id, arg]);
                     else if(nodes.length == 1)
-                        errors.push(`Node "${node.id}" does not have a getter "${arg}"`);
+                        errors.push(`Node '${node.id}' does not have a getter '${arg}'`);
                 }
                 arg = next(args);
             }
         }
 
         if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
+            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
 
         let results = {}
         if (getter.length > 0) results.getter = getter;
@@ -378,29 +306,23 @@ class Commands {
 
         return results;
     }
-    
+
 
     static parse_set (arg, args, opts = {}) {
         let setter = [];
         let errors = [];
 
-        // read args until its not a node or group
-        let nodes = [];
-        let nodesForArg;
-        while ( (nodesForArg = Nodes.getNodes(arg = next(args), opts)).length > 0) {
-            if (nodesForArg.includes(false)) // arg not a valid node, we done reading
-                break;
-            nodes = nodes.concat(nodesForArg.filter(n => n !== null))
-        } 
-
+        // read nodesZ
+        let nodes = Commands.parse_nodes(arg, args, opts);
+        arg = next(args);
         if (nodes.length == 0) {
-            return {errors : ["No nodes found."]};
+            return {errors : ['No nodes found.']};
         }
-        
+
         // ON / OFF / FLIP
         if (arg) {
             let matched = false;
-            for (const token of [ [TOKENS.ON, "on"], [TOKENS.OFF, "off"], [TOKENS.FLIP, "flip"]]) {
+            for (const token of [ [TOKENS.ON, 'on'], [TOKENS.OFF, 'off'], [TOKENS.FLIP, 'flip']]) {
                 if (arg.match(token[0])) {
                     for (const node of nodes) {
                         const device = Devices.get(node.device);
@@ -421,7 +343,7 @@ class Commands {
         // COLOR arg is optional
         let color;
         if (arg) {
-            color = Config.toColor(arg);
+            color = Commands.parse_color(arg);
             if (color) {
                 arg = next(args)
                 for (const node of nodes) {
@@ -429,11 +351,11 @@ class Commands {
                     const device = Devices.get(id);
 
                     // set rgb only if device supports it
-                    if (device.hasSet("color")) {
-                        setter.push([node.id, "color", color]);
+                    if (device.hasSet('color')) {
+                        setter.push([node.id, 'color', color]);
                         // also turn on if cmd has no more args
                         if (!arg)
-                            setter.push([node.id, "on"])
+                            setter.push([node.id, 'on'])
                     } else if (nodes.length == 1) { 
                         errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
                     }
@@ -443,24 +365,12 @@ class Commands {
         
         // BRIGHTNESS percentage and on/off commands for lights
         if (arg)  {
-            var percent;
-            if (arg.match(TOKENS.PERCENT)) {
-                percent = parseInt(arg);
-                if (percent < 0 || percent > 100)
-                    errors.push(`Brightness must be a value between 0 and 100.`)
-                arg = next(args);
-            } else if (arg.match(TOKENS.ON)) {
-                percent = 100;
-                arg = next(args);
-            } else if (arg.match(TOKENS.OFF)) {
-                percent = 0;
-                arg = next(args);
-            } else {
-                errors.push(`Unknown argument "${arg}`);
-            }
+            var percent = Commands.parse_percent(arg);
 
             // set brightness on all nodes
-            if (percent) {
+            if (percent !== null) {
+
+                // Clamp
                 percent = Math.max(Math.min(Math.round(percent), 100), 0);
 
                 for (const node of nodes) {
@@ -468,20 +378,20 @@ class Commands {
                     const device = Devices.get(id);
 
                     // set brightness if device supports it
-                    if (device.hasSet("brightness")) {
-                        setter.push([node.id, "brightness", percent]);
+                    if (device.hasSet('brightness')) {
+                        setter.push([node.id, 'brightness', percent]);
 
                         // additionally set on/off
-                        if (percent == 100 && device.hasSet("on"))  setter.push([node.id, "on"]);
-                        if (percent == 0   && device.hasSet("off")) setter.push([node.id, "off"]);
+                        if (percent == 100 && device.hasSet('on'))  setter.push([node.id, 'on']);
+                        if (percent == 0   && device.hasSet('off')) setter.push([node.id, 'off']);
 
-                    // no brightness, but has "on": use threshold
-                    } else if (node.thresh && percent >= node.thresh && device.hasSet("on") && node.class !== "power") {
-                        setter.push([node.id, "on"]);
+                    // no brightness, but has 'on': use threshold
+                    } else if (node.thresh && percent >= node.thresh && device.hasSet('on') && node.class !== 'power') {
+                        setter.push([node.id, 'on']);
 
-                    // no brightness, but has "off": use threshold
-                    } else if (node.thresh && percent < node.thresh && device.hasSet("off") && node.class !== "power") {
-                        setter.push([node.id, "off"]);
+                    // no brightness, but has 'off': use threshold
+                    } else if (node.thresh && percent < node.thresh && device.hasSet('off') && node.class !== 'power') {
+                        setter.push([node.id, 'off']);
 
                     } else if (nodes.length == 1) {
                         errors.push(`Device ${id} of node ${node.id} does not support brightness control.`);
@@ -491,10 +401,82 @@ class Commands {
         }
 
         if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(" ")).join(" ")}`);
+            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
 
         let results = {}
         if (setter.length > 0) results.setter = setter;
+        if (errors.length > 0) results.errors = errors;
+
+        return results;
+    }
+
+
+    static parse_fade (arg, args, opts = {}) {
+
+        let faders = [];
+        let errors = [];
+
+        // read nodes
+        let nodes = Commands.parse_nodes(arg, args, opts);
+        if (nodes.length == 0) {
+            return {errors : ['No nodes found.']};
+        }
+
+        // first color and or brightness
+        arg = next(args);
+        const color1 = Commands.parse_color(arg, args);
+        const brightness1 = Commands.parse_percent(arg, args);
+
+        if (color1 == null && brightness1 == null)
+        {
+            return { errors : [`Invalid color or brightness ${arg}`] };
+        }
+        
+        // to
+        arg = next(args);
+        if (arg && arg.match(TOKENS.TO)) 
+            arg = next(args);
+
+        let color2 = null;
+        let brightness2 = null;
+        if (arg) {
+            color2 = Commands.parse_color(arg, args);
+            brightness2 = Commands.parse_percent(arg, args);
+
+            if (color2 != null || brightness2 != null)
+            {
+                arg = next(args);
+            }
+        }
+
+        // for / over
+        if (arg && arg.match(TOKENS.FOR_OVER)) 
+            arg = next(args);
+
+        // duration
+        const duration = Commands.parse_duration(arg, args);
+
+        if (duration <= 0) {
+            errors.push("Missing duration");
+        }
+        else
+        {
+            // results
+            if (color1 !== null && color2 !== null) {
+                for (const node of nodes) {
+                    faders.push([node.id, 'color', color1, color2, duration]);
+                }
+            } 
+            
+            if (brightness1 !== null && brightness2 !== null) {
+                for (const node of nodes) {
+                    faders.push([node.id, 'brightness', brightness1, brightness2, duration]);
+                }
+            }
+        }
+
+        let results = {}
+        if (faders.length > 0) results.faders = faders;
         if (errors.length > 0) results.errors = errors;
 
         return results;

@@ -33,35 +33,6 @@ class Config {
 
         return unique;
     }
-
-    // get defined colors as RGB
-    static toColor(str) {
-
-        // alias resolver
-        function resolve(color) {
-            if (color.color) 
-                return resolve(config.colors.find(c => c.id === color.color));
-            else
-                return color;
-        }
-        
-        // try to find it in config
-        let color = config.colors.find(c => c.id === str);
-        if (color) {
-            color = resolve(color);
-            if (color.rgb) 
-                return color.rgb
-            else if (color.hex) 
-                return Utils.hexToRGB(color.hex);
-        }
-
-        // try raw hex value kast
-        if (color = Utils.hexToRGB(str))
-            return color;
-
-        // not found
-        return undefined;
-    }
 }
 
 module.exports = Config;

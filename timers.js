@@ -1,8 +1,9 @@
 const Config  = require('./config.js');
 const Utils   = require('./utils.js');
-const Commands  = require('./commands.js');
+const Nodes   = require('./nodes.js');
 
-class Timer {
+class Timer 
+{
     events = []
 
     constructor(cfg) { 
@@ -38,16 +39,67 @@ class Timer {
             if (cfg.cmd)
                 this.events.push([cfg.at, cfg.cmd ]);
         }
+    }
+}
 
+class Fader 
+{
+    ATTR_TYPE = {
+        COLOR : 'color',
+        NUMBER : 'number'
+    }
+
+    constructor (node, attr, from, to, duration) {
+        this.node = node;
+        this.attr = attr;
+        this.from = from;
+        this.to = to;
+        this.duration = duration;
+        this.start_time = Date.now();
+        this.last_value = 0;
+    }
+
+    get_value(time) {
+        if (!this.is_active(time))
+            return this.to;
+
+        // progress factor 0.0 - 1.0
+        const fac = (time - this.start_time) / (this.duration * 1000);
+        
+        // interpolate color
+        if (this.attr === 'color') {
+            let rgb = [];
+            for (let i=0; i<3; i++) {
+                rgb[i] = Utils.lerp(this.from[i], this.to[i], fac);
+            }
+            return rgb;
+
+        } else if (this.attr === 'brightness') {
+            const val = Utils.lerp(this.from, this.to, fac);
+            return val;
+        }
+
+        return 0; // idk
+    }
+
+    has_new_value(time) {
+        return (this.get_value(time) !== this.last_value);
+    }
+
+    is_active(time) {
+        return (time < this.start_time + this.duration*1000);
     }
 }
 
 class Timers
 {
     static timers = new Map();
+    static faders = [];
 
-    static load(cfg_timers, cfg_actions) {
-        console.log ("Loading timers...");
+    static init(cfg_timers, cfg_actions, execute) {
+        this.execute = execute;
+
+        console.log ('Loading timers...');
         Timers.timers.clear();
         let error = false;
 
@@ -55,10 +107,11 @@ class Timers
         for (const cfg of cfg_timers) {
             const id = cfg.id
             if (Timers.timers.has(id)) {
-                if ("node" in cfg && Timers.timers.get(id).node === cfg.node) {
-                    Timers.timers.set(id,merge(cfg));
+                // marge timer definitions
+                if ('node' in cfg && Timers.timers.get(id).node === cfg.node) {
+                    Timers.timers.set(id, merge(cfg));
                 } else {
-                    console.log(`Config Errr: incompatible timer configuration on timer "${id}"`);
+                    console.log(`Config Error: incompatible timer configuration on timer '${id}'`);
                     error = true;
                 }
             } else {
@@ -72,20 +125,57 @@ class Timers
         return error;
     }
 
-    static get(id) {
-        return Timer.timers[id];
+    static getTimer(id) {
+        return Timers.timers.get(id);
+    }
+
+    static addFader(node, attr, from, to, duration) {
+        Timers.faders.push(new Fader(node, attr, from, to, duration));
+        this.tick_faders();
+    }
+
+    static killFaders(node, attr) {
+        Timers.faders = Timers.faders.filter(f => f.node === node && f.attr === attr);
     }
 
     static async start() {
-        console.log ("Starting timers");
-        Timers.tick();
+        console.log ('Starting timers');
+        Timers.tick_static_timers();
+        Timers.tick_faders();
     }
 
-    static async tick() {
-        setTimeout(this.tick.bind(this), /* JS is weird */ Config.ctrl().timer_interval_seconds * 1000);
+    static async tick_faders() {
+        const now = Date.now();
+
+        // remove stopped
+        Timers.faders = Timers.faders.filter(f => f.is_active(now));
+
+        if (Timers.faders.length == 0) 
+            return;
+
+        // get new values, if any
+        let setter = [];
+        for (const fader of Timers.faders) {
+            if (fader.has_new_value(now)) {
+                const new_value = fader.get_value(now);
+                setter.push(Nodes.get(fader.node).set(fader.attr, new_value));
+                fader.last_value = new_value;
+            }
+        }
+
+        // doit
+        if (setter.length > 0) {
+            await Promise.all(setter);
+        }
+
+        // tick again
+        setTimeout(this.tick_faders.bind(this), 100);
+    }
+
+    static async tick_static_timers(execute) {
 
         // execute strict timers
-        for await (const [id, timer] of Object.entries(Timers.timers)) {
+        for (const timer of Timers.timers.values()) {
             if (!timer.strict)
                 continue;
             
@@ -97,10 +187,12 @@ class Timers
             cmds = cmds.concat(cmds);
             const currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
-            console.log(`Timer ${id}: "${currentStateCmd}" for node ${timer.node}`);
-            await Commands.execute(currentStateCmd, {"include_timed" : true});
+            console.log(`Timer ${timer.id}: '${currentStateCmd}' for node ${timer.node}`);
+            await this.execute(currentStateCmd, {'include_timed' : true});
         }
 
+        // tick again
+        setTimeout(this.tick_static_timers.bind(this),Config.ctrl().timer_interval_seconds * 1000);
     }
 
 }

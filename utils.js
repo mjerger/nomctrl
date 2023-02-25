@@ -5,14 +5,14 @@ const config  = require('./config.json');
 class Utils {
 
     static async get(host, path) {
-      let url = `http://${host}${path}`;
-      return Axios.get(url).catch(e => console.error("GET: " + e)).then(r => (r ? r.data : "") );
+        let url = `http://${host}${path}`;
+        return Axios.get(url).catch(e => console.error("GET: " + e)).then(r => (r ? r.data : "") );
     }
 
     static async post(host, path, json = {}) {
-      let url = `http://${host}${path}`;
-      let response = Axios.post(url, json).catch(e => console.error("POST: " + e));
-      if (response) return response.data;
+        let url = `http://${host}${path}`;
+        let response = Axios.post(url, json).catch(e => console.error("POST: " + e));
+        if (response) return response.data;
     }
 
     static hexToRGB(hex) {
@@ -31,17 +31,17 @@ class Utils {
     // parses something like "sunset" or "10:00"
     static parseTime(string) {
 
-      // environment (things like "sunset")
-      let times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
-      if (string in times) {
-        return times[string].getTime();
-      }
-      
-      // time
-      if (string.match(/^\d{1,2}:\d{2}$/)) {
-        let today = new Date().toISOString().split('T')[0];
-        return Date.parse(today + "T" + string);
-      }
+        // environment (things like "sunset")
+        let times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
+        if (string in times) {
+            return times[string].getTime();
+        }
+        
+        // time
+        if (string.match(/^\d{1,2}:\d{2}$/)) {
+            let today = new Date().toISOString().split('T')[0];
+            return Date.parse(today + "T" + string);
+        }
     }
 
     // find closest time (epoch seconds) in a list that is closest to given time, 
@@ -56,6 +56,23 @@ class Utils {
         }
         return list[closest];
     }
+
+    static lerp(a, b, f)
+    {
+        return a * (1.0 - f) + (b * f);
+    }
+
+
+    // merge arrays of object b into arrays of object a and return a
+    static merge(a, b) {
+        for (let x in b) {
+            if (!(x in a)) a[x] = b[x];
+            else           a[x] = a[x].concat(b[x]);
+        }
+
+        return a;
+    }
+
 }
 
 module.exports = Utils;
