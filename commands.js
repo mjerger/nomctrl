@@ -48,6 +48,10 @@ class Commands {
             return false;
         }
 
+        //
+        // 1) PARSE
+        //
+
         // make into list
         if (typeof cmds === "string") {
             if (cmds.indexOf(";") > -1)
@@ -60,12 +64,49 @@ class Commands {
         let getter = [];
         let setter = [];
         let errors = [];
-        for (let cmd of cmds) {
-            let [get, set, err] = Commands.parse(cmd, opts);
+        for (const cmd of cmds) {
+            const [get, set, err] = Commands.parse(cmd, opts);
             getter = getter.concat(get);
             setter = setter.concat(set);
             errors = errors.concat(err);
         }
+
+
+        //
+        // 2) EXECUTE GETTER
+        //
+
+        // remove duplicate getters
+        if (getter.length > 1) {
+            for (let i = 0; i < getter.length-1; i++) {
+                for (let j = i+1; j < getter.length; j++) {
+                    // same id
+                    if (getter[i][0] === getter[j][0]) {
+                        getter.splice(i, 1);
+                    }
+                }
+            }
+        }
+        
+        // call getters
+        let get_results = {};
+        for (const g of getter) {
+            const [id, attr] = g;
+            if (!(id in get_results))
+                get_results[id] = {};
+            get_results[id][attr] = Nodes.get(id).get(attr)
+        }
+
+        // await results
+        for (const id in get_results) {
+            for (const attr in get_results[id]) {
+                get_results[id][attr] = await get_results[id][attr];
+            }
+        }
+        
+        //
+        // 3) EXECUTE SETTER
+        //
 
         // setter conflicts: last command in list overrides previous commands, sometimes
         if (setter.length > 1) {
@@ -82,48 +123,25 @@ class Commands {
             }
         }
 
-        // remove duplicate getters
-        if (getter.length > 1) {
-            for (let i = 0; i < getter.length-1; i++) {
-                for (let j = i+1; j < getter.length; j++) {
-                    // same id
-                    if (getter[i][0] === getter[j][0]) {
-                        getter.splice(i, 1);
-                    }
-                }
-            }
-        }
-        
-        // call getters
-        let get_results = [];
-        for (let g of getter) {
-            if (g.length == 2) {
-                const [id, attr] = g;
-                get_results.push(Nodes.get(id).get(attr));
-            } else if (g.length == 3) {
-                const [id, attr, val] = g;
-                get_results.push(Nodes.get(id).get(attr, val));
-            }
-        }
-
-        get_results = await Promise.all(get_results);
-
         // call setter
-        let set_results = []; // TODO maybe remove, not sure
-        for (let s of setter) {
+        let set_results = []; 
+        for (const s of setter) {
             if (s.length == 2) {
-                let [id, attr] = s;
+                const [id, attr] = s;
                 set_results.push(Nodes.get(id).set(attr));
             } else if (s.length == 3) {
-                let [id, attr, val] = s;
+                const [id, attr, val] = s;
                 set_results.push(Nodes.get(id).set(attr, val));
             }
         }
-
         set_results = await Promise.all(set_results);
 
+        //
+        // 4) OUTPUT
+        //
+
         let response = {};
-        if (get_results.length > 0) {
+        if (getter.length > 0) {
             response["results"] = get_results;
         }
 

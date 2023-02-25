@@ -21,11 +21,11 @@ class Node {
         return device && device.hasGet(attr);
     }
 
-    async get (attr, val=null) {
-        console.log(`get ${this.id} ${attr}${val ? " " + val : ""}`);
+    async get (attr) {
+        console.log(`get ${this.id} ${attr}`);
 
         const device = Devices.get(this.device);
-        return device.call(this, "get", attr, val);
+        return device.call(this, "get", attr, null);
     }
 
     async set (attr, val=null) {
