@@ -14,8 +14,7 @@ const app = express();
 app.listen(Config.app().port, function () {
     app.use(express.static('www'))
 
-    console.log ("Loading config");
-
+    console.log ("Loading config...");
     let success = Config.validate();
     if (!success) process.exit(-1);
 
@@ -45,25 +44,43 @@ app.get("/status", async (req, res) => {
 });
 
 app.post("/cmd", async (req, res) => {
+    console.log(`cmd: ${req.body}`)
     res.send(await execute(req.body));
 });
 
 app.get("/cmd/:cmd", async (req, res) => {
+    console.log(`cmd: ${req.params.cmd}`)
     res.send(await execute(req.params.cmd));
 });
 
 app.post("/do", async (req, res) => {
+    console.log(`do: ${req.body}`)
     res.send(await execute(`do ${req.body}`));
 });
 
 app.get("/do/:action", async (req, res) => {
+    console.log(`do: ${req.params.action}`)
     res.send(await execute(`do ${req.params.action}`));
 });
 
 
+// does command a override command b?
+function overrides(a, b) {
+    // same command
+    if (a === b) return true;
+
+    // off/on/flip has prio
+    if (['on', 'off', 'flip'].includes(a) && 
+        ['on', 'off', 'flip'].includes(b))
+    {
+        return true;
+    }
+
+    return false;
+}
+
 // the main command execution function
 async function execute(cmds, opts={}) {
-
     let results = { errors : []};
 
     //
@@ -205,6 +222,8 @@ async function execute(cmds, opts={}) {
                 } else {
                     set_results.push(Nodes.get(id).set(attr));
                 }
+
+                Timers.killFaders(id, attr);
 
                 if (duration) {
                     // TODO set values to previous one off after duration

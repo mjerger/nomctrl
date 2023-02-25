@@ -42,20 +42,6 @@ function next(list = []) {
     return item;
 }
 
-// does command a override command b?
-function overrides(a, b) {
-    // same command
-    if (a === b) return true;
-
-    // off/on/flip has prio
-    if (['on', 'off', 'flip'].includes(a) && 
-        ['on', 'off', 'flip'].includes(b))
-    {
-        return true;
-    }
-
-    return false;
-}
 
 class Commands {
 

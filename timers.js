@@ -159,19 +159,26 @@ class Timers
 
         if (Timers.faders.length == 0) 
             return;
-
+            
         // get new values, if any
+        let logged = false;
         let setter = [];
         for (const fader of Timers.faders) {
             if (fader.has_new_value(now)) {
+                // hacky log order
+                if (!logged) {
+                    console.log('Fading...');
+                    logged = true;
+                }
                 const new_value = fader.get_value(now);
                 setter.push(Nodes.get(fader.node).set(fader.attr, new_value));
                 fader.last_value = new_value;
             }
         }
 
-        // doit
+        // do it
         if (setter.length > 0) {
+            console.log('Fading...');
             await Promise.all(setter);
         }
 
