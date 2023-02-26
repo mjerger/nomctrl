@@ -16,6 +16,8 @@ const TOKENS = {
     ON        : /^(on|true|yes|bright|full|max.*|ein|an)$/,
     OFF       : /^(off|false|no|none|aus|min.*)$/,
     FLIP      : /^(flip|toggle)$/,
+    COLOR     : /^color$/,
+    BRIGHTNESS: /^brightness$/,
 
     PERCENT   : /^(\d|\d{2}|100|0+)%?$/,
     INT       : /^\d+/,
@@ -242,6 +244,8 @@ e
         
         // COLOR arg is optional
         let color;
+        if (arg && arg.match(TOKENS.COLOR))
+            arg = next(args);
         if (arg) {
             color = this.parse_color(arg);
             if (color) {
@@ -264,6 +268,8 @@ e
         }
         
         // BRIGHTNESS percentage and on/off commands for lights
+        if (arg && arg.match(TOKENS.BRIGHTNESS))
+            arg = next(args);
         if (arg)  {
             var percent = this.parse_percent(arg);
 
@@ -517,6 +523,11 @@ e
         // try raw hex value
         if (color = Utils.hexToRGB(arg))
             return color;
+
+        // try rgb
+        if (color = Utils.parseRGB(arg)) {
+            return color;
+        }
 
         // not found
         return null;

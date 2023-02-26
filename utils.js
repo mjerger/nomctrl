@@ -15,8 +15,8 @@ class Utils {
         if (response) return response.data;
     }
 
-    static hexToRGB(hex) {
-        const parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    static hexToRGB(str) {
+        const parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(str);
         if (!parsed) {
             return null;
         }
@@ -25,6 +25,20 @@ class Utils {
         const g = parseInt(parsed[2], 16);
         const b = parseInt(parsed[3], 16);
         return [r,g,b];
+    }
+
+    static parseRGB(str) {
+        const arr = str.split(/,/);
+        if (arr.length == 3)
+        {
+            for (let i=0; i<3; i++)
+                if (arr[i] < 0 || arr[i] > 255)
+                    return null;
+
+            return arr;
+        }
+
+        return null;
     }
 
     // parses something like "sunset" or "10:00"

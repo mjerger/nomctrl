@@ -235,7 +235,6 @@ async function execute(cmds, opts={}) {
         }
     }
 
-
     //
     // 4) SET LATER
     //
@@ -244,7 +243,6 @@ async function execute(cmds, opts={}) {
             Timers.addSingleShot(node, attr, `set ${node} ${attr}${value ? ' '+value : ''}`, time);
         }
     }
-
 
     //
     // 5) OUTPUT

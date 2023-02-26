@@ -166,7 +166,7 @@ class Nodes
         } else {
             const group_nodes = this.groups.get(id);
             if (group_nodes)
-                found_nodes = found_nodes.concat(group_this.map(id => this.nodes.get(id)));
+                found_nodes = found_nodes.concat(group_nodes.map(id => this.nodes.get(id)));
         }
 
         // filter
