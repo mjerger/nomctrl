@@ -3,6 +3,8 @@ const Devices = require('./devices.js');
 
 class Node 
 {
+    values = new Map();
+
     constructor(cfg_node) { 
         this.id = cfg_node.id;
         this.device = cfg_node.device;
@@ -30,14 +32,38 @@ class Node
 
     async get (attr) {
         console.log(`get ${this.id} ${attr}`);
+
+        // call
         const device = Devices.get(this.device);
-        return device.call(this, 'get', attr, null);
+        let result = await device.call(this, 'get', attr, null);
+
+        // on success, update value
+        if (result) {
+            this.values[attr] = result;
+        }
+
+        return result;
+    }
+
+    get_current(attr) {
+        return this.values[attr];
     }
 
     async set (attr, val=null) {
         console.log(`set ${this.id} ${attr}${val ? ' ' + val : ''}`);
+
+        // call
         const device = Devices.get(this.device);
-        return device.call(this, 'set', attr, val);
+        let result = await device.call(this, 'set', attr, val);
+        
+        // on success, cache value if we have a getter for this attribute
+        if (result) {
+            if (this.hasGet(attr)) {
+                this.values = val;
+            }
+        }
+        
+        return result;
     }
 
     is_online () {
@@ -53,18 +79,18 @@ class Nodes
 
     // Note: load after devices
     static init(cfg_nodes, cfg_groups) {
-        console.log ('Loading nodes...');
+        console.log ('Loading Timers...');
 
         let error = false;
         
         // load nodes
-        Nodes.nodes.clear();
+        this.nodes.clear();
         for (const cfg of cfg_nodes) {
 
             // device must exist
             let device = Devices.get(cfg.device);
             if (device) {
-                Nodes.nodes.set(cfg.id, new Node(cfg));
+                this.nodes.set(cfg.id, new Node(cfg));
             }
             else
             {
@@ -111,19 +137,19 @@ class Nodes
 
         // Load groups
         console.log ('Loading groups...');
-        Nodes.groups.clear();
+        this.groups.clear();
         for (const cfg of cfg_groups) {
-            Nodes.groups.set(cfg.id,  resolve(cfg));
+            this.groups.set(cfg.id,  resolve(cfg));
         }
     }
 
     static all() {
-        const values =  Nodes.nodes.values();
+        const values =  this.nodes.values();
         return values;
     }
 
     static get(id) {
-        return Nodes.nodes.get(id);
+        return this.nodes.get(id);
     }
 
     
@@ -132,15 +158,15 @@ class Nodes
         let found_nodes = [];
 
         // simple node id
-        const node = Nodes.nodes.get(id);
+        const node = this.nodes.get(id);
         if (node) {
             found_nodes.push(node);
 
         // maybe a group id
         } else {
-            const group_nodes = Nodes.groups.get(id);
+            const group_nodes = this.groups.get(id);
             if (group_nodes)
-                found_nodes = found_nodes.concat(group_nodes.map(id => Nodes.nodes.get(id)));
+                found_nodes = found_nodes.concat(group_this.map(id => this.nodes.get(id)));
         }
 
         // filter

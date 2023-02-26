@@ -4,7 +4,6 @@ const Devices = require('./devices.js');
 const Nodes   = require('./nodes.js');
 const Timers  = require('./timers.js');
 
-
 const CMDS = {
     STATUS : 'status',      // return full status of a node
     DO     : 'do',          // trigger an action
@@ -14,24 +13,30 @@ const CMDS = {
 }
 
 const TOKENS = {
-    ON       : /^(on|true|yes|bright|full|max.*|ein|an)$/,
-    OFF      : /^(off|false|no|none|aus|min.*)$/,
-    FLIP     : /^(flip|toggle)$/,
-    PERCENT  : /^(\d|\d{2}|100|0+)%?$/,
-    INT      : /^\d+/,
-    RGB      : /^\(\d+,\d+,\d+\)$/,
-    HEX      : /^\#?[0-9a-fA-F]{6}$/,
-    FOR      : /^for$/,
-    DURATION : /^\d+[m|s|h|d]$/,
-    FOR_OVER : /^(for|over)$/,
-    TO       : /^to$/
+    ON        : /^(on|true|yes|bright|full|max.*|ein|an)$/,
+    OFF       : /^(off|false|no|none|aus|min.*)$/,
+    FLIP      : /^(flip|toggle)$/,
+
+    PERCENT   : /^(\d|\d{2}|100|0+)%?$/,
+    INT       : /^\d+/,
+    RGB       : /^\(\d+,\d+,\d+\)$/,
+    HEX       : /^\#?[0-9a-fA-F]{6}$/,
+    DURATION  : /^\d+[m|s|h|d]$/,
+    TIME      : /^(((?:[01]?\d|2[0-3])(?::[0-5]\d){1,2})|sunrise|sunriseEnd|sunsetStart|sunset)$/,
+
+    TO        : /^to$/,
+    AT        : /^at$/,
+    IN        : /^in$/,
+    FOR       : /^for$/,
+    UNTIL     : /^until$/,
+    FOR_OVER  : /^(for|over)$/,
 }
 
 const FUNCS = {
     SUM : /^sum$/,
     AVG : /^(avg|average)$/,
     MIN : /^(min|minimum)$/,
-    MAX : /^(max|maximum)$/
+    MAX : /^(max|maximum)$/,
 }
 
 function next(list = []) {
@@ -56,27 +61,27 @@ class Commands {
         // STATUS
         if (arg.match(CMDS.STATUS)) {
             arg = next(args);
-            results = Commands.parse_status(arg, args, opts);
+            results = this.parse_status(arg, args, opts);
 e
         // DO
         } else if (arg.match(CMDS.DO)) {
             arg = next(args);
-            results = Commands.parse_do(arg, args, opts);
+            results = this.parse_do(arg, args, opts);
 
         // GET
         } else if (arg.match(CMDS.GET)) {
             arg = next(args);
-            results = Commands.parse_get(arg, args, opts);
+            results = this.parse_get(arg, args, opts);
             
         // SET
         } else if (arg.match(CMDS.SET)) {
             arg = next(args);
-            results = Commands.parse_set(arg, args, opts);
+            results = this.parse_set(arg, args, opts);
 
         // FADE
         } else if (arg.match(CMDS.FADE)) {
             arg = next(args);
-            results = Commands.parse_fade(arg, args, opts);
+            results = this.parse_fade(arg, args, opts);
         }
 
         if (args.length > 0)
@@ -100,7 +105,7 @@ e
         } else {
 
             // status of nodes
-            let nodes = Commands.parse_node(arg, args, opts);
+            let nodes = this.parse_node(arg, args, opts);
             nodes = nodes.filter(n => n.hasSet('status'));
             if (nodes.length > 0)
                 getter = getter.concat(nodes.map(node => [node.id, 'status']));
@@ -133,10 +138,10 @@ e
             const cmds = action.do;
             if (cmds.constructor == [].constructor) {
                 for (const cmd of cmds) {
-                    todo = Utils.merge(todo, Commands.parse(cmd, opts));
+                    todo = Utils.merge(todo, this.parse(cmd, opts));
                 }
             } else {
-                todo = Utils.merge(todo, Commands.parse(cmds, opts));
+                todo = Utils.merge(todo, this.parse(cmds, opts));
             }
             arg = next(args);
         }
@@ -162,7 +167,7 @@ e
         }
 
         // read args until its not a node or group
-        let nodes = Commands.parse_nodes(arg, args, opts);
+        let nodes = this.parse_nodes(arg, args, opts);
         arg = next(args);
 
         // no nodes? use all nodes
@@ -204,10 +209,11 @@ e
 
     static parse_set (arg, args, opts = {}) {
         let setter = [];
+        let set_at = [];
         let errors = [];
 
         // read nodes
-        let nodes = Commands.parse_nodes(arg, args, opts);
+        let nodes = this.parse_nodes(arg, args, opts);
         arg = next(args);
         if (!nodes || nodes.length == 0) {
             return {errors : ['No nodes found.']};
@@ -237,7 +243,7 @@ e
         // COLOR arg is optional
         let color;
         if (arg) {
-            color = Commands.parse_color(arg);
+            color = this.parse_color(arg);
             if (color) {
                 arg = next(args)
                 for (const node of nodes) {
@@ -259,7 +265,7 @@ e
         
         // BRIGHTNESS percentage and on/off commands for lights
         if (arg)  {
-            var percent = Commands.parse_percent(arg);
+            var percent = this.parse_percent(arg);
 
             // set brightness on all nodes
             if (percent !== null) {
@@ -293,6 +299,82 @@ e
                     }
                 };
             }
+
+            // timed setters
+            if (arg) {
+
+                // execute setter at specified time
+                if (arg.match(TOKENS.AT)) {
+                    arg = next(args);
+                    if (arg && arg.match(TOKENS.TIME)) {
+                        const time = Utils.parseTime(arg);
+                        arg = next(args);
+                        
+                        // move setters to set_at, with time
+                        for (const set of setter) {
+                            set.push(time);
+                            set_at.push(set);
+                        }
+                        setter = [];
+
+                    } else {
+                        return { errors : ['Missing time argument.'] };
+                    }
+
+                // execute setter in x seconds
+                } else if (arg.match(TOKENS.IN)) {
+                    arg = next(args);
+                    if (arg && arg.match(TOKENS.DURATION)) {
+                        const duration = Utils.parseDuration(arg);
+                        const time = Date.now() + duration*1000;
+                        arg = next(args);
+
+                        // move setters to set_at, with time
+                        for (const [node, attr, val] of setter) {
+                            set_at.push([node, attr, val, time]);
+                        }
+                        setter = [];
+
+                    } else {
+                        return { errors : ['Missing duration argument.'] };
+                    }
+                
+                // set now and undo at specified time
+                } else if (arg.match(TOKENS.UNTIL)) {
+                    arg = next(args);
+                    if (arg && arg.match(TOKENS.TIME)) {
+                        const time = Utils.parseTime(arg);
+                        arg = next(args);
+
+                        // add setters with current value at specified time
+                        for (const [node, attr, val] of setter) {
+                            const cur_val = Nodes.get(node).get_current(attr);
+                            set_at.push([node, attr, cur_val, time]);
+                        }
+
+                    } else {
+                        return { errors : ['Missing time argument.'] };
+                    }
+                
+                // set now and undo in x seconds
+                } else if (arg.match(TOKENS.FOR)) {
+                    arg = next(args);
+                    if (arg && arg.match(TOKENS.DURATION)) {
+                        const duration = Utils.parseDuration(arg);
+                        const time = Date.now() + duration*1000;
+                        arg = next(args);
+                        
+                        // add setters with current value at specified time
+                        for (const [node, attr, val] of setter) {
+                            const cur_val = Nodes.get(node).get_current(attr);
+                            set_at.push([node, attr, cur_val, time]);
+                        }
+
+                    } else {
+                        return { errors : ['Missing duration argument.'] };
+                    }
+                }
+            }
         }
 
         if (arg)
@@ -300,6 +382,7 @@ e
 
         let results = {}
         if (setter.length > 0) results.setter = setter;
+        if (set_at.length > 0) results.set_at = set_at;
         if (errors.length > 0) results.errors = errors;
 
         return results;
@@ -311,15 +394,15 @@ e
         let errors = [];
 
         // read nodes
-        let nodes = Commands.parse_nodes(arg, args, opts);
+        let nodes = this.parse_nodes(arg, args, opts);
         arg = next(args);
         if (nodes.length == 0) {
             return {errors : ['No nodes found.']};
         }
 
         // first color and or brightness
-        const color1 = Commands.parse_color(arg, args);
-        const brightness1 = Commands.parse_percent(arg, args);
+        const color1 = this.parse_color(arg, args);
+        const brightness1 = this.parse_percent(arg, args);
 
         if (color1 == null && brightness1 == null)
         {
@@ -334,8 +417,8 @@ e
         let color2 = null;
         let brightness2 = null;
         if (arg) {
-            color2 = Commands.parse_color(arg, args);
-            brightness2 = Commands.parse_percent(arg, args);
+            color2 = this.parse_color(arg, args);
+            brightness2 = this.parse_percent(arg, args);
 
             if (color2 != null || brightness2 != null)
             {
@@ -348,7 +431,7 @@ e
             arg = next(args);
 
         // duration
-        const duration = Commands.parse_duration(arg, args);
+        const duration = Utils.parseDuration(arg, args);
 
         if (duration <= 0) {
             errors.push("Missing duration");
@@ -409,22 +492,6 @@ e
             }
         }
         return null;
-    }
-
-    static parse_duration(arg) {
-        if (arg !== undefined) {
-            if (arg.match(TOKENS.DURATION)) {
-                const val = parseInt(arg);
-                if (val < 0) return 0;
-                switch (arg.slice(-1)) {
-                    case 's' : return val;
-                    case 'm' : return val * 60;
-                    case 'h' : return val * 3600;
-                    case 'd' : return val * 3600*24;
-                }
-            }
-        }
-        return 0;
     }
 
     static parse_color(arg) {

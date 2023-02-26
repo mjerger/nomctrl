@@ -16,31 +16,57 @@ class Utils {
     }
 
     static hexToRGB(hex) {
-        let parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        const parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         if (!parsed) {
             return null;
         }
 
-        let r = parseInt(parsed[1], 16);
-        let g = parseInt(parsed[2], 16);
-        let b = parseInt(parsed[3], 16);
+        const r = parseInt(parsed[1], 16);
+        const g = parseInt(parsed[2], 16);
+        const b = parseInt(parsed[3], 16);
         return [r,g,b];
     }
 
     // parses something like "sunset" or "10:00"
-    static parseTime(string) {
+    static parseTime(str) {
 
-        // environment (things like "sunset")
-        let times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
-        if (string in times) {
-            return times[string].getTime();
+        if (!str || str.length == 0)
+            return;
+
+        // environment (words like "sunset")
+        const times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
+        if (str in times) {
+            return times[str].getTime();
         }
         
-        // time
-        if (string.match(/^\d{1,2}:\d{2}$/)) {
-            let today = new Date().toISOString().split('T')[0];
-            return Date.parse(today + "T" + string);
+        // time in hh:mm format
+        if (str.match(/^\d{1,2}:\d{2}$/)) {
+            const today = new Date().toISOString().split('T')[0];
+            return Date.parse(today + "T" + str);
         }
+
+        // epoch
+        if (str.match(/^\d+/)) {
+            const ts = parseInt(str);
+            return ts;
+        }
+        
+        // TODO more formats ?
+    }
+
+    static parseDuration(str) {
+        if (str !== undefined) {
+            const val = parseInt(str);
+            if (val >= 0) {
+                switch (str.slice(-1)) {
+                    case 's' : return val;
+                    case 'm' : return val * 60;
+                    case 'h' : return val * 3600;
+                    case 'd' : return val * 3600*24;
+                }
+            }
+        }
+        return -1;
     }
 
     // find closest time (epoch seconds) in a list that is closest to given time, 
@@ -49,7 +75,7 @@ class Utils {
     {
         let closest = 0; 
         for (let i=0; i<times.length; i++) {
-            let t = times[i];
+            const t = times[i];
             if (t > time || t < times[closest]) continue;
             if (t > times[closest]) closest = i;
         }
@@ -64,7 +90,7 @@ class Utils {
 
     // merge arrays of object b into arrays of object a and return a
     static merge(a, b) {
-        for (let x in b) {
+        for (const x in b) {
             if (!(x in a)) a[x] = b[x];
             else           a[x] = a[x].concat(b[x]);
         }

@@ -37,7 +37,6 @@ Examples of understood commands
 ## TODO
 - Logger
 - Device monitoring
-- cmd: "set .. for 5m"
 - handle dependent nodes
 - Events
 - Devices

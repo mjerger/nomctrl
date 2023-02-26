@@ -215,7 +215,7 @@ async function execute(cmds, opts={}) {
                     set_results.push(Nodes.get(id).set(attr));
                 }
 
-                Timers.killFaders(id, attr);
+                Timers.removeFader(id, attr);
 
                 if (duration) {
                     // TODO set values to previous one off after duration
@@ -231,8 +231,17 @@ async function execute(cmds, opts={}) {
     //
     if (todo.faders) {
         for (const [node, attr, from, to, duration] of todo.faders) {
-            Timers.killFaders(node, attr);
             Timers.addFader(node, attr, from, to, duration)
+        }
+    }
+
+
+    //
+    // 4) SET LATER
+    //
+    if (todo.set_at) {
+        for (const [node, attr, value, time] of todo.set_at) {
+            Timers.addSingleShot(node, attr, `set ${node} ${attr}${value ? ' '+value : ''}`, time);
         }
     }
 

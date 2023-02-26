@@ -1,16 +1,20 @@
 const Config  = require('./config.js');
 const Utils   = require('./utils.js');
 const Nodes   = require('./nodes.js');
+const crypto = require('crypto');
 
 class Timer 
 {
     events = []
 
     constructor(cfg) { 
-        this.id = cfg.id;
-        this.node = cfg.node;
-        this.strict = cfg.strict;
-        this.parseEvents(cfg);
+        if (cfg) {
+            this.id = cfg.id;
+            this.node = cfg.node;
+            this.strict = cfg.strict ? true : false;
+            this.single = cfg.single ? true : false;
+            this.parseEvents(cfg);
+        }
     }
 
     merge (cfg) {
@@ -39,6 +43,30 @@ class Timer
             if (cfg.cmd)
                 this.events.push([cfg.at, cfg.cmd ]);
         }
+    }
+}
+
+class SingleShotTimer extends Timer
+{
+    constructor(node, attr, command, when) {
+        super();
+        const id = 'single_' + crypto.randomBytes(3).toString('hex');;
+        this.id = id;
+        this.node = node;
+        this.strict = false;
+        this.single = true;
+        this.events.push([String(when), command]);
+        this.attr = attr;
+    }
+
+    is_triggered (time) {
+        const when = this.events[0][0];
+        const int = Utils.parseTime(when);
+        return (Utils.parseTime(when) < time);
+    }
+
+    get_command () {
+        return this.events[0][1];
     }
 }
 
@@ -106,23 +134,23 @@ class Timers
     static init(cfg_timers, cfg_actions, execute) {
         this.execute = execute;
 
-        console.log ('Loading timers...');
-        Timers.timers.clear();
+        console.log ('Loading Tuners...');
+        this.timers.clear();
         let error = false;
 
         // Timer definitions
         for (const cfg of cfg_timers) {
             const id = cfg.id
-            if (Timers.timers.has(id)) {
+            if (this.timers.has(id)) {
                 // marge timer definitions
-                if ('node' in cfg && Timers.timers.get(id).node === cfg.node) {
-                    Timers.timers.set(id, merge(cfg));
+                if ('node' in cfg && this.timers.get(id).node === cfg.node) {
+                    this.timers.set(id, merge(cfg));
                 } else {
                     console.log(`Config Error: incompatible timer configuration on timer '${id}'`);
                     error = true;
                 }
             } else {
-                Timers.timers.set(id, new Timer(cfg));
+                this.timers.set(id, new Timer(cfg));
             }
         }
 
@@ -131,39 +159,60 @@ class Timers
 
         return error;
     }
-
-    static getTimer(id) {
-        return Timers.timers.get(id);
-    }
-
-    static addFader(node, attr, from, to, duration) {
-        Timers.faders.push(new Fader(node, attr, from, to, duration));
+    
+    static async start() {
+        console.log ('Starting timers');
+        this.tick_static_timers();
         this.tick_faders();
     }
 
-    static killFaders(node, attr) {
-        Timers.faders = Timers.faders.filter(f => f.node === node && f.attr === attr);
+    static getTimer(id) {
+        return this.timers.get(id);
+    }
+    
+    static getTimerIds() {
+        return this.timers.keys();
     }
 
-    static async start() {
-        console.log ('Starting timers');
-        Timers.tick_static_timers();
-        Timers.tick_faders();
+    static addFader(node, attr, from, to, duration) {
+        this.removeFader(node, attr);
+        this.faders.push(new Fader(node, attr, from, to, duration));
+        this.tick_faders();
+    }
+
+    static removeFader(node, attr) {
+        this.faders = this.faders.filter(f => !(f.node === node && f.attr === attr));
+    }
+
+    static addSingleShot(node, attr, command, when) {
+        this.removeSingleShot(node, attr);
+        const timer = new SingleShotTimer(node, attr, command, when);
+        this.timers.set(timer.id, timer);
+        this.tick_singleshot_timers();
+    }
+
+    static removeSingleShot(node, attr) {
+        for (const id of this.timers.keys()) {
+            const timer = this.timers.get(id);
+            if (timer && timer.single && timer.node === node && timer.attr === attr) {
+                this.timers.delete(id);
+            }
+        }
     }
 
     static async tick_faders() {
         const now = Date.now();
 
         // remove stopped
-        Timers.faders = Timers.faders.filter(f => f.is_active(now));
+        this.faders = this.faders.filter(f => f.is_active(now));
 
-        if (Timers.faders.length == 0) 
+        if (this.faders.length == 0) 
             return;
             
         // get new values, if any
         let logged = false;
         let setter = [];
-        for (const fader of Timers.faders) {
+        for (const fader of this.faders) {
             if (fader.has_new_value(now)) {
                 // hacky log order
                 if (!logged) {
@@ -185,11 +234,33 @@ class Timers
         setTimeout(this.tick_faders.bind(this), 2000);
     }
 
-    static async tick_static_timers(execute) {
+    // handle single shot timers
+    static async tick_singleshot_timers() {
+        if (this.timers.size == 0)
+            return;
 
-        // execute strict timers
-        for (const timer of Timers.timers.values()) {
-            if (!timer.strict)
+        for (const id of this.timers.keys()) {
+            let timer = this.timers.get(id);
+            if (!timer.single)
+                continue;
+            
+            if (timer.is_triggered(Date.now())) {
+                this.timers.delete(timer.id);
+
+                const cmd = timer.get_command();
+                console.log(`Timer '${timer.id}': '${cmd}'`);
+                await this.execute(cmd, {'include_timed' : true});
+            }
+        }
+
+        // tick again
+        setTimeout(this.tick_singleshot_timers.bind(this),1000);
+    }
+
+    // handle strict timers
+    static async tick_static_timers() {
+        for (const timer of this.timers.values()) {
+            if (!timer.strict || timer.single)
                 continue;
             
             // we have take into account the events for yesterday, so timers can behave correctly during midnigh
@@ -200,14 +271,13 @@ class Timers
             cmds = cmds.concat(cmds);
             const currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
-            console.log(`Timer ${timer.id}: '${currentStateCmd}' for node ${timer.node}`);
+            console.log(`Timer '${timer.id}': '${currentStateCmd}'`);
             await this.execute(currentStateCmd, {'include_timed' : true});
         }
 
         // tick again
         setTimeout(this.tick_static_timers.bind(this),Config.ctrl().timer_interval_seconds * 1000);
     }
-
 }
 
 module.exports = Timers;

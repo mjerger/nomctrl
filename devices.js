@@ -199,12 +199,12 @@ class Devices
 
     static init(cfg_devices) {
         console.log ('Loading devices...');
-        Devices.devices.clear();
+        this.devices.clear();
         let error = false;
 
         for (const cfg of cfg_devices) {
             if (cfg.type in drivers) {
-                Devices.devices.set(cfg.id, new drivers[cfg.type](cfg));
+                this.devices.set(cfg.id, new drivers[cfg.type](cfg));
             } else {
                 console.error(`Config Error: Device ${cfg.id} has unknown device type ${cfg.type}.`);
                 error = true;
@@ -214,20 +214,20 @@ class Devices
     }
 
     static all() {
-        return Devices.devices.values();
+        return this.devices.values();
     }
 
     static get(id) {
-        return Devices.devices.get(id);
+        return this.devices.get(id);
     }
 
     static mark_online(id) {
-        Devices.devices.get(id).online = true;
+        this.devices.get(id).online = true;
     }
 
     static async start() {
         console.log ('Starting device monitor');
-        Devices.monitor();
+        this.monitor();
     }
 
     static async monitor() {
