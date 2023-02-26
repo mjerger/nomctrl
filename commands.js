@@ -105,7 +105,6 @@ e
                     getter.push([node.id, 'status']);
             }
         } else {
-
             // status of nodes
             let nodes = this.parse_node(arg, args, opts);
             nodes = nodes.filter(n => n.hasSet('status'));
@@ -241,7 +240,6 @@ e
                         setter.push([node.id, attr, val]);
                     }
                 }
-
                 arg = next(args);
             }
         }

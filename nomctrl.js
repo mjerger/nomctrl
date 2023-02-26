@@ -127,11 +127,10 @@ async function execute(cmds, opts={}) {
         }
 
         // await results
-        for (const id in get_results) {
-            for (const attr in get_results[id]) {
+        for (const id in get_results)
+            for (const attr in get_results[id])
                 get_results[id][attr] = await get_results[id][attr];
-            }
-        }
+    
 
         // apply calc funcs
         if (todo.calc) {
@@ -152,6 +151,7 @@ async function execute(cmds, opts={}) {
                     case 'min': res_val = Number.MAX_SAFE_INTEGER; break; 
                     case 'max': res_val = Number.MIN_SAFE_INTEGER; break;
                 }
+
                 // iter
                 let count = 0;
                 for (const id in get_results) {
@@ -173,6 +173,7 @@ async function execute(cmds, opts={}) {
                         }
                     }
                 }
+                
                 // post
                 switch (calc) {
                     case 'avg' : res_val /= count; break;
