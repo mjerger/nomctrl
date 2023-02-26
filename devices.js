@@ -21,17 +21,21 @@ class Device
     }
 
     async call(node, prefix, attr, val) {
-        if (this.is_multi_node) {
-            assert(node);
-            if (val !== null)
-                return this[prefix + '_' + attr](node, val);
-            else
-                return this[prefix + '_' + attr](node);
-        } else {
-            if (val !== null)
-                return this[prefix + '_' + attr](val);
-            else
-                return this[prefix + '_' + attr]();
+        try {
+            if (this.is_multi_node) {
+                assert(node);
+                if (val !== null)
+                    return this[prefix + '_' + attr](node, val);
+                else
+                    return this[prefix + '_' + attr](node);
+            } else {
+                if (val !== null)
+                    return this[prefix + '_' + attr](val);
+                else
+                    return this[prefix + '_' + attr]();
+            }
+        } catch (e) {
+            console.log (`Call error ${prefix} ${node.id}.${attr} ${val?val:''}`)
         }
     }
 

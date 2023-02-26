@@ -79,6 +79,14 @@ function overrides(a, b) {
     return false;
 }
 
+// TODO don't place this here, duplicate
+const FUNCS = {
+    SUM : /^sum$/,
+    AVG : /^(avg|average)$/,
+    MIN : /^(min|minimum)$/,
+    MAX : /^(max|maximum)$/
+}
+
 // the main command execution function
 async function execute(cmds, opts={}) {
     let results = { errors : []};
@@ -101,6 +109,8 @@ async function execute(cmds, opts={}) {
          let res = Commands.parse(cmd, opts);
          todo = Utils.merge(todo, res);
     }
+
+    if (todo.errors) results.errors = todo.errors
 
     //
     // 2) EXECUTE GETTER
@@ -250,14 +260,18 @@ async function execute(cmds, opts={}) {
     //
 
     if (results.errors) {
-        if (results.errors.length > 0)
+        if (results.errors.length > 0) {
             results.status = 'error';
-        else
+        } else {
             delete results.errors;
-    }
-    else {
+            results.status = 'success';
+        }
+    } else {
         results.status = 'success';
     }
+
+    if (results.errors)
+         console.log({error: results.errors})
 
     return JSON.stringify(results);
 }

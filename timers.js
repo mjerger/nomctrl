@@ -178,7 +178,6 @@ class Timers
 
         // do it
         if (setter.length > 0) {
-            console.log('Fading...');
             await Promise.all(setter);
         }
 
