@@ -40,10 +40,27 @@ class Node
 
         // on success, update value
         if (val) {
-            this.values.set(attr, val);
+            this.set_current(attr, val);
         }
 
         return val;
+    }
+
+    async set (attr, val) {
+        console.log(`set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
+
+        // call
+        const device = Devices.get(this.device);
+        let result = await device.call(this, 'set', attr, val);
+        
+        // on success, cache value if we have a getter for this attribute
+        if (result) {
+            if (this.hasGet(attr)) {
+                this.set_current(attr, val);
+            }
+        }
+        
+        return result;
     }
 
     get_current(attr) {
@@ -61,24 +78,6 @@ class Node
             this.values.set(attr, val);
         }
     }
-
-    async set (attr, val) {
-        console.log(`set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
-
-        // call
-        const device = Devices.get(this.device);
-        let result = await device.call(this, 'set', attr, val);
-        
-        // on success, cache value if we have a getter for this attribute
-        if (result) {
-            if (this.hasGet(attr)) {
-                this.values.set(attr, val);
-            }
-        }
-        
-        return result;
-    }
-
 
     is_online () {
         return Devices.get(this.device).online;
