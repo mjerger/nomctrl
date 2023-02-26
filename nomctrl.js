@@ -3,6 +3,7 @@ const Config   = require('./config.js');
 const Devices  = require('./devices.js');
 const Nodes    = require('./nodes.js');
 const Timers   = require('./timers.js');
+const Events   = require('./events.js');
 const Commands = require('./commands.js');
 
 const express = require("express");
@@ -20,10 +21,12 @@ app.listen(Config.app().port, function () {
 
     Devices.init(Config.devices());
     Nodes.init(Config.nodes(), Config.groups());
-    Timers.init(Config.timers(), null, execute);
+    Timers.init(Config.timers(), execute);
+    Events.init(Config.actions(), execute);
 
     Devices.start();
     Timers.start();
+    Events.start();
 
     console.log(`nomctrl listening on port ${Config.app().port}!`);
 });
@@ -173,7 +176,7 @@ async function execute(cmds, opts={}) {
                         }
                     }
                 }
-                
+
                 // post
                 switch (calc) {
                     case 'avg' : res_val /= count; break;

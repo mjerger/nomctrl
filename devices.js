@@ -54,8 +54,8 @@ const drivers = {
                 {
                     constructor(config) { 
                         super(config);
-                        this.setter = ['status', 'state', 'flip',];
                         this.getter = ['status', 'state', 'power', 'energy', 'energy_t', 'energy_y'];
+                        this.setter = ['status', 'state', 'flip'];
                     }
 
                     async _get(attr1, attr2) {
@@ -139,11 +139,11 @@ const drivers = {
 
                     static set_path = '/json/state';
 
-                    async _get(attr1=null, attr2=null) { 
+                    async _get(attr1, attr2) { 
                         let res = await Utils.get (this.host, WLED.set_path);
                         if (res) {
-                            if (attr1 && attr1 in res) res = res[attr1];
-                            if (attr2 && attr2 in res) res = res[attr2];
+                            if (attr1 !== undefined && attr1 in res) res = res[attr1];
+                            if (attr2 !== undefined && attr2 in res) res = res[attr2];
                         }
                         return res;
                     }

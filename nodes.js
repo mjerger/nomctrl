@@ -1,5 +1,6 @@
 const Config  = require('./config.js');
 const Devices = require('./devices.js');
+const Events  = require('./events.js');
 
 class Node 
 {
@@ -46,7 +47,19 @@ class Node
     }
 
     get_current(attr) {
-        return this.values[attr];
+        return this.values.get(attr);
+    }
+
+    set_current(attr, val) {
+        if (this.values.has(attr)) {
+            // trigger events if value has changed
+            if (this.values.get(attr) !== val) {
+                this.values.set(attr, val);
+                Events.trigger(`${this.id}.${attr}`, val);
+            }
+        } else {
+            this.values.set(attr, val);
+        }
     }
 
     async set (attr, val) {
@@ -65,6 +78,7 @@ class Node
         
         return result;
     }
+
 
     is_online () {
         return Devices.get(this.device).online;
@@ -151,7 +165,6 @@ class Nodes
     static get(id) {
         return this.nodes.get(id);
     }
-
     
     // get list of nodes, either by node id or by group id; use opts for filtering
     static getNodes(id, opts={}) {

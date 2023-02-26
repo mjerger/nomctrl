@@ -131,10 +131,10 @@ class Timers
     static timers = new Map();
     static faders = [];
 
-    static init(cfg_timers, cfg_actions, execute) {
+    static init(cfg_timers, execute) {
         this.execute = execute;
 
-        console.log ('Loading Tuners...');
+        console.log ('Loading Timers...');
         this.timers.clear();
         let error = false;
 
@@ -153,9 +153,6 @@ class Timers
                 this.timers.set(id, new Timer(cfg));
             }
         }
-
-        // Actions with timers
-        // TODO
 
         return error;
     }
