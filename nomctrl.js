@@ -66,8 +66,7 @@ function overrides(a, b) {
     if (a === b) return true;
 
     // off/on/flip has prio
-    if (['on', 'off', 'flip'].includes(a) && 
-        ['on', 'off', 'flip'].includes(b))
+    if (['state', 'flip'].includes(a) && ['state', 'flip'].includes(b))
     {
         return true;
     }
@@ -207,19 +206,15 @@ async function execute(cmds, opts={}) {
 
         // call setter
         let set_results = []; 
-        for (const [id, attr, val, duration] of todo.setter) {
+        for (const [id, attr, val] of todo.setter) {
             if (id && attr) {
-                if (val) {
-                    set_results.push(Nodes.get(id).set(attr, val));
-                } else {
+                if (val == undefined) {
                     set_results.push(Nodes.get(id).set(attr));
+                } else {
+                    set_results.push(Nodes.get(id).set(attr, val));
                 }
 
                 Timers.removeFader(id, attr);
-
-                if (duration) {
-                    // TODO set values to previous one off after duration
-                }
             }
         }
         set_results = await Promise.all(set_results);

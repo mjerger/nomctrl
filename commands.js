@@ -223,23 +223,27 @@ e
 
         // ON / OFF / FLIP
         if (arg) {
-            let matched = false;
-            for (const token of [ [TOKENS.ON, 'on'], [TOKENS.OFF, 'off'], [TOKENS.FLIP, 'flip']]) {
-                if (arg.match(token[0])) {
-                    for (const node of nodes) {
-                        const device = Devices.get(node.device);
-                        if (device.hasSet(token[1])) {
-                            setter.push([node.id, token[1]])
-                        } else if (nodes.length == 1) {
-                            errors.push(`Device ${device.id} type ${device.type} of node ${node.id} has no setter ${arg}.`);
-                        }
-                    };
-                    matched = true;
-                    break;
-                }
+            let attr, val;
+            if (arg.match(TOKENS.ON)) {
+                attr = 'state';
+                val = true;
+            } else if (arg.match(TOKENS.OFF)) {
+                attr = 'state';
+                val = false;
+            } else if (arg.match(TOKENS.FLIP)) {
+                attr = 'flip';
             }
-            if (matched)
-                arg = next(args)
+
+            if (attr) {
+                for (const node of nodes) {
+                    const device = Devices.get(node.device);
+                    if (node.hasSet(attr)) {
+                        setter.push([node.id, attr, val]);
+                    }
+                }
+
+                arg = next(args);
+            }
         }
         
         // COLOR arg is optional
@@ -259,7 +263,7 @@ e
                         setter.push([node.id, 'color', color]);
                         // also turn on if cmd has no more args
                         if (!arg)
-                            setter.push([node.id, 'on'])
+                            setter.push([node.id, 'state', true])
                     } else if (nodes.length == 1) { 
                         errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
                     }
@@ -289,16 +293,16 @@ e
                         setter.push([node.id, 'brightness', percent]);
 
                         // additionally set on/off
-                        if (percent == 100 && device.hasSet('on'))  setter.push([node.id, 'on']);
-                        if (percent == 0   && device.hasSet('off')) setter.push([node.id, 'off']);
+                        if (percent == 100 && device.hasSet('state'))  setter.push([node.id, 'state', true]);
+                        if (percent == 0   && device.hasSet('state'))  setter.push([node.id, 'state', false]);
 
                     // no brightness, but has 'on': use threshold
-                    } else if (node.thresh && percent >= node.thresh && device.hasSet('on') && node.class !== 'power') {
-                        setter.push([node.id, 'on']);
+                    } else if (node.thresh && percent >= node.thresh && device.hasSet('state') && node.class !== 'power') {
+                        setter.push([node.id, 'state', true]);
 
                     // no brightness, but has 'off': use threshold
-                    } else if (node.thresh && percent < node.thresh && device.hasSet('off') && node.class !== 'power') {
-                        setter.push([node.id, 'off']);
+                    } else if (node.thresh && percent < node.thresh && device.hasSet('state') && node.class !== 'power') {
+                        setter.push([node.id, 'state', false]);
 
                     } else if (nodes.length == 1) {
                         errors.push(`Device ${id} of node ${node.id} does not support brightness control.`);

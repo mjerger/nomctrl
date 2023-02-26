@@ -54,7 +54,7 @@ const drivers = {
                 {
                     constructor(config) { 
                         super(config);
-                        this.setter = ['status', 'on', 'off', 'flip',];
+                        this.setter = ['status', 'state', 'flip',];
                         this.getter = ['status', 'state', 'power', 'energy', 'energy_t', 'energy_y'];
                     }
 
@@ -118,24 +118,23 @@ const drivers = {
                         return result;
                     }
                     
-                    async get_status       () { return this._get(); }
-                    async get_state        () { const val = await this._get('Status', 'Power'); return val === 1;} 
-                    async get_power_status () { return this._get_power_status(); }
-                    async get_power        () { return this._get_energy('Power'); }
-                    async get_energy       () { return this._get_energy('Total'); }
-                    async get_energy_t     () { return this._get_energy('Today'); }
-                    async get_energy_y     () { return this._get_energy('Yesterday'); }
-                    async set_on           () { return Utils.get(this.host, '/cm?cmnd=power+on') }
-                    async set_off          () { return Utils.get(this.host, '/cm?cmnd=power+off') }
-                    async set_flip         () { return Utils.get(this.host, '/cm?cmnd=power+toggle') }
+                    async get_status       ()        { return this._get(); }
+                    async get_state        ()        { const val = await this._get('Status', 'Power'); return val === 1;} 
+                    async get_power_status ()        { return this._get_power_status(); }
+                    async get_power        ()        { return this._get_energy('Power'); }
+                    async get_energy       ()        { return this._get_energy('Total'); }
+                    async get_energy_t     ()        { return this._get_energy('Today'); }
+                    async get_energy_y     ()        { return this._get_energy('Yesterday'); }
+                    async set_state        (enabled) { return Utils.get(this.host, '/cm?cmnd=power+' + (enabled ? 'on' : 'off')) }
+                    async set_flip         ()        { return Utils.get(this.host, '/cm?cmnd=power+toggle') }
                 },
                 
     'wled'    : class WLED extends HttpDevice 
                 {
                     constructor(config)  { 
                         super(config);
-                        this.setter = ['status', 'on', 'off', 'flip', 'color', 'brightness'];
                         this.getter = ['status', 'state', 'color', 'brightness'];
+                        this.setter = ['status', 'state', 'flip', 'color', 'brightness'];
                     }
 
                     static set_path = '/json/state';
@@ -170,8 +169,7 @@ const drivers = {
                     async get_state      ()            { const val = await this._get('status', 'on'); return val ? val : null; }
                     async get_brightness ()            { const val = await this._get('bri');          return val ? Math.floor(val / 2.55) : null; }
                     async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
-                    async set_on         ()            { return this._post({ 'on' : true  }) }
-                    async set_off        ()            { return this._post({ 'on' : false }) }
+                    async set_state      (enabled)     { return this._post({ 'on' : !!enabled  }) }
                     async set_flip       ()            { return this._post({ 'on' : 't'   }) }
                     async set_color      (color)       { return this._post({ 'seg' : [ { 'col' : [color] } ] }) }
                     async set_brightness (percent)     { return this._post({ 'on' : true, 'bri' : Math.floor(percent*2.55) }) }
@@ -181,13 +179,12 @@ const drivers = {
                 {
                     constructor(config) { 
                         super(config);
-                        this.setter = ['status', 'on', 'off', 'flip', 'brightness'];
                         this.getter = ['status'];
+                        this.setter = ['status', 'state', 'flip', 'brightness'];
                     }
 
                     async get_status()             { return 'NOT IMPLEMENTED'; }
-                    async set_on    ()             { return Utils.get(this.host, '/r/on') }
-                    async set_off   ()             { return Utils.get(this.host, '/r/off') }
+                    async set_state (enable)       { return Utils.get(this.host, (enable ? '/r/on' : '/r/off'))  }
                     async set_flip  ()             { return Utils.get(this.host, '/r/flip') }
                     async set_brightness (percent) { return Utils.get(this.host, '/r/brightness?val=' + percent) }
                 },                

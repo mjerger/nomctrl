@@ -35,22 +35,22 @@ class Node
 
         // call
         const device = Devices.get(this.device);
-        let result = await device.call(this, 'get', attr, null);
+        let val = await device.call(this, 'get', attr, null);
 
         // on success, update value
-        if (result) {
-            this.values[attr] = result;
+        if (val) {
+            this.values.set(attr, val);
         }
 
-        return result;
+        return val;
     }
 
     get_current(attr) {
         return this.values[attr];
     }
 
-    async set (attr, val=null) {
-        console.log(`set ${this.id} ${attr}${val ? ' ' + val : ''}`);
+    async set (attr, val) {
+        console.log(`set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
 
         // call
         const device = Devices.get(this.device);
@@ -59,7 +59,7 @@ class Node
         // on success, cache value if we have a getter for this attribute
         if (result) {
             if (this.hasGet(attr)) {
-                this.values = val;
+                this.values.set(attr, val);
             }
         }
         
