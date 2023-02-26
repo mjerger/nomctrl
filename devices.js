@@ -23,7 +23,6 @@ class Device
     async call(node, prefix, attr, val) {
         try {
             if (this.is_multi_node) {
-                assert(node);
                 if (val !== null)
                     return this[prefix + '_' + attr](node, val);
                 else

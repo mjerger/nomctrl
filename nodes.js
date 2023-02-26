@@ -47,7 +47,7 @@ class Node
     }
 
     async set (attr, val) {
-        console.log(`set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
+        console.log(`Call: set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
 
         // call
         const device = Devices.get(this.device);
