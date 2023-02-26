@@ -62,10 +62,8 @@ const drivers = {
                         let vals = await Utils.get(this.host, '/cm?cmnd=status')
                         if (!vals) 
                             return null;
-
                         if (attr1 === undefined) 
                             return vals;
-
                         if (!(attr1 in vals))
                             return null;
 
@@ -73,10 +71,8 @@ const drivers = {
                         
                         if (attr2 === undefined)
                             return vals;
-                            
                         if (!(attr2 in vals)) 
                             return null;
-                            
                         return vals[attr2];
                     }
 
@@ -89,14 +85,10 @@ const drivers = {
 
                                 if (attr === undefined)
                                     return vals;
-
                                 if (!(attr in vals))
                                     return null;
-
                                 return vals[attr];
                             }
-                            
-                            
                         }
                         return vals;
                     }
@@ -104,16 +96,16 @@ const drivers = {
                     async _get_power_status() {
 
                         let vals = await _get_energy();
-                        const attrs = [ ['total', 'Total'], 
+                        const attrs = [ ['total',      'Total'], 
                                         ['start_time', 'TotalStartTime'], 
-                                        ['yesterday', 'Yesterday'], 
-                                        ['today', 'Today'], 
-                                        ['power', 'Power'], 
-                                        ['power_va', 'ApparentPower'], 
-                                        ['power_var', 'ReactivePower'], 
-                                        ['power_factor', 'Factor'], 
-                                        ['voltage', 'Voltage'], 
-                                        ['current', 'Current']];
+                                        ['yesterday',  'Yesterday'], 
+                                        ['today',      'Today'], 
+                                        ['power',      'Power'], 
+                                        ['power_va',   'ApparentPower'], 
+                                        ['power_var',  'ReactivePower'], 
+                                        ['factor',     'Factor'], 
+                                        ['voltage',    'Voltage'], 
+                                        ['current',    'Current']];
 
                         let result = null;
                         if (vals && 'ENERGY' in vals) {
@@ -123,20 +115,19 @@ const drivers = {
                                 result[ours] = vals[theirs];
                             }
                         }
-
                         return result;
                     }
                     
                     async get_status       () { return this._get(); }
-                    async get_state        () { let val = await this._get('Status', 'Power'); return val === 1;} 
+                    async get_state        () { const val = await this._get('Status', 'Power'); return val === 1;} 
                     async get_power_status () { return this._get_power_status(); }
                     async get_power        () { return this._get_energy('Power'); }
                     async get_energy       () { return this._get_energy('Total'); }
                     async get_energy_t     () { return this._get_energy('Today'); }
                     async get_energy_y     () { return this._get_energy('Yesterday'); }
-                    async set_on    () { return Utils.get(this.host, '/cm?cmnd=power+on') }
-                    async set_off   () { return Utils.get(this.host, '/cm?cmnd=power+off') }
-                    async set_flip  () { return Utils.get(this.host, '/cm?cmnd=power+toggle') }
+                    async set_on           () { return Utils.get(this.host, '/cm?cmnd=power+on') }
+                    async set_off          () { return Utils.get(this.host, '/cm?cmnd=power+off') }
+                    async set_flip         () { return Utils.get(this.host, '/cm?cmnd=power+toggle') }
                 },
                 
     'wled'    : class WLED extends HttpDevice 
@@ -147,6 +138,8 @@ const drivers = {
                         this.getter = ['status', 'state', 'color', 'brightness'];
                     }
 
+                    static set_path = '/json/state';
+
                     async _get(attr1=null, attr2=null) { 
                         let res = await Utils.get (this.host, WLED.set_path);
                         if (res) {
@@ -156,7 +149,6 @@ const drivers = {
                         return res;
                     }
 
-
                     async _get_segment(idx=0) { 
                         let res = await Utils.get (this.host, WLED.set_path);
                         if (res && 'seg' in res && res.seg.length > 0) {
@@ -164,18 +156,25 @@ const drivers = {
                         }
                         return null;
                     }
+
+                    async _post(json) {
+                        return Utils.post(this.host, WLED.set_path, json);
+                    }
+
+                    // TODO set segment color brightness for multi-node instances
+                    async _set_segment(color, idx=0) {
+                        return this._post({ 'seg' : [ { 'col' : [color] } ] });
+                    }
                     
-                    
-                    static set_path = '/json/state';
                     async get_status     ()            { return this._get(); }
                     async get_state      ()            { const val = await this._get('status', 'on'); return val ? val : null; }
                     async get_brightness ()            { const val = await this._get('bri');          return val ? Math.floor(val / 2.55) : null; }
                     async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
-                    async set_on         ()            { return Utils.post(this.host, WLED.set_path, { 'on' : true  }) }
-                    async set_off        ()            { return Utils.post(this.host, WLED.set_path, { 'on' : false }) }
-                    async set_flip       ()            { return Utils.post(this.host, WLED.set_path, { 'on' : 't'   }) }
-                    async set_color      (color)       { return Utils.post(this.host, WLED.set_path, { 'seg' : [ { 'col' : [color] } ] }) }
-                    async set_brightness (percent)     { return Utils.post(this.host, WLED.set_path, { 'on' : true, 'bri' : Math.floor(percent*2.55) }) }
+                    async set_on         ()            { return this._post({ 'on' : true  }) }
+                    async set_off        ()            { return this._post({ 'on' : false }) }
+                    async set_flip       ()            { return this._post({ 'on' : 't'   }) }
+                    async set_color      (color)       { return this._post({ 'seg' : [ { 'col' : [color] } ] }) }
+                    async set_brightness (percent)     { return this._post({ 'on' : true, 'bri' : Math.floor(percent*2.55) }) }
                 },
 
     'nomframe' : class NomFrame extends HttpDevice 
@@ -183,8 +182,9 @@ const drivers = {
                     constructor(config) { 
                         super(config);
                         this.setter = ['status', 'on', 'off', 'flip', 'brightness'];
-                        this.getter = ['status'/*,'brightness'*/];
+                        this.getter = ['status'];
                     }
+
                     async get_status()             { return 'NOT IMPLEMENTED'; }
                     async set_on    ()             { return Utils.get(this.host, '/r/on') }
                     async set_off   ()             { return Utils.get(this.host, '/r/off') }
@@ -210,7 +210,6 @@ class Devices
                 error = true;
             }
         }
-        
         return error;
     }
 

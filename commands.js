@@ -7,7 +7,7 @@ const Timers  = require('./timers.js');
 
 const CMDS = {
     STATUS : 'status',      // return full status of a node
-    DO     : 'do',          // execute on of our configured actions
+    DO     : 'do',          // trigger an action
     GET    : 'get',         // get something from nodes
     SET    : 'set',         // set something on nodes
     FADE   : 'fade',        // fade something
@@ -41,7 +41,6 @@ function next(list = []) {
     list.shift()
     return item;
 }
-
 
 class Commands {
 
@@ -110,7 +109,6 @@ e
 
             // TODO other special status commands
         }
-
         
         let results = {}
         if (getter.length > 0) results.getter = getter;

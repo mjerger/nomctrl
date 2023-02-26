@@ -34,10 +34,6 @@ app.get("/", async (req, res) => {
     res.send("nomctrl up");
 });
 
-app.get("/control.html", async (req, res) => {
-    res.send("nomctrl up");
-});
-
 app.get("/status", async (req, res) => {
     //TODO status page
     res.send(await execute("status"));
@@ -77,14 +73,6 @@ function overrides(a, b) {
     }
 
     return false;
-}
-
-// TODO don't place this here, duplicate
-const FUNCS = {
-    SUM : /^sum$/,
-    AVG : /^(avg|average)$/,
-    MIN : /^(min|minimum)$/,
-    MAX : /^(max|maximum)$/
 }
 
 // the main command execution function
@@ -148,12 +136,6 @@ async function execute(cmds, opts={}) {
 
         // apply calc funcs
         if (todo.calc) {
-            let calc;
-            for (const func of Object.entries(FUNCS)) {
-                if (todo.calc.match(func[1])) {
-                    calc = FUNCS[func[0]];
-                }
-            }
 
             // collect attributes
             let attrs = [];
@@ -168,8 +150,8 @@ async function execute(cmds, opts={}) {
                 // pre
                 let res_val = 0;
                 switch (calc) {
-                    case FUNCS.MIN: res_val = Number.MAX_SAFE_INTEGER; break; 
-                    case FUNCS.MAX: res_val = Number.MIN_SAFE_INTEGER; break;
+                    case 'min': res_val = Number.MAX_SAFE_INTEGER; break; 
+                    case 'max': res_val = Number.MIN_SAFE_INTEGER; break;
                 }
                 // iter
                 let count = 0;
@@ -185,16 +167,16 @@ async function execute(cmds, opts={}) {
 
                         count += 1;
                         switch(calc) {
-                            case FUNCS.SUM: res_val += val; break;
-                            case FUNCS.AVG: res_val += val; break;
-                            case FUNCS.MIN: res_val = Math.min(res_val, val); break;
-                            case FUNCS.MAX: res_val = Math.max(res_val, val); break;
+                            case 'sum': res_val += val; break;
+                            case 'avg': res_val += val; break;
+                            case 'min': res_val = Math.min(res_val, val); break;
+                            case 'max': res_val = Math.max(res_val, val); break;
                         }
                     }
                 }
                 // post
                 switch (calc) {
-                    case FUNCS.AVG : res_val /= count; break;
+                    case 'avg' : res_val /= count; break;
                 }
 
                 results[attr + '_' + todo.calc] = res_val;

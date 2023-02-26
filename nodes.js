@@ -30,14 +30,12 @@ class Node
 
     async get (attr) {
         console.log(`get ${this.id} ${attr}`);
-
         const device = Devices.get(this.device);
         return device.call(this, 'get', attr, null);
     }
 
     async set (attr, val=null) {
         console.log(`set ${this.id} ${attr}${val ? ' ' + val : ''}`);
-
         const device = Devices.get(this.device);
         return device.call(this, 'set', attr, val);
     }
@@ -76,7 +74,6 @@ class Nodes
 
         // helper to recursively resolve one group config item into a list of all referenced nodes
         function resolve(cfg_group, group_ids = []) {
-
             let node_ids = [];
 
             // group references
@@ -109,7 +106,6 @@ class Nodes
                 }
             }
 
-
             return node_ids;
         }
 
@@ -133,7 +129,6 @@ class Nodes
     
     // get list of nodes, either by node id or by group id; use opts for filtering
     static getNodes(id, opts={}) {
-
         let found_nodes = [];
 
         // simple node id

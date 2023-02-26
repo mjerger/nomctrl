@@ -38,7 +38,6 @@ Examples of understood commands
 - Logger
 - Device monitoring
 - cmd: "set .. for 5m"
-- cmd: "fade hallway 100.. over 3s for 5m"
 - handle dependent nodes
 - Events
 - Devices
