@@ -150,7 +150,7 @@ async function execute(cmds, opts={}) {
 
                 // pre
                 let res_val = 0;
-                switch (calc) {
+                switch (todo.calc) {
                     case 'min': res_val = Number.MAX_SAFE_INTEGER; break; 
                     case 'max': res_val = Number.MIN_SAFE_INTEGER; break;
                 }
@@ -168,7 +168,7 @@ async function execute(cmds, opts={}) {
                         }
 
                         count += 1;
-                        switch(calc) {
+                        switch(todo.calc) {
                             case 'sum': res_val += val; break;
                             case 'avg': res_val += val; break;
                             case 'min': res_val = Math.min(res_val, val); break;
@@ -178,7 +178,7 @@ async function execute(cmds, opts={}) {
                 }
 
                 // post
-                switch (calc) {
+                switch (todo.calc) {
                     case 'avg' : res_val /= count; break;
                 }
 
