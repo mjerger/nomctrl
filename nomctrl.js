@@ -7,13 +7,15 @@ const Events   = require('./events.js');
 const Commands = require('./commands.js');
 
 const express = require("express");
+const bodyParser = require('body-parser');
 const app = express();
-
 
 // STARTUP
 
 app.listen(Config.app().port, function () {
     app.use(express.static('www'))
+    app.use(bodyParser.json());
+    app.use(express.urlencoded())
 
     console.log ("Loading config...");
     let success = Config.validate();
@@ -42,8 +44,8 @@ app.get("/status", async (req, res) => {
     res.send(await execute("status"));
 });
 
-app.post("/cmd", async (req, res) => {
-    console.log(`cmd: ${req.body}`)
+app.post("/cmd", bodyParser.text({type:"*/*"}), async (req, res) => {
+    console.log(`cmd: ${req.body}`);
     res.send(await execute(req.body));
 });
 
@@ -52,7 +54,7 @@ app.get("/cmd/:cmd", async (req, res) => {
     res.send(await execute(req.params.cmd));
 });
 
-app.post("/do", async (req, res) => {
+app.post("/do", bodyParser.text({type:"*/*"}), async (req, res) => {
     console.log(`do: ${req.body}`)
     res.send(await execute(`do ${req.body}`));
 });

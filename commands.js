@@ -73,6 +73,7 @@ e
         // GET
         } else if (arg.match(CMDS.GET)) {
             arg = next(args);
+            opts['include_timed'] = true;
             results = this.parse_get(arg, args, opts);
             
         // SET
