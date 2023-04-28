@@ -50,143 +50,143 @@ class HttpDevice extends Device
 
 const drivers = {
     'tasmota' : class Tasmota extends HttpDevice 
-                {
-                    constructor(config) { 
-                        super(config);
-                        this.getter = ['status', 'state', 'power', 'energy', 'energy_t', 'energy_y'];
-                        this.setter = ['status', 'state', 'flip'];
-                    }
+    {
+        constructor(config) { 
+            super(config);
+            this.getter = ['status', 'state', 'power', 'energy', 'energy_t', 'energy_y'];
+            this.setter = ['status', 'state', 'flip'];
+        }
 
-                    async _get(attr1, attr2) {
-                        let vals = await Utils.get(this.host, '/cm?cmnd=status')
-                        if (!vals) 
-                            return null;
-                        if (attr1 === undefined) 
-                            return vals;
-                        if (!(attr1 in vals))
-                            return null;
+        async _get(attr1, attr2) {
+            let vals = await Utils.get(this.host, '/cm?cmnd=status')
+            if (!vals) 
+                return null;
+            if (attr1 === undefined) 
+                return vals;
+            if (!(attr1 in vals))
+                return null;
 
-                        vals = vals[attr1];
-                        
-                        if (attr2 === undefined)
-                            return vals;
-                        if (!(attr2 in vals)) 
-                            return null;
-                        return vals[attr2];
-                    }
+            vals = vals[attr1];
+            
+            if (attr2 === undefined)
+                return vals;
+            if (!(attr2 in vals)) 
+                return null;
+            return vals[attr2];
+        }
 
-                    async _get_energy(attr) {
-                        let vals = await Utils.get(this.host, '/cm?cmnd=Status+10');
-                        if (vals && 'StatusSNS' in vals) {
-                            vals = vals['StatusSNS'];
-                            if (vals && 'ENERGY' in vals) {
-                                vals = vals['ENERGY'];
+        async _get_energy(attr) {
+            let vals = await Utils.get(this.host, '/cm?cmnd=Status+10');
+            if (vals && 'StatusSNS' in vals) {
+                vals = vals['StatusSNS'];
+                if (vals && 'ENERGY' in vals) {
+                    vals = vals['ENERGY'];
 
-                                if (attr === undefined)
-                                    return vals;
-                                if (!(attr in vals))
-                                    return null;
-                                return vals[attr];
-                            }
-                        }
+                    if (attr === undefined)
                         return vals;
-                    }
+                    if (!(attr in vals))
+                        return null;
+                    return vals[attr];
+                }
+            }
+            return vals;
+        }
 
-                    async _get_power_status() {
+        async _get_power_status() {
 
-                        let vals = await _get_energy();
-                        const attrs = [ ['total',      'Total'], 
-                                        ['start_time', 'TotalStartTime'], 
-                                        ['yesterday',  'Yesterday'], 
-                                        ['today',      'Today'], 
-                                        ['power',      'Power'], 
-                                        ['power_va',   'ApparentPower'], 
-                                        ['power_var',  'ReactivePower'], 
-                                        ['factor',     'Factor'], 
-                                        ['voltage',    'Voltage'], 
-                                        ['current',    'Current']];
+            let vals = await _get_energy();
+            const attrs = [ ['total',      'Total'], 
+                            ['start_time', 'TotalStartTime'], 
+                            ['yesterday',  'Yesterday'], 
+                            ['today',      'Today'], 
+                            ['power',      'Power'], 
+                            ['power_va',   'ApparentPower'], 
+                            ['power_var',  'ReactivePower'], 
+                            ['factor',     'Factor'], 
+                            ['voltage',    'Voltage'], 
+                            ['current',    'Current']];
 
-                        let result = null;
-                        if (vals && 'ENERGY' in vals) {
-                            vals = vals['ENERGY'];
-                            result = {};
-                            for (const [ours, theirs] of attrs) {
-                                result[ours] = vals[theirs];
-                            }
-                        }
-                        return result;
-                    }
-                    
-                    async get_status       ()        { return this._get(); }
-                    async get_state        ()        { const val = await this._get('Status', 'Power'); return val === 1;} 
-                    async get_power_status ()        { return this._get_power_status(); }
-                    async get_power        ()        { return this._get_energy('Power'); }
-                    async get_energy       ()        { return this._get_energy('Total'); }
-                    async get_energy_t     ()        { return this._get_energy('Today'); }
-                    async get_energy_y     ()        { return this._get_energy('Yesterday'); }
-                    async set_state        (enabled) { return Utils.get(this.host, '/cm?cmnd=power+' + (enabled ? 'on' : 'off')) }
-                    async set_flip         ()        { return Utils.get(this.host, '/cm?cmnd=power+toggle') }
-                },
+            let result = null;
+            if (vals && 'ENERGY' in vals) {
+                vals = vals['ENERGY'];
+                result = {};
+                for (const [ours, theirs] of attrs) {
+                    result[ours] = vals[theirs];
+                }
+            }
+            return result;
+        }
+        
+        async get_status       ()        { return this._get(); }
+        async get_state        ()        { const val = await this._get('Status', 'Power'); return val === 1;} 
+        async get_power_status ()        { return this._get_power_status(); }
+        async get_power        ()        { return this._get_energy('Power'); }
+        async get_energy       ()        { return this._get_energy('Total'); }
+        async get_energy_t     ()        { return this._get_energy('Today'); }
+        async get_energy_y     ()        { return this._get_energy('Yesterday'); }
+        async set_state        (enabled) { return Utils.get(this.host, '/cm?cmnd=power+' + (enabled ? 'on' : 'off')) }
+        async set_flip         ()        { return Utils.get(this.host, '/cm?cmnd=power+toggle') }
+    },
                 
     'wled'    : class WLED extends HttpDevice 
-                {
-                    constructor(config)  { 
-                        super(config);
-                        this.getter = ['status', 'state', 'color', 'brightness'];
-                        this.setter = ['status', 'state', 'flip', 'color', 'brightness'];
-                    }
+    {
+        constructor(config)  { 
+            super(config);
+            this.getter = ['status', 'state', 'color', 'brightness'];
+            this.setter = ['status', 'state', 'flip', 'color', 'brightness'];
+        }
 
-                    static set_path = '/json/state';
+        static set_path = '/json/state';
 
-                    async _get(attr1, attr2) { 
-                        let res = await Utils.get (this.host, WLED.set_path);
-                        if (res) {
-                            if (attr1 !== undefined && attr1 in res) res = res[attr1];
-                            if (attr2 !== undefined && attr2 in res) res = res[attr2];
-                        }
-                        return res;
-                    }
+        async _get(attr1, attr2) { 
+            let res = await Utils.get (this.host, WLED.set_path);
+            if (res) {
+                if (attr1 !== undefined && attr1 in res) res = res[attr1];
+                if (attr2 !== undefined && attr2 in res) res = res[attr2];
+            }
+            return res;
+        }
 
-                    async _get_segment(idx=0) { 
-                        let res = await Utils.get (this.host, WLED.set_path);
-                        if (res && 'seg' in res && res.seg.length > 0) {
-                            return res.seg[idx];
-                        }
-                        return null;
-                    }
+        async _get_segment(idx=0) { 
+            let res = await Utils.get (this.host, WLED.set_path);
+            if (res && 'seg' in res && res.seg.length > 0) {
+                return res.seg[idx];
+            }
+            return null;
+        }
 
-                    async _post(json) {
-                        return Utils.post(this.host, WLED.set_path, json);
-                    }
+        async _post(json) {
+            return Utils.post(this.host, WLED.set_path, json);
+        }
 
-                    // TODO set segment color brightness for multi-node instances
-                    async _set_segment(color, idx=0) {
-                        return this._post({ 'seg' : [ { 'col' : [color] } ] });
-                    }
-                    
-                    async get_status     ()            { return this._get(); }
-                    async get_state      ()            { const val = await this._get('status', 'on'); return val ? val : null; }
-                    async get_brightness ()            { const val = await this._get('bri');          return val ? Math.floor(val / 2.55) : null; }
-                    async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
-                    async set_state      (enabled)     { return this._post({ 'on' : !!enabled  }) }
-                    async set_flip       ()            { return this._post({ 'on' : 't'   }) }
-                    async set_color      (color)       { return this._post({ 'seg' : [ { 'col' : [color] } ] }) }
-                    async set_brightness (percent)     { return this._post({ 'on' : true, 'bri' : Math.floor(percent*2.55) }) }
-                },
+        // TODO set segment color brightness for multi-node instances
+        async _set_segment(color, idx=0) {
+            return this._post({ 'seg' : [ { 'col' : [color] } ] });
+        }
+        
+        async get_status     ()            { return this._get(); }
+        async get_state      ()            { const val = await this._get('status', 'on'); return val ? val : false; }
+        async get_brightness ()            { const val = await this._get('bri');          return val ? Math.round(Utils.map_range(val, 0, 255, 0, 100)) : null; }
+        async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
+        async set_state      (enabled)     { return this._post({ 'on' : !!enabled  }) }
+        async set_flip       ()            { return this._post({ 'on' : 't'   }) }
+        async set_color      (color)       { return this._post({ 'seg' : [ { 'col' : [color] } ] }) }
+        async set_brightness (percent)     { return this._post({ 'bri' : Math.round(Utils.map_range(percent, 0, 100, 0, 255)) }) }
+    },
 
     'nomframe' : class NomFrame extends HttpDevice 
-                {
-                    constructor(config) { 
-                        super(config);
-                        this.getter = ['status'];
-                        this.setter = ['status', 'state', 'flip', 'brightness'];
-                    }
+    {
+        constructor(config) { 
+            super(config);
+            this.getter = ['status'];
+            this.setter = ['status', 'state', 'flip', 'brightness'];
+        }
 
-                    async get_status()             { return 'NOT IMPLEMENTED'; }
-                    async set_state (enable)       { return Utils.get(this.host, (enable ? '/r/on' : '/r/off'))  }
-                    async set_flip  ()             { return Utils.get(this.host, '/r/flip') }
-                    async set_brightness (percent) { return Utils.get(this.host, '/r/brightness?val=' + percent) }
-                },                
+        async get_status()             { return 'NOT IMPLEMENTED'; }
+        async set_state (enable)       { return Utils.get(this.host, (enable ? '/r/on' : '/r/off'))  }
+        async set_flip  ()             { return Utils.get(this.host, '/r/flip') }
+        async set_brightness (percent) { return Utils.get(this.host, '/r/brightness?val=' + percent) }
+    },                
 }
 
 class Devices
