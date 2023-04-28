@@ -8,14 +8,14 @@
             }
             * {
                 font-family: monospace;
-                font-size: 20px;
+                font-size: 18px;
                 font-weight: bold;
-                color: #EEE;
+                color: #3775e6;
             }
             button { 
                 text-align:center;
-                width: 200px;
-                margin: 20px;
+                width: 234px;
+                margin: 15px;
                 padding: 15px;
                 border-radius: 5px;
                 border: 1px solid #3775e6;
@@ -25,6 +25,15 @@
             button:hover {
                 background:  #5590ff;
                 color: #0f2144;
+            }
+            label {
+                width: 234px;
+                margin-top: 15px;
+                margin-bottom: 15px;
+            }
+            input[type=range] {
+                width: 234px;
+                margin: 15px;
             }
             div {
                 text-align: center;
@@ -36,14 +45,22 @@
     <body>
         <div>
             <br>
-            nomctrl
+            <b><i>nomctrl</i></b>
             <br><br>
             <button onclick="fetch('http://nompi:1337/cmd/do%20morning')">morning</button><br>
             <button onclick="fetch('http://nompi:1337/cmd/do%20day')">day</button><br>
             <button onclick="fetch('http://nompi:1337/cmd/do%20evening')">evening</button><br>
             <button onclick="fetch('http://nompi:1337/cmd/do%20couch')">couch</button><br>
             <button onclick="fetch('http://nompi:1337/cmd/do%20night')">night</button><br>
-            <button onclick="fetch('http://nompi:1337/cmd/set%20bed%20flip')">bed</button><br>
+            <button onclick="fetch('http://nompi:1337/cmd/do%20bed')">bed</button><br>
+            <label>
+                Living<br>
+                <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="fetch('http://nompi:1337/cmd/set%20living%20'+this.value)"><br>
+            </label>
+            <label>
+                Bedroom<br>
+                <input type="range" id="bed-slider" name="brightness" min="0" max="100"oninput="fetch('http://nompi:1337/cmd/set%20bed%20'+this.value)"><br>
+            </label>
             <button onclick="fetch('http://nompi:1337/cmd/set%20apartment%20off')">off</button><br>
         </div>
     </body>

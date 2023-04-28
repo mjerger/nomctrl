@@ -13,8 +13,8 @@ const CMDS = {
 }
 
 const TOKENS = {
-    ON        : /^(on|true|yes|bright|full|max.*|ein|an)$/,
-    OFF       : /^(off|false|no|none|aus|min.*)$/,
+    ON        : /^(on|true|yes|bright|full|maxi.*|ein|an)$/,
+    OFF       : /^(off|false|no|none|aus|mini.*)$/,
     FLIP      : /^(flip|toggle)$/,
     COLOR     : /^color$/,
     BRIGHTNESS: /^brightness$/,
@@ -291,9 +291,10 @@ e
                     if (device.hasSet('brightness')) {
                         setter.push([node.id, 'brightness', percent]);
 
+                        // NOTE: i think we don't want this behavior, without it its nicer
                         // additionally set on/off
-                        if (percent == 100 && device.hasSet('state'))  setter.push([node.id, 'state', true]);
-                        if (percent == 0   && device.hasSet('state'))  setter.push([node.id, 'state', false]);
+                        //if (percent == 100 && device.hasSet('state'))  setter.push([node.id, 'state', true]);
+                        //if (percent == 0   && device.hasSet('state'))  setter.push([node.id, 'state', false]);
 
                     // no brightness, but has 'on': use threshold
                     } else if (node.thresh && percent >= node.thresh && device.hasSet('state') && node.class !== 'power') {

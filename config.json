@@ -50,17 +50,13 @@
     "groups" : [
         { "id" : "living"   , "nodes"  : [ "desk", "strings", "plants", "grow", "lego", "lego-light", "tv-light", "divider", "nomframe", "amp" ] },
         { "id" : "bed"      , "nodes"  : [ "sleep" ] },
-        { "id" : "kitchen"  , "nodes"  : [ ] },
-        { "id" : "bath"     , "nodes"  : [ ] },
-        { "id" : "toilet"   , "nodes"  : [ ] },
-        { "id" : "hallway"  , "nodes"  : [ ] },
-        { "id" : "apartment", "groups" : [ "living", "bed", "kitchen", "bath", "toilet", "hallway" ] }
+        { "id" : "apartment", "groups" : [ "living", "bed" ] }
     ],
 
     "colors" : [
         { "id" : "lime"   , "hex" : "#deff24" },
         { "id" : "blue"   , "hex" : "#454ef2" },
-        { "id" : "red"    , "hex" : "#ffca3f" },
+        { "id" : "red"    , "hex" : "#ff3300" },
         { "id" : "green"  , "hex" : "#00f010" },
         { "id" : "orange" , "hex" : "#f29a1f" },
         
@@ -79,8 +75,8 @@
         { "id" : "morning",                     "do" : [ "set living on day 50%", "set bed on morning 20%" ] },
         { "id" : "day"    , "event" : "12:00" , "do" : [ "set living on day 100", "set strings off", "set bed off" ] },
         { "id" : "evening", "event" : "sunset", "do" : [ "set living on evening 100%" ] },
-        { "id" : "couch"  ,                     "do" : [ "set living on evening 50%", "set strings off", "set tv-light lego-light lego divider evening 100%", "set nomframe off"]},
-        { "id" : "night"  , "event" : "22:00" , "do" : [ "set living on night 25%", "set strings off", "set bed night 25%" ] },
+        { "id" : "couch"  ,                     "do" : [ "set living on evening 50%", "set strings off", "set tv-light lego-light lego divider on evening 100%", "set nomframe off"]},
+        { "id" : "night"  , "event" : "22:00" , "do" : [ "set living on night 25%", "set strings off", "set bed on night 25%" ] },
         { "id" : "bed"    ,                     "do" : [ "set living off", "set bed on night 15%"]},
         { "id" : "sleep"  ,                     "do" : [ "set apartment off" ]}
     ]

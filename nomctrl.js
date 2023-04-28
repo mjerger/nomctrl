@@ -163,18 +163,19 @@ async function execute(cmds, opts={}) {
                     if (attr in get_results[id]) {
                         // get val
                         const val = get_results[id][attr]; 
-                        if (typeof val != 'number')
-                        {
-                            results = Utils.merge(results, { errors : [`Value type '${typeof val}' of attribute '${attr}' not supported by '${todo.calc}'`]});
-                            continue;
-                        }
+                        if (val != null) {
+                            if (typeof val != 'number') {
+                                results = Utils.merge(results, { errors : [`Value type '${typeof val}' of attribute '${attr}' not supported by '${todo.calc}'`]});
+                                continue;
+                            }
 
-                        count += 1;
-                        switch(todo.calc) {
-                            case 'sum': res_val += val; break;
-                            case 'avg': res_val += val; break;
-                            case 'min': res_val = Math.min(res_val, val); break;
-                            case 'max': res_val = Math.max(res_val, val); break;
+                            count += 1;
+                            switch(todo.calc) {
+                                case 'sum': res_val += val; break;
+                                case 'avg': res_val += val; break;
+                                case 'min': res_val = Math.min(res_val, val); break;
+                                case 'max': res_val = Math.max(res_val, val); break;
+                            }
                         }
                     }
                 }

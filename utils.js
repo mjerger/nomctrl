@@ -104,7 +104,6 @@ class Utils {
         return a * (1.0 - f) + (b * f);
     }
 
-
     // merge arrays of object b into arrays of object a and return a
     static merge(a, b) {
         for (const x in b) {
@@ -113,6 +112,10 @@ class Utils {
         }
 
         return a;
+    }
+
+    static map_range(value, input_start, input_end, output_start, output_end) {
+        return (value - input_start) / (input_end - input_start) * (output_end - output_start) + output_start
     }
 
 }
