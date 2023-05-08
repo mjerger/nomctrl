@@ -1,7 +1,9 @@
-<html lang="en" op="item">
+<!DOCTYPE html>
+<html lang="en">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>nomctrl</title>
+        <script src="https://unpkg.com/vanilla-picker@2"></script>
         <style>
             body {
                 background-color: #111;
@@ -39,29 +41,91 @@
                 text-align: center;
                 vertical-align: middle;
             }
+            #col {
+                margin:auto;
+            }
+            #menu {
+                text-align: center;
+            }
+            #color {
+                border: 2px solid transparent;
+                border-image: linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%);
+                border-image-slice: 1;
+            }
+            #color:hover {
+                background-image: linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%);
+            }
+
+
         </style>
         
     <head>
     <body>
-        <div>
-            <br>
-            <b><i>nomctrl</i></b>
-            <br><br>
-            <button onclick="fetch('http://nompi:1337/cmd/do%20morning')">morning</button><br>
-            <button onclick="fetch('http://nompi:1337/cmd/do%20day')">day</button><br>
-            <button onclick="fetch('http://nompi:1337/cmd/do%20evening')">evening</button><br>
-            <button onclick="fetch('http://nompi:1337/cmd/do%20couch')">couch</button><br>
-            <button onclick="fetch('http://nompi:1337/cmd/do%20night')">night</button><br>
-            <button onclick="fetch('http://nompi:1337/cmd/do%20bed')">bed</button><br>
-            <label>
-                Living<br>
-                <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="fetch('http://nompi:1337/cmd/set%20living%20'+this.value)"><br>
-            </label>
-            <label>
-                Bedroom<br>
-                <input type="range" id="bed-slider" name="brightness" min="0" max="100"oninput="fetch('http://nompi:1337/cmd/set%20bed%20'+this.value)"><br>
-            </label>
-            <button onclick="fetch('http://nompi:1337/cmd/set%20apartment%20off')">off</button><br>
+        <div id="menu">
+            <div id="col">
+                <br>
+                <b><i>nomctrl</i></b>
+                <br><br>
+
+                <button id="color"></button><br>
+                <button onclick="fetch('http://nompi:1337/cmd/do%20morning')">morning</button><br>
+                <button onclick="fetch('http://nompi:1337/cmd/do%20day')">day</button><br>
+                <button onclick="fetch('http://nompi:1337/cmd/do%20evening')">evening</button><br>
+                <button onclick="fetch('http://nompi:1337/cmd/do%20couch')">couch</button><br>
+                <button onclick="fetch('http://nompi:1337/cmd/do%20night')">night</button><br>
+                <button onclick="fetch('http://nompi:1337/cmd/do%20bed')">bed</button><br>
+                <label>
+                    Living<br>
+                    <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="fetch('http://nompi:1337/cmd/set%20living%20'+this.value)"><br>
+                </label>
+                <label>
+                    Bedroom<br>
+                    <input type="range" id="bed-slider" name="brightness" min="0" max="100" oninput="fetch('http://nompi:1337/cmd/set%20bed%20'+this.value)"><br>
+                </label>
+                
+                <button onclick="fetch('http://nompi:1337/cmd/set%20apartment%20off')">off</button><br>
+            </div>
         </div>
+        <script>
+            async function cmd(command) {
+                return await fetch('http://nompi:1337/cmd/' + encodeURIComponent(command)).then(response => response.json());
+            }
+
+            function Sleep(milliseconds) {
+                return new Promise(resolve => setTimeout(resolve, milliseconds));
+            }
+
+            async function init() {
+                var p = document.querySelector('#color');
+                var picker = new Picker(p);
+
+                color = (await cmd('get desk color')).desk.color;
+
+                console.log("FOOO")
+                picker.setOptions({
+                    popup: "bottom",
+                    alpha: false,
+                    editor: true,
+                    color: color,
+                })
+
+                living_brightness = (await cmd('get avg living brightness')).brightness_avg;
+                bed_brightness    = (await cmd('get avg bed brightness'))   .brightness_avg;
+                document.getElementById('living-slider').value = living_brightness
+                document.getElementById('bed-slider').value = bed_brightness
+
+
+                let last = +new Date();
+                picker.onChange = async function(color) {
+                    const now = +new Date();
+                    if (now - last > 250) {
+                        last = now;
+                        await cmd('set apartment '+color.hex.slice(0, -2));
+                    }
+                }
+            };
+
+            init();
+        </script>
     </body>
 </html>

@@ -22,12 +22,10 @@
         { "id" : "s4", "type" : "tasmota", "host" : "tasmota-s4" },
         { "id" : "s5", "type" : "tasmota", "host" : "tasmota-s5" },
         { "id" : "s6", "type" : "tasmota", "host" : "tasmota-s6" },
-
         { "id" : "w-desk" , "type" : "wled", "host" : "wled-desk" },
         { "id" : "w-stuff", "type" : "wled", "host" : "wled-stuff" },
         { "id" : "w-tv"   , "type" : "wled", "host" : "wled-tv" },
         { "id" : "w-sleep", "type" : "wled", "host" : "wled-sleep" },
-
         { "id" : "nn-nomframe", "type" : "nomframe", "host" : "nomframe" }
     ],
 
@@ -38,12 +36,10 @@
         { "id" : "amp"        , "device" : "s4", "class" : "power" },
         { "id" : "grow"       , "device" : "s5" },
         { "id" : "divider"    , "device" : "s6" },
-
         { "id" : "desk"       , "device" : "w-desk"  },
         { "id" : "lego-light" , "device" : "w-stuff", "parent" : "lego" },
         { "id" : "tv-light"   , "device" : "w-tv"    },
         { "id" : "sleep"      , "device" : "w-sleep" },
-
         { "id" : "nomframe"   , "device" : "nn-nomframe", "parent" : "divider"}
     ],
 
@@ -55,24 +51,23 @@
 
     "colors" : [
         { "id" : "lime"   , "hex" : "#deff24" },
-        { "id" : "blue"   , "hex" : "#454ef2" },
-        { "id" : "red"    , "hex" : "#ff3300" },
+        { "id" : "blue"   , "hex" : "#656ef2" },
+        { "id" : "dorange", "hex" : "#d26a00" },
         { "id" : "green"  , "hex" : "#00f010" },
         { "id" : "orange" , "hex" : "#f29a1f" },
-        
-        { "id" : "morning", "color" : "orange"  },
+        { "id" : "morning", "color" : "blue"    },
         { "id" : "day"    , "color" : "blue"    },
         { "id" : "evening", "color" : "orange"  },
-        { "id" : "night"  , "color" : "red"     }
+        { "id" : "night"  , "color" : "dorange" }
     ],
 
     "timers" : [
-        { "id" : "grow",   "node" : "grow",   "on" : "08:00", "off" : "21:00",  "strict" : true },
-        { "id" : "plants", "node" : "plants", "on" : "10:00", "off" : "sunset", "strict" : true }
+        { "id" : "grow",   "node" : "grow",   "on" : "sunrise", "off" : "sunset", "strict" : true },
+        { "id" : "plants", "node" : "plants", "on" : "sunrise", "off" : "sunset", "strict" : true }
     ],
 
     "actions" : [
-        { "id" : "morning",                     "do" : [ "set living on day 50%", "set bed on morning 20%" ] },
+        { "id" : "morning", "event" : "10:00" , "do" : [ "set living on day 50%", "set bed on morning 20%" ] },
         { "id" : "day"    , "event" : "12:00" , "do" : [ "set living on day 100", "set strings off", "set bed off" ] },
         { "id" : "evening", "event" : "sunset", "do" : [ "set living on evening 100%" ] },
         { "id" : "couch"  ,                     "do" : [ "set living on evening 50%", "set strings off", "set tv-light lego-light lego divider on evening 100%", "set nomframe off"]},
