@@ -32,19 +32,19 @@
     "nodes" : [
         { "id" : "strings"    , "device" : "s1" },
         { "id" : "plants"     , "device" : "s2" },
-        { "id" : "lego"       , "device" : "s3", "class" : "power" },
+        { "id" : "terra"      , "device" : "s3" },
         { "id" : "amp"        , "device" : "s4", "class" : "power" },
         { "id" : "grow"       , "device" : "s5" },
         { "id" : "divider"    , "device" : "s6" },
         { "id" : "desk"       , "device" : "w-desk"  },
-        { "id" : "lego-light" , "device" : "w-stuff", "parent" : "lego" },
+        { "id" : "stuff-light" , "device" : "w-stuff" },
         { "id" : "tv-light"   , "device" : "w-tv"    },
         { "id" : "sleep"      , "device" : "w-sleep" },
         { "id" : "nomframe"   , "device" : "nn-nomframe", "parent" : "divider"}
     ],
 
     "groups" : [
-        { "id" : "living"   , "nodes"  : [ "desk", "strings", "plants", "grow", "lego", "lego-light", "tv-light", "divider", "nomframe", "amp" ] },
+        { "id" : "living"   , "nodes"  : [ "desk", "strings", "plants", "grow", "terra", "stuff-light", "tv-light", "divider", "nomframe", "amp" ] },
         { "id" : "bed"      , "nodes"  : [ "sleep" ] },
         { "id" : "apartment", "groups" : [ "living", "bed" ] }
     ],
@@ -63,14 +63,15 @@
 
     "timers" : [
         { "id" : "grow",   "node" : "grow",   "on" : "sunrise", "off" : "sunset", "strict" : true },
-        { "id" : "plants", "node" : "plants", "on" : "sunrise", "off" : "sunset", "strict" : true }
+        { "id" : "plants", "node" : "plants", "on" : "sunrise", "off" : "sunset", "strict" : true },
+        { "id" : "terra",  "node" : "terra",  "on" : "sunrise", "off" : "sunset", "strict" : true }
     ],
 
     "actions" : [
         { "id" : "morning", "event" : "10:00" , "do" : [ "set living on day 50%", "set bed on morning 20%" ] },
         { "id" : "day"    , "event" : "12:00" , "do" : [ "set living on day 100", "set strings off", "set bed off" ] },
         { "id" : "evening", "event" : "sunset", "do" : [ "set living on evening 100%" ] },
-        { "id" : "couch"  ,                     "do" : [ "set living on evening 50%", "set strings off", "set tv-light lego-light lego divider on evening 100%", "set nomframe off"]},
+        { "id" : "couch"  ,                     "do" : [ "set living on evening 50%", "set strings off", "set tv-light stuff-light terra divider on evening 100%", "set nomframe off"]},
         { "id" : "night"  , "event" : "22:00" , "do" : [ "set living on night 25%", "set strings off", "set bed on night 25%" ] },
         { "id" : "bed"    ,                     "do" : [ "set living off", "set bed on night 15%"]},
         { "id" : "sleep"  ,                     "do" : [ "set apartment off" ]}
