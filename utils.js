@@ -50,10 +50,23 @@ class Utils {
         if (!str || str.length == 0)
             return;
 
-        // environment (words like "sunset")
+        str = str.trim().replace(/\s/, '')
+
+        // sun state (words like "sunset")
         const times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
-        if (str in times) {
-            return times[str].getTime();
+        
+        // TODO replace this with a more generic expression parser, try to use JS for that but don't just use eval()
+        // parse simple time shift expressions
+        for (let time in times) {
+            if (str.startsWith(time)) {
+                let dt = 0;
+                if (str.includes('+')) {
+                    dt = this.parseDuration(str.split('+')[1])
+                } else if (str.includes('-')) {
+                    dt = - this.parseDuration(str.split("-")[1])
+                }
+                return times[time].getTime() + dt;
+            }
         }
         
         // time in hh:mm format
@@ -67,7 +80,7 @@ class Utils {
             const ts = parseInt(str);
             return ts;
         }
-        
+
         // TODO more formats ?
     }
 
@@ -76,10 +89,10 @@ class Utils {
             const val = parseInt(str);
             if (val >= 0) {
                 switch (str.slice(-1)) {
-                    case 's' : return val;
-                    case 'm' : return val * 60;
-                    case 'h' : return val * 3600;
-                    case 'd' : return val * 3600*24;
+                    case 's' :          return val;
+                    case 'm' :          return val * 60;
+                    case 'h' : default: return val * 3600;
+                    case 'd' :          return val * 3600*24;
                 }
             }
         }
