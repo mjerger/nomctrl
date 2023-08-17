@@ -172,11 +172,10 @@ e
         // read args until its not a node or group
         let nodes = this.parse_nodes(arg, args, opts);
         arg = next(args);
-
-        // no nodes? use all nodes
-        if (nodes.length == 0) {
-            nodes = Nodes.all();
+        if (!nodes || nodes.length == 0) {
+            return {errors : ['No nodes found.']};
         }
+
 
         // No attribute arg? get all getters of all nodes
         if (!arg) {

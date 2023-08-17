@@ -92,7 +92,7 @@ class Nodes
 
     // Note: load after devices
     static init(cfg_nodes, cfg_groups) {
-        console.log ('Loading Timers...');
+        console.log ('Loading Nodes...');
 
         let error = false;
         
