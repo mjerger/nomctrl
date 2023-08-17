@@ -16,6 +16,7 @@ const TOKENS = {
     ON        : /^(on|true|yes|bright|full|maxi.*|ein|an)$/,
     OFF       : /^(off|false|no|none|aus|mini.*)$/,
     FLIP      : /^(flip|toggle)$/,
+    STATE     : /^(state)$/,
     COLOR     : /^color$/,
     BRIGHTNESS: /^brightness$/,
 
@@ -221,6 +222,11 @@ e
             return {errors : ['No nodes found.']};
         }
 
+        // STATE arg is optional
+        let state;
+        if (arg && arg.match(TOKENS.STATE))
+            arg = next(args);
+
         // ON / OFF / FLIP
         if (arg) {
             let attr, val;
@@ -260,9 +266,6 @@ e
                     // set rgb only if device supports it
                     if (device.hasSet('color')) {
                         setter.push([node.id, 'color', color]);
-                        // also turn on if cmd has no more args
-                        if (!arg)
-                            setter.push([node.id, 'state', true])
                     } else if (nodes.length == 1) { 
                         errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
                     }
@@ -290,11 +293,6 @@ e
                     // set brightness if device supports it
                     if (device.hasSet('brightness')) {
                         setter.push([node.id, 'brightness', percent]);
-
-                        // NOTE: i think we don't want this behavior, without it its nicer
-                        // additionally set on/off
-                        //if (percent == 100 && device.hasSet('state'))  setter.push([node.id, 'state', true]);
-                        //if (percent == 0   && device.hasSet('state'))  setter.push([node.id, 'state', false]);
 
                     // no brightness, but has 'on': use threshold
                     } else if (node.thresh && percent >= node.thresh && device.hasSet('state') && node.class !== 'power') {
@@ -464,6 +462,9 @@ e
                 }
             }
         }
+
+        if (arg)
+            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
 
         let results = {}
         if (faders.length > 0) results.faders = faders;
