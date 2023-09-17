@@ -62,8 +62,12 @@ class Utils {
                 let dt = 0;
                 if (str.includes('+')) {
                     dt = this.parseDuration(str.split('+')[1])
+
+            console.log("dt =",dt)
                 } else if (str.includes('-')) {
                     dt = - this.parseDuration(str.split("-")[1])
+            console.log("dt =",dt)
+
                 }
                 return times[time].getTime() + dt;
             }
@@ -89,14 +93,14 @@ class Utils {
             const val = parseInt(str);
             if (val >= 0) {
                 switch (str.slice(-1)) {
-                    case 's' :          return val;
-                    case 'm' :          return val * 60;
+                    case 's' : return val;
+                    case 'm' : return val * 60;
                     case 'h' : default: return val * 3600;
-                    case 'd' :          return val * 3600*24;
+                    case 'd' : return val * 3600*24;
                 }
             }
         }
-        return -1;
+        return 0;
     }
 
     // find closest time (epoch seconds) in a list that is closest to given time, 

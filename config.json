@@ -34,9 +34,9 @@
         { "id" : "S1"   , "device" : "s1" },
         { "id" : "plants"   , "device" : "s2" },
         { "id" : "terra"    , "device" : "s3" },
-        { "id" : "grow-high", "device" : "s4" },
-        { "id" : "grow-low" , "device" : "s5" },
-        { "id" : "S6"  , "device" : "s6" },
+        { "id" : "grow-low" , "device" : "s4" },
+        { "id" : "grow-high", "device" : "s5" },
+        { "id" : "S6"       , "device" : "s6" },
         { "id" : "desk"         , "device" : "w-desk"  },
         { "id" : "stuff-light"  , "device" : "w-stuff" },
         { "id" : "tv-light"     , "device" : "w-tv"    },
@@ -66,10 +66,10 @@
     ],
 
     "timers" : [
-        { "id" : "grow-high", "node" : "grow-high", "on" : "sunrise+3", "off" : "sunset-3", "strict" : true  },
-        { "id" : "grow-low",  "node" : "grow-low",  "on" : "sunrise",   "off" : "sunset",   "strict" : true  },
-        { "id" : "plants",    "node" : "plants",    "on" : "sunrise+3", "off" : "sunset-2", "strict" : true  },
-        { "id" : "terra",     "node" : "terra",     "on" : "sunrise+3", "off" : "sunset",   "strict" : true }
+        { "id" : "grow-high", "node" : "grow-high", "on" : "sunrise+3h", "off" : "sunset-3h", "strict" : true  },
+        { "id" : "grow-low",  "node" : "grow-low",  "on" : "sunrise",    "off" : "sunset",    "strict" : true  },
+        { "id" : "plants",    "node" : "plants",    "on" : "sunrise+2h", "off" : "sunset-2h", "strict" : true  },
+        { "id" : "terra",     "node" : "terra",     "on" : "sunrise+1h", "off" : "sunset",    "strict" : true  }
     ],
 
     "actions" : [
