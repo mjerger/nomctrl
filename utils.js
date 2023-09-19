@@ -89,12 +89,12 @@ class Utils {
         str = str.replace(/\s/g, '');
 
         if (str !== undefined) {
-            const val = parseInt(str);
+            let val = parseInt(str);
             if (val >= 0) {
                 switch (str.slice(-1)) {
-                    case 'm' :          val *= 60;
-                    case 'h' : default: val *= 3600;
-                    case 'd' :          val *= 3600*24;
+                    case 'm' :          val *= 60;      break;
+                    case 'h' : default: val *= 3600;    break;
+                    case 'd' :          val *= 3600*24; break;
                 }
                 return val * 1000;
             }
