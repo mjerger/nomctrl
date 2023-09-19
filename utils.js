@@ -50,7 +50,7 @@ class Utils {
         if (!str || str.length == 0)
             return;
 
-        str = str.trim().replace(/\s/, '')
+        str = str.replace(/\s/g, '');
 
         // sun state (words like "sunset")
         const times = SunCalc.getTimes(new Date(), config.ctrl.loc.lat, config.ctrl.loc.long);
@@ -62,12 +62,8 @@ class Utils {
                 let dt = 0;
                 if (str.includes('+')) {
                     dt = this.parseDuration(str.split('+')[1])
-
-            console.log("dt =",dt)
                 } else if (str.includes('-')) {
                     dt = - this.parseDuration(str.split("-")[1])
-            console.log("dt =",dt)
-
                 }
                 return times[time].getTime() + dt;
             }
@@ -79,25 +75,28 @@ class Utils {
             return Date.parse(today + "T" + str);
         }
 
-        // epoch
+        // epoch, in seconds
         if (str.match(/^\d+/)) {
-            const ts = parseInt(str);
+            const ts = parseInt(str) * 1000;
             return ts;
         }
 
         // TODO more formats ?
     }
 
+    // parses a human readable duration like 1m string into milliseconds
     static parseDuration(str) {
+        str = str.replace(/\s/g, '');
+
         if (str !== undefined) {
             const val = parseInt(str);
             if (val >= 0) {
                 switch (str.slice(-1)) {
-                    case 's' : return val;
-                    case 'm' : return val * 60;
-                    case 'h' : default: return val * 3600;
-                    case 'd' : return val * 3600*24;
+                    case 'm' :          val *= 60;
+                    case 'h' : default: val *= 3600;
+                    case 'd' :          val *= 3600*24;
                 }
+                return val * 1000;
             }
         }
         return 0;
