@@ -76,7 +76,7 @@
         { "id" : "off"    ,                     "do" : [ "set apartment off" ]},
         { "id" : "morning", "event" : "10:00" , "do" : [ "set bed morning 10%" ] },
         { "id" : "day"    , "event" : "12:00" , "do" : [ "set bed off", "set living day 50%", "set nomframe 100%" ] },
-        { "id" : "evening", "event" : "sunset", "do" : [ "set apartment evening", "set living 100%", "set bed 25%" ] },
+        { "id" : "evening", "event" : "sunset", "do" : [ "set apartment evening", "set living 100%", "set bed 25%", "set nomframe off"  ] },
         { "id" : "night"  , "event" : "22:00" , "do" : [ "set apartment night", "set living 25%", "set nomframe off", "set bed 25%" ] }
     ]
 }
