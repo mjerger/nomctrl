@@ -79,14 +79,14 @@
                     balcony<br>
                     <input type="range" id="balcony-slider" name="brightness" min="0" max="100" oninput="send('set balcony '+this.value)"><br>
                 </label>
-                <button onclick="send('do morning')">morning</button><br>
                 <button onclick="send('do day')">day</button><br>
                 <button onclick="send('do evening')">evening</button><br>
                 <button onclick="send('do night')">night</button><br>
                 <br>
+                <button onclick="send('set amp toggle')">~bed</button><br>
                 <button onclick="send('set living toggle')">~living</button><br>
                 <button onclick="send('set balcony toggle')">~balcony</button><br>
-                <button onclick="send('set bed toggle')">~bed</button><br>
+                <button onclick="send('set bed toggle')">~amp</button><br>
                 <button onclick="send('do off')">OFF</button><br>
             </div>
         </div>

@@ -31,12 +31,12 @@
     ],
 
     "nodes" : [
-        { "id" : "S1"   , "device" : "s1" },
+        { "id" : "amp"      , "device" : "s1" },
         { "id" : "plants"   , "device" : "s2" },
         { "id" : "terra"    , "device" : "s3" },
         { "id" : "grow-low" , "device" : "s4" },
         { "id" : "grow-high", "device" : "s5" },
-        { "id" : "S6"       , "device" : "s6" },
+        { "id" : "S6-UNUSED", "device" : "s6" },
         { "id" : "desk"         , "device" : "w-desk"  },
         { "id" : "stuff-light"  , "device" : "w-stuff" },
         { "id" : "tv-light"     , "device" : "w-tv"    },
@@ -47,7 +47,7 @@
 
     "groups" : [
         { "id" : "grow"     , "nodes"  : [ "grow-low", "grow-high" ] },
-        { "id" : "living"   , "nodes"  : [ "desk", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "grow" ] },
+        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "grow" ] },
         { "id" : "bed"      , "nodes"  : [ "sleep-light" ] },
         { "id" : "balcony"  , "nodes"  : [ "balcony-light" ] },
         { "id" : "apartment", "groups" : [ "living", "bed", "balcony"] }
@@ -73,10 +73,10 @@
     ],
 
     "actions" : [
+        { "id" : "off"    ,                     "do" : [ "set apartment off" ]},
         { "id" : "morning", "event" : "10:00" , "do" : [ "set bed morning 10%" ] },
         { "id" : "day"    , "event" : "12:00" , "do" : [ "set bed off", "set living day 50%", "set nomframe 100%" ] },
         { "id" : "evening", "event" : "sunset", "do" : [ "set apartment evening", "set living 100%", "set bed 25%" ] },
-        { "id" : "night"  , "event" : "22:00" , "do" : [ "set apartment night", "set living 25%", "set nomframe off", "set bed 25%" ] },
-        { "id" : "off"    ,                     "do" : [ "set apartment off" ]}
+        { "id" : "night"  , "event" : "22:00" , "do" : [ "set apartment night", "set living 25%", "set nomframe off", "set bed 25%" ] }
     ]
 }
