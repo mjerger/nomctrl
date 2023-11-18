@@ -16,7 +16,7 @@
             }
             button { 
                 text-align:center;
-                width: 234px;
+                width: 250px;
                 margin: 5px;
                 padding: 15px;
                 border-radius: 5px;
@@ -28,6 +28,20 @@
                 background:  #5590ff;
                 color: #0f2144;
             }
+            button.small { 
+                text-align:center;
+                width: 120px;
+                margin: 5px 0px;
+                padding: 15px;
+                border-radius: 5px;
+                border: 1px solid #3775e6;
+                background: none;
+                color: #3775e6;
+            }
+            button.small:hover {
+                background:  #5590ff;
+                color: #0f2144;
+            }
             label {
                 width: 234px;
                 margin-top: 15px;
@@ -35,8 +49,8 @@
                 color: #3775e6;
             }
             input[type=range] {
-                width: 234px;
-                margin: 5px;
+                width: 240px;
+                margin: 8px;
             }
             div {
                 text-align: center;
@@ -55,6 +69,11 @@
                 border: 1px solid #3775e6;
                 border-image-slice: 1;
             }
+            p#txt {
+                font-weight: lighter;
+                margin: 5px;
+                padding: 0;
+            }
 
         </style>
         
@@ -65,8 +84,8 @@
                 <br>
                 <b><i>nomctrl</i></b>
                 <br><br>
-
                 <button id="color"></button><br>
+                <br>
                 <label>
                     living<br>
                     <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="send('set living '+this.value)"><br>
@@ -79,14 +98,27 @@
                     xmas<br>
                     <input type="range" id="xmas-slider" name="brightness" min="0" max="100" oninput="send('set xmas '+this.value)"><br>
                 </label>
-                <button onclick="send('do day')">day</button><br>
-                <button onclick="send('do evening')">evening</button><br>
-                <button onclick="send('do night')">night</button><br>
                 <br>
-                <button onclick="send('set amp toggle')">~amp</button><br>
-                <button onclick="send('set living toggle')">~living</button><br>
-                <button onclick="send('set bed toggle')">~bed</button><br>
-                <button onclick="send('set xmas toggle')">~xmas</button><br>
+                <button onclick="send('do day')">day</button>
+                <br>
+                <button onclick="send('do evening')">evening</button>
+                <br>
+                <button onclick="send('do night')">night</button>
+                <br>
+                <br>
+                <button onclick="send('set living toggle')" class="small" >~living</button>
+                <button onclick="send('set bed toggle')"    class="small" >~bed</button>
+                <br>
+                <button onclick="send('set xmas toggle')" class="small" >~xmas</button>
+                <button onclick="send('set amp toggle')"  class="small" >~amp</button>
+                <br>
+                <br>
+                <p id="txt">
+                    now <span id="power">? W</span>
+                    &nbsp;
+                    daily <span id="energy_y">? KWh</span>
+                </p>
+                <br>
                 <button onclick="send('do off')">OFF</button><br>
             </div>
         </div>
@@ -99,6 +131,12 @@
             }
             async function cmd(command) {
                 return await fetch('http://nompi:1337/cmd/' + encodeURIComponent(command)).then(response => response.json());
+            }
+
+            async function fetchPower() {
+                const info = await cmd('get sum apartment power energy_y');
+                document.getElementById('power').innerHTML = info.power_sum + " W";
+                document.getElementById('energy_y').innerHTML = info.energy_y_sum + " KWh";
             }
 
             function Sleep(milliseconds) {
@@ -128,11 +166,14 @@
                 let last = +new Date();
                 picker.onChange = async function(color) {
                     const now = +new Date();
-                    if (now - last > 250) {
+                    if (now - last > 500) {
                         last = now;
                         await cmd('set apartment '+color.hex.slice(0, -2));
                     }
                 }
+                
+                fetchPower();
+                setInterval(fetchPower, 2000);
             };
 
             init();

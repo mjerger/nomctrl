@@ -176,7 +176,6 @@ e
             return {errors : ['No nodes found.']};
         }
 
-
         // No attribute arg? get all getters of all nodes
         if (!arg) {
             for (const node of nodes) {

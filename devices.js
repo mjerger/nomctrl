@@ -53,7 +53,7 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
-            this.getter = ['status', 'state', 'power', 'energy', 'energy_t', 'energy_y'];
+            this.getter = ['status', 'state', 'power', 'power_status',  'energy', 'energy_t', 'energy_y', 'voltage', 'current'];
             this.setter = ['status', 'state', 'flip'];
         }
 
@@ -121,6 +121,8 @@ const drivers = {
         async get_state        ()        { const val = await this._get('Status', 'Power'); return val === 1;} 
         async get_power_status ()        { return this._get_power_status(); }
         async get_power        ()        { return this._get_energy('Power'); }
+        async get_voltage      ()        { return this._get_energy('Voltage'); }
+        async get_current      ()        { return this._get_energy('Current'); }
         async get_energy       ()        { return this._get_energy('Total'); }
         async get_energy_t     ()        { return this._get_energy('Today'); }
         async get_energy_y     ()        { return this._get_energy('Yesterday'); }
