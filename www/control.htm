@@ -76,8 +76,8 @@
                     <input type="range" id="bed-slider" name="brightness" min="0" max="100" oninput="send('set bed '+this.value)"><br>
                 </label>
                 <label>
-                    balcony<br>
-                    <input type="range" id="balcony-slider" name="brightness" min="0" max="100" oninput="send('set balcony '+this.value)"><br>
+                    xmas<br>
+                    <input type="range" id="xmas-slider" name="brightness" min="0" max="100" oninput="send('set xmas '+this.value)"><br>
                 </label>
                 <button onclick="send('do day')">day</button><br>
                 <button onclick="send('do evening')">evening</button><br>
@@ -85,8 +85,8 @@
                 <br>
                 <button onclick="send('set amp toggle')">~amp</button><br>
                 <button onclick="send('set living toggle')">~living</button><br>
-                <button onclick="send('set balcony toggle')">~balcony</button><br>
                 <button onclick="send('set bed toggle')">~bed</button><br>
+                <button onclick="send('set xmas toggle')">~xmas</button><br>
                 <button onclick="send('do off')">OFF</button><br>
             </div>
         </div>
@@ -120,10 +120,10 @@
 
                 living_brightness  = (await cmd('get avg living brightness')) .brightness_avg;
                 bed_brightness     = (await cmd('get avg bed brightness'))    .brightness_avg;
-                balcony_brightness = (await cmd('get avg balcony brightness')).brightness_avg;
+                xmas_brightness    = (await cmd('get avg xmas brightness'))   .brightness_avg;
                 document.getElementById('living-slider').value = living_brightness
-                document.getElementById('bed-slider').value = bed_brightness
-                document.getElementById('balcony-slider').value = balcony_brightness
+                document.getElementById('bed-slider').value    = bed_brightness
+                document.getElementById('xmas-slider').value   = xmas_brightness
 
                 let last = +new Date();
                 picker.onChange = async function(color) {

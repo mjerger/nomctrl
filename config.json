@@ -22,11 +22,12 @@
         { "id" : "s4", "type" : "tasmota", "host" : "tasmota-s4" },
         { "id" : "s5", "type" : "tasmota", "host" : "tasmota-s5" },
         { "id" : "s6", "type" : "tasmota", "host" : "tasmota-s6" },
-        { "id" : "w-desk"   , "type" : "wled", "host" : "wled-desk"    },
-        { "id" : "w-stuff"  , "type" : "wled", "host" : "wled-stuff"   },
-        { "id" : "w-tv"     , "type" : "wled", "host" : "wled-tv"      },
-        { "id" : "w-sleep"  , "type" : "wled", "host" : "wled-sleep"   },
-        { "id" : "w-balcony", "type" : "wled", "host" : "wled-balcony" },
+        { "id" : "w-desk"     , "type" : "wled", "host" : "wled-desk"    },
+        { "id" : "w-stuff"    , "type" : "wled", "host" : "wled-stuff"   },
+        { "id" : "w-tv"       , "type" : "wled", "host" : "wled-tv"      },
+        { "id" : "w-bed-ceil" , "type" : "wled", "host" : "wled-bed-ceil" },
+        { "id" : "w-string-1" , "type" : "wled", "host" : "wled-string-1" },
+        { "id" : "w-string-2" , "type" : "wled", "host" : "wled-string-2" },
         { "id" : "nn-nomframe", "type" : "nomframe", "host" : "nomframe" }
     ],
 
@@ -36,20 +37,21 @@
         { "id" : "terra"    , "device" : "s3" },
         { "id" : "grow-low" , "device" : "s4" },
         { "id" : "grow-high", "device" : "s5" },
-        { "id" : "S6-UNUSED", "device" : "s6" },
+        { "id" : "fairy-1"  , "device" : "s6" },
         { "id" : "desk"         , "device" : "w-desk"  },
         { "id" : "stuff-light"  , "device" : "w-stuff" },
         { "id" : "tv-light"     , "device" : "w-tv"    },
-        { "id" : "sleep-light"  , "device" : "w-sleep" },
-        { "id" : "balcony-light", "device" : "w-balcony" },
+        { "id" : "bedroom-light", "device" : "w-bed-ceil" },
+        { "id" : "string-1"     , "device" : "w-string-1" },
+        { "id" : "string-2"     , "device" : "w-string-2" },
         { "id" : "nomframe"     , "device" : "nn-nomframe" }
     ],
 
     "groups" : [
         { "id" : "grow"     , "nodes"  : [ "grow-low", "grow-high" ] },
         { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "grow" ] },
-        { "id" : "bed"      , "nodes"  : [ "sleep-light" ] },
-        { "id" : "balcony"  , "nodes"  : [ "balcony-light" ] },
+        { "id" : "bed"      , "nodes"  : [ "bedroom-light" ] },
+        { "id" : "xmas"     , "nodes"  : [ "string-1","string-2", "fairy-1"] },
         { "id" : "apartment", "groups" : [ "living", "bed", "balcony"] }
     ],
 
@@ -59,7 +61,7 @@
         { "id" : "green"  , "hex" : "#00f010" },
         { "id" : "orange" , "hex" : "#f29a1f" },
         { "id" : "dorange", "hex" : "#d26a00" },
-        { "id" : "morning", "color" : "blue"    },
+        { "id" : "morning", "color" : "dorange" },
         { "id" : "day"    , "color" : "blue"    },
         { "id" : "evening", "color" : "orange"  },
         { "id" : "night"  , "color" : "dorange" }
