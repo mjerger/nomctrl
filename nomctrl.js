@@ -110,17 +110,8 @@ async function execute(cmds, opts={}) {
 
     if (todo.getter) {
 
-        // remove duplicate getters
-        if (todo.getter.length > 1) {
-            for (let i = 0; i < todo.getter.length-1; i++) {
-                for (let j = i+1; j < todo.getter.length; j++) {
-                    // same id
-                    if (todo.getter[i][0] === todo.getter[j][0]) {
-                        todo.getter.splice(i, 1);
-                    }
-                }
-            }
-        }
+        // every getter only once
+        todo.getter = Utils.removeDuplicates(todo.getter);
         
         // call getters
         let get_results = {};

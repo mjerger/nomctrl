@@ -130,6 +130,24 @@ class Utils {
         return a;
     }
 
+    // remove duplicates of complex objects by stringifying them
+    static removeDuplicates(arr) {
+        const uniqueArrays = new Set();
+        
+        return arr.filter(innerArr => {
+            // Convert each inner array to a string for easy comparison
+            const key = JSON.stringify(innerArr);
+    
+            // Check if this stringified array is already in the set
+            if (uniqueArrays.has(key)) {
+                return false; // Duplicate found, filter out this array
+            } else {
+                uniqueArrays.add(key); // Add to set and keep this array
+                return true;
+            }
+        });
+    }
+
     static map_range(value, input_start, input_end, output_start, output_end) {
         return (value - input_start) / (input_end - input_start) * (output_end - output_start) + output_start
     }
