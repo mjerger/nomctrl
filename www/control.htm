@@ -116,7 +116,7 @@
                 <p id="txt">
                     now <span id="power">? W</span>
                     &nbsp;
-                    daily <span id="energy_y">? KWh</span>
+                    daily <span id="energy">?/? KWh</span>
                 </p>
                 <br>
                 <button onclick="send('do off')">OFF</button><br>
@@ -134,9 +134,9 @@
             }
 
             async function fetchPower() {
-                const info = await cmd('get sum apartment power energy_y');
-                document.getElementById('power').innerHTML = info.power_sum + " W";
-                document.getElementById('energy_y').innerHTML = info.energy_y_sum + " KWh";
+                const info = await cmd('get sum apartment power energy_t energy_y');
+                document.getElementById('power').innerHTML = info.power_sum + "W";
+                document.getElementById('energy').innerHTML = info.energy_t_sum.toFixed(1) + "/" + info.energy_y_sum.toFixed(1) + "KWh"; 
             }
 
             function Sleep(milliseconds) {
