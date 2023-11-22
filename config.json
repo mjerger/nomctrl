@@ -49,10 +49,10 @@
 
     "groups" : [
         { "id" : "grow"     , "nodes"  : [ "grow-low", "grow-high" ] },
-        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "grow" ] },
+        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe", "xmas" ], "groups" : [ "grow" ] },
         { "id" : "bed"      , "nodes"  : [ "bedroom-light" ] },
         { "id" : "xmas"     , "nodes"  : [ "string-1","string-2", "fairy-1"] },
-        { "id" : "apartment", "groups" : [ "living", "bed", "balcony"] }
+        { "id" : "apartment", "groups" : [ "living", "bed"] }
     ],
 
     "colors" : [
