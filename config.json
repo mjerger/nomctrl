@@ -37,7 +37,7 @@
         { "id" : "terra"    , "device" : "s3" },
         { "id" : "grow-low" , "device" : "s4" },
         { "id" : "grow-high", "device" : "s5" },
-        { "id" : "fairy-1"  , "device" : "s6" },
+        { "id" : "fairy-1"  , "device" : "s6", "thresh" : 50 },
         { "id" : "desk"         , "device" : "w-desk"  },
         { "id" : "stuff-light"  , "device" : "w-stuff" },
         { "id" : "tv-light"     , "device" : "w-tv"    },

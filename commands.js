@@ -302,6 +302,7 @@ e
 
                     } else if (nodes.length == 1) {
                         errors.push(`Device ${id} of node ${node.id} does not support brightness control.`);
+                        console.log(node.thresh, percent >= node.thresh, device.hasSet('state'), node.class);
                     }
                 };
             }

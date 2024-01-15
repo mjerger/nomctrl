@@ -10,7 +10,7 @@ class Node
         this.id = cfg_node.id;
         this.device = cfg_node.device;
         this.class = cfg_node.class;
-        this.parent = cfg_node.parent;
+        this.thresh = cfg_node.thresh;
     }
 
     getter() {
