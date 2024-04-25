@@ -297,7 +297,7 @@ e
                         setter.push([node.id, 'state', true]);
 
                     // no brightness, but has 'off': use threshold
-                    } else if (node.thresh && percent < node.thresh && device.hasSet('state') && node.class !== 'power') {
+                    } else if (node.thresh && percent <= node.thresh && device.hasSet('state') && node.class !== 'power') {
                         setter.push([node.id, 'state', false]);
 
                     } else if (nodes.length == 1) {
