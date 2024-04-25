@@ -3,7 +3,10 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>nomctrl</title>
+        <link rel="icon" href="/favicon.ico" sizes="any">
+        <link rel="apple-touch-icon" href="/favicon.png">
         <script src="https://unpkg.com/vanilla-picker@2"></script>
+
         <style>
             body {
                 background-color: #111;
@@ -123,9 +126,11 @@
         </div>
         <script>
 
+            let last = +new Date();
+
             async function send(command) {
                 await cmd(command);
-                await init();
+                await refresh();
 
             }
             async function cmd(command) {
@@ -142,7 +147,7 @@
                 return new Promise(resolve => setTimeout(resolve, milliseconds));
             }
 
-            async function init() {
+            async function refresh() {
                 var p = document.querySelector('#color');
                 var picker = new Picker(p);
 
@@ -162,7 +167,6 @@
                 document.getElementById('bed-slider').value    = bed_brightness
                 document.getElementById('xmas-slider').value   = xmas_brightness
 
-                let last = +new Date();
                 picker.onChange = async function(color) {
                     const now = +new Date();
                     if (now - last > 500) {
@@ -170,12 +174,20 @@
                         await cmd('set apartment '+color.hex.slice(0, -2));
                     }
                 }
+
                 
                 fetchPower();
                 setInterval(fetchPower, 2000);
             };
 
-            init();
+
+            window.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                let last = +new Date();
+            }
+            });
+
+            refresh();
         </script>
     </body>
 </html>
