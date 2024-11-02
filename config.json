@@ -68,10 +68,10 @@
     ],
 
     "timers" : [
-        { "id" : "grow-high", "node" : "grow-high", "on" : "sunriseEnd+2h", "off" : "sunsetStart-1h", "strict" : true  },
-        { "id" : "grow-low",  "node" : "grow-low",  "on" : "sunriseEnd",    "off" : "sunsetStart+1h", "strict" : true  },
-        { "id" : "plants",    "node" : "plants",    "on" : "sunriseEnd+1h", "off" : "sunsetStart-1h", "strict" : true  },
-        { "id" : "terra",     "node" : "terra",     "on" : "sunriseEnd+1h", "off" : "sunsetStart-1h", "strict" : true  }
+        { "id" : "grow-high", "node" : "grow-high", "on" : "10:00",  "off" : "20:00", "strict" : true  },
+        { "id" : "grow-low",  "node" : "grow-low",  "on" : "08:00",  "off" : "22:00", "strict" : true  },
+        { "id" : "plants",    "node" : "plants",    "on" : "sunriseEnd+1h", "off" : "sunsetStart+2h", "strict" : true  },
+        { "id" : "terra",     "node" : "terra",     "on" : "sunriseEnd+1h", "off" : "sunsetStart+2h", "strict" : true  }
     ],
 
     "actions" : [

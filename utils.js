@@ -70,7 +70,7 @@ class Utils {
         }
         
         // time in hh:mm format
-        if (str.match(/^\d{1,2}:\d{2}$/)) {
+        if (str.match(/^\d{2}:\d{2}$/)) {
             const today = new Date().toISOString().split('T')[0];
             return Date.parse(today + "T" + str);
         }
