@@ -273,7 +273,7 @@ class Timers
         }
 
         // tick again
-        setTimeout(this.tick_static_timers.bind(this),Config.ctrl().timer_interval_seconds * 1000);
+        setTimeout(this.tick_static_timers.bind(this),Config.app().timer_interval_seconds * 1000);
     }
 }
 

@@ -1,9 +1,7 @@
 {
     "app" : {
-        "port" : 1337
-    },
+        "port" : 1337,
 
-    "ctrl" : {
         "loc" : { 
             "lang"    : "en",
             "country" : "DE",
@@ -11,9 +9,22 @@
             "lat"     : "48.78",
             "long"    : "9.18"
         },
+
         "timer_interval_seconds" : 60,
         "device_monitor_seconds" : 10
     },
+
+    "colors" : [
+        { "id" : "lime"   , "hex" : "#deff24" },
+        { "id" : "blue"   , "hex" : "#656ef2" },
+        { "id" : "green"  , "hex" : "#00f010" },
+        { "id" : "orange" , "hex" : "#f29a1f" },
+        { "id" : "dorange", "hex" : "#d26a00" },
+        { "id" : "morning", "color" : "dorange" },
+        { "id" : "day"    , "color" : "blue"    },
+        { "id" : "evening", "color" : "orange"  },
+        { "id" : "night"  , "color" : "dorange" }
+    ],
 
     "devices" : [
         { "id" : "s1", "type" : "tasmota", "host" : "tasmota-s1" },
@@ -35,8 +46,8 @@
         { "id" : "amp"      , "device" : "s1" },
         { "id" : "plants"   , "device" : "s2" },
         { "id" : "terra"    , "device" : "s3" },
-        { "id" : "grow-low" , "device" : "s4" },
-        { "id" : "grow-high", "device" : "s5" },
+        { "id" : "grow"     , "device" : "s4" },
+        { "id" : "growbox"  , "device" : "s5" },
         { "id" : "fairy-1"  , "device" : "s6", "thresh" : 50 },
         { "id" : "desk"         , "device" : "w-desk"  },
         { "id" : "stuff-light"  , "device" : "w-stuff" },
@@ -48,30 +59,17 @@
     ],
 
     "groups" : [
-        { "id" : "grow"     , "nodes"  : [ "grow-low", "grow-high" ] },
-        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "grow", "xmas" ] },
+        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "xmas" ] },
         { "id" : "bed"      , "nodes"  : [ "bedroom-light" ] },
         { "id" : "xmas"     , "nodes"  : [ "string-1","string-2", "fairy-1"] },
         { "id" : "apartment", "groups" : [ "living", "bed"] }
     ],
 
-    "colors" : [
-        { "id" : "lime"   , "hex" : "#deff24" },
-        { "id" : "blue"   , "hex" : "#656ef2" },
-        { "id" : "green"  , "hex" : "#00f010" },
-        { "id" : "orange" , "hex" : "#f29a1f" },
-        { "id" : "dorange", "hex" : "#d26a00" },
-        { "id" : "morning", "color" : "dorange" },
-        { "id" : "day"    , "color" : "blue"    },
-        { "id" : "evening", "color" : "orange"  },
-        { "id" : "night"  , "color" : "dorange" }
-    ],
-
     "timers" : [
-        { "id" : "grow-high", "node" : "grow-high", "on" : "10:00",  "off" : "20:00", "strict" : true  },
-        { "id" : "grow-low",  "node" : "grow-low",  "on" : "08:00",  "off" : "22:00", "strict" : true  },
-        { "id" : "plants",    "node" : "plants",    "on" : "sunriseEnd+1h", "off" : "sunsetStart+2h", "strict" : true  },
-        { "id" : "terra",     "node" : "terra",     "on" : "sunriseEnd+1h", "off" : "sunsetStart+2h", "strict" : true  }
+        { "id" : "grow",    "node" : "grow",    "on" : "10:00",         "off" : "23:00",          "strict" : true },
+        { "id" : "growbox", "node" : "growbox", "on" : "10:00",         "off" : "23:59",          "strict" : true },
+        { "id" : "plants",  "node" : "plants",  "on" : "sunriseEnd+1h", "off" : "sunsetStart+2h", "strict" : true },
+        { "id" : "terra",   "node" : "terra",   "on" : "sunriseEnd+1h", "off" : "sunsetStart+2h", "strict" : true }
     ],
 
     "actions" : [
