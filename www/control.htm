@@ -9,7 +9,7 @@
 
         <style>
             body {
-                background-color: #111;
+                background-color: #161616;
                 color: #3775e6;
             }
             * {
@@ -19,7 +19,8 @@
             }
             button { 
                 text-align:center;
-                width: 250px;
+                width: 300px;
+                height: 50px;
                 margin: 5px;
                 padding: 15px;
                 border-radius: 5px;
@@ -33,7 +34,8 @@
             }
             button.small { 
                 text-align:center;
-                width: 120px;
+                width: 145px;
+                height: 50px;
                 margin: 5px 0px;
                 padding: 15px;
                 border-radius: 5px;
@@ -52,76 +54,132 @@
                 color: #3775e6;
             }
             input[type=range] {
-                width: 240px;
+                width: 145px;
                 margin: 8px;
+                background: #3775e6;
             }
             div {
                 text-align: center;
                 vertical-align: middle;
             }
+            hr {
+                margin: 23px auto;
+                width: 300px;
+                color: #3775e6;
+                border: 1px dashed;
+
+            }
             #col {
-                margin:auto;
+                margin: auto;
             }
             #menu {
                 text-align: center;
             }
             #color {
-                border: 2px solid transparent;
-                border-radius: 5px;
                 background-image: linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%);
                 border: 1px solid #3775e6;
-                border-image-slice: 1;
             }
-            p#txt {
+            #color:hover {
+                background:  #5590ff;
+                color: #0f2144;
+            }
+            p.txt {
                 font-weight: lighter;
                 margin: 5px;
                 padding: 0;
             }
+            .vbar {
+                justify-content: center;
+                margin: auto;
+                width: 300px;
+                display: flex;
+                align-items: center;
+            }
+            
+            input[type="range"] {
+                -webkit-appearance: none; 
+                appearance: none; 
+                width: 100%; 
+                height: 5px; 
+                background: #3775e6; 
+                border-radius: 5px; 
+                outline: none; 
+            }
 
+            input[type="range"]::-webkit-slider-runnable-track {
+                background: #3775e6; 
+                height: 5px;
+                border-radius: 5px;
+            }
+
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none; 
+                appearance: none;
+                width: 23px; 
+                height: 23px;
+                background: #3775e6; 
+                border-radius: 23%; 
+                cursor: pointer; 
+                box-shadow: 0 0 5px rgba(0, 0, 0, 0.6); 
+            }
+
+            input[type="range"]::-moz-range-track {
+                background: #3775e6; 
+                height: 5px;
+                border-radius: 5px;
+            }
+
+            input[type="range"]::-moz-range-thumb {
+                width: 23px; 
+                height: 23px;
+                background: #3775e6; 
+                border: none; 
+                border-radius: 23%; 
+                cursor: pointer; 
+                box-shadow: 0 0 5px rgba(0, 0, 0, 0.6); 
+            }
         </style>
         
     <head>
     <body>
+        <span><b><i>nom:ctrl</i></b></span>
+        <br>
+        <br>
         <div id="menu">
             <div id="col">
+                <div class="vbar">
+                    <label for="living-slider">living</label>
+                    <label for="sleep-slider">sleep</label>
+                </div>
+                <div class="vbar">
+                    <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="send('set living '+this.value)">
+                    <input type="range" id="sleep-slider" name="brightness" min="0" max="100" oninput="send('set sleep '+this.value)">
+                </div>
                 <br>
-                <b><i>nomctrl</i></b>
-                <br><br>
-                <button id="color"></button><br>
-                <br>
-                <label>
-                    living<br>
-                    <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="send('set living '+this.value)"><br>
-                </label>
-                <label>
-                    bedroom<br>
-                    <input type="range" id="bed-slider" name="brightness" min="0" max="100" oninput="send('set bed '+this.value)"><br>
-                </label>
-                <label>
-                    xmas<br>
-                    <input type="range" id="xmas-slider" name="brightness" min="0" max="100" oninput="send('set xmas '+this.value)"><br>
-                </label>
-                <br>
-                <button onclick="send('do day')">day</button>
-                <br>
-                <button onclick="send('do evening')">evening</button>
-                <br>
-                <button onclick="send('do night')">night</button>
-                <br>
-                <button onclick="send('set living toggle')" class="small" >~living</button>
-                <button onclick="send('set bed toggle')"    class="small" >~bed</button>
-                <br>
-                <button onclick="send('set xmas toggle')" class="small" >~xmas</button>
-                <button onclick="send('set amp toggle')"  class="small" >~amp</button>
-                <br>
-                <br>
-                <p id="txt">
+                <p class="txt">
                     now <span id="power">? W</span>
                     <br>
                     daily <span id="energy">?/? KWh</span>
                 </p>
                 <br>
-                <button onclick="send('do off')">OFF</button><br>
+                <br>
+                <button onclick="send('do day')" class="small">day</button>
+                <button onclick="send('do evening')" class="small">evening</button>
+                <br>
+                <button onclick="send('do night')" class="small">night</button>
+                <button onclick="send('do late')" class="small">late</button>
+                <br>
+                <br>
+                <button onclick="send('set living toggle')" class="small">~living</button>
+                <button onclick="send('set sleep toggle')"    class="small">~sleep</button>
+                <br>
+                <button onclick="send('set xmas toggle')" class="small">~xmas</button>
+                <button onclick="send('set amp toggle')"  class="small">~amp</button>
+                <br>
+                <br>
+                <button onclick="send('do off')" class="small">OFF</button>
+                <button class="small" id="color">👾</button>
+                <br>
             </div>
         </div>
         <script>
@@ -138,7 +196,7 @@
             }
 
             async function fetchPower() {
-                const info = await cmd('get sum apartment power energy_t energy_y');
+                const info = await cmd('get sum all power energy_t energy_y');
                 document.getElementById('power').innerHTML = info.power_sum + "W";
                 document.getElementById('energy').innerHTML = info.energy_t_sum.toFixed(1) + "/" + info.energy_y_sum.toFixed(1) + "KWh"; 
             }
@@ -161,25 +219,21 @@
                 })
 
                 living_brightness  = (await cmd('get avg living brightness')) .brightness_avg;
-                bed_brightness     = (await cmd('get avg bed brightness'))    .brightness_avg;
-                xmas_brightness    = (await cmd('get avg xmas brightness'))   .brightness_avg;
+                sleep_brightness     = (await cmd('get avg sleep brightness'))    .brightness_avg;
                 document.getElementById('living-slider').value = living_brightness
-                document.getElementById('bed-slider').value    = bed_brightness
-                document.getElementById('xmas-slider').value   = xmas_brightness
+                document.getElementById('sleep-slider').value    = sleep_brightness
 
                 picker.onChange = async function(color) {
                     const now = +new Date();
                     if (now - last > 500) {
                         last = now;
-                        await cmd('set apartment '+color.hex.slice(0, -2));
+                        await cmd('set all '+color.hex.slice(0, -2));
                     }
                 }
-
                 
                 fetchPower();
-                setInterval(fetchPower, 2000);
+                setInterval(fetchPower, 5000);
             };
-
 
             window.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {

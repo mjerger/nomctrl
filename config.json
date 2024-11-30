@@ -20,8 +20,9 @@
         { "id" : "green"  , "hex" : "#00f010" },
         { "id" : "orange" , "hex" : "#f29a1f" },
         { "id" : "dorange", "hex" : "#d26a00" },
-        { "id" : "morning", "color" : "dorange" },
-        { "id" : "day"    , "color" : "blue"    },
+        { "id" : "sun"    , "hex" : "#f6cb90" },
+        { "id" : "morning", "color" : "sun"   },
+        { "id" : "day"    , "color" : "sun"    },
         { "id" : "evening", "color" : "orange"  },
         { "id" : "night"  , "color" : "dorange" }
     ],
@@ -59,10 +60,10 @@
     ],
 
     "groups" : [
-        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "nomframe" ], "groups" : [ "xmas" ] },
-        { "id" : "bed"      , "nodes"  : [ "bedroom-light" ] },
+        { "id" : "living"   , "nodes"  : [ "desk", "amp", "plants", "terra", "stuff-light", "tv-light", "grow" ], "groups" : [ "xmas" ] },
+        { "id" : "sleep"    , "nodes"  : [ "bedroom-light", "growbox" ] },
         { "id" : "xmas"     , "nodes"  : [ "string-1","string-2", "fairy-1"] },
-        { "id" : "apartment", "groups" : [ "living", "bed"] }
+        { "id" : "all"      , "groups" : [ "living", "sleep"] }
     ],
 
     "timers" : [
@@ -73,10 +74,11 @@
     ],
 
     "actions" : [
-        { "id" : "off"    ,                     "do" : [ "set apartment off" ]},
-        { "id" : "morning", "event" : "10:00" , "do" : [ "set bed morning 5%" ] },
-        { "id" : "day"    , "event" : "12:00" , "do" : [ "set bed off", "set living day 50%", "set nomframe 100%" ] },
-        { "id" : "evening", "event" : "sunset", "do" : [ "set apartment evening", "set living 100%", "set bed 25%", "set nomframe off"  ] },
-        { "id" : "night"  , "event" : "22:00" , "do" : [ "set apartment night", "set living 25%", "set nomframe off", "set bed 25%" ] }
+        { "id" : "off"    ,                     "do" : [ "set all off" ]},
+        { "id" : "morning", "event" : "10:00" , "do" : [ "set sleep morning 5%" ] },
+        { "id" : "day"    , "event" : "12:00" , "do" : [ "set sleep off", "set living day 50%", "set nomframe 100%" ] },
+        { "id" : "evening", "event" : "sunset", "do" : [ "set all evening", "set living 100%", "set sleep 25%", "set nomframe off"  ] },
+        { "id" : "night"  , "event" : "22:00" , "do" : [ "set all night", "set living 50%", "set nomframe off", "set sleep 25%" ] },
+        { "id" : "late"  ,                      "do" : [ "set all sun", "set living 50%", "set nomframe off", "set sleep 25%" ] }
     ]
 }
