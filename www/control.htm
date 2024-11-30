@@ -17,7 +17,7 @@
                 font-size: 16px;
                 font-weight: bold;
             }
-            button { 
+            button.btn {
                 text-align:center;
                 width: 300px;
                 height: 50px;
@@ -28,7 +28,7 @@
                 background: none;
                 color: #3775e6;
             }
-            button:hover {
+            button.btn:hover {
                 background:  #5590ff;
                 color: #0f2144;
             }
@@ -69,11 +69,9 @@
                 border: 1px dashed;
 
             }
-            #col {
-                margin: auto;
-            }
-            #menu {
+            #main {
                 text-align: center;
+                margin: auto;
             }
             #color {
                 background-image: linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%);
@@ -145,42 +143,44 @@
         <span><b><i>nom:ctrl</i></b></span>
         <br>
         <br>
-        <div id="menu">
-            <div id="col">
-                <div class="vbar">
-                    <label for="living-slider">living</label>
-                    <label for="sleep-slider">sleep</label>
-                </div>
-                <div class="vbar">
-                    <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="send('set living '+this.value)">
-                    <input type="range" id="sleep-slider" name="brightness" min="0" max="100" oninput="send('set sleep '+this.value)">
-                </div>
-                <br>
-                <p class="txt">
-                    now <span id="power">? W</span>
-                    <br>
-                    daily <span id="energy">?/? KWh</span>
-                </p>
-                <br>
-                <br>
-                <button onclick="send('do day')" class="small">day</button>
-                <button onclick="send('do evening')" class="small">evening</button>
-                <br>
-                <button onclick="send('do night')" class="small">night</button>
-                <button onclick="send('do late')" class="small">late</button>
-                <br>
-                <br>
-                <button onclick="send('set living toggle')" class="small">~living</button>
-                <button onclick="send('set sleep toggle')"    class="small">~sleep</button>
-                <br>
-                <button onclick="send('set xmas toggle')" class="small">~xmas</button>
-                <button onclick="send('set amp toggle')"  class="small">~amp</button>
-                <br>
-                <br>
-                <button onclick="send('do off')" class="small">OFF</button>
-                <button class="small" id="color">👾</button>
-                <br>
+        <br>
+        <div id="main">
+            <div class="vbar">
+                <label for="living-slider">living</label>
+                <label for="sleep-slider">sleep</label>
             </div>
+            <div class="vbar">
+                <input type="range" id="living-slider" name="brightness" min="0" max="100" oninput="send('set living '+this.value)">
+                <input type="range" id="sleep-slider" name="brightness" min="0" max="100" oninput="send('set sleep '+this.value)">
+            </div>
+            <br>
+            <br>
+            <br>
+            <p class="txt">
+                now <span id="power">? W</span>
+                <br>
+                daily <span id="energy">?/? KWh</span>
+            </p>
+            <br>
+            <br>
+            <button class="small" onclick="send('do day')">day</button>
+            <button class="small" onclick="send('do evening')">evening</button>
+            <br>
+            <button class="small" onclick="send('do night')">night</button>
+            <button class="small" onclick="send('do late')">late</button>
+            <br>
+            <br>
+            <button class="small" onclick="send('set living toggle')">~living</button>
+            <button class="small" onclick="send('set sleep toggle')">~sleep</button>
+            <br>
+            <button class="small" onclick="send('set xmas toggle')">~xmas</button>
+            <button class="small" onclick="send('set amp toggle')">~amp</button>
+            <br>
+            <br>
+            <br>
+            <button class="small" id="color">👾</button>
+            <button class="small" onclick="send('do off')">OFF</button>
+            <br>
         </div>
         <script>
 
@@ -212,7 +212,7 @@
                 color = (await cmd('get desk color')).desk.color;
 
                 picker.setOptions({
-                    popup: "bottom",
+                    popup: "top",
                     alpha: false,
                     editor: true,
                     color: color,
