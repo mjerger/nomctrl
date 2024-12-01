@@ -9,13 +9,32 @@
 
         <style>
             body {
-                background-color: #161616;
                 color: #3775e6;
+                height: 100vh;
+                overflow-x: hidden;
+                background: 
+                    repeating-linear-gradient(15deg, 
+                        rgba(43, 116, 205, 0.1) 0, 
+                        rgba(43, 116, 205, 0.1) 2px, 
+                        transparent 2px, 
+                        transparent 42px), 
+                    repeating-linear-gradient(105deg, 
+                        rgba(43, 116, 205, 0.1) 0, 
+                        rgba(43, 116, 205, 0.1) 2px, 
+                        transparent 2px, 
+                        transparent 42px),
+                    linear-gradient(45deg, #143a74, #0e0e0e);
             }
             * {
                 font-family: monospace;
                 font-size: 16px;
                 font-weight: bold;
+                text-shadow: 0px 0px 2px #000;
+            }
+            .logo {
+                font-size: 20px;
+                font-weight: bold;
+                font-style: italic;
             }
             button.btn {
                 text-align:center;
@@ -25,27 +44,17 @@
                 padding: 15px;
                 border-radius: 5px;
                 border: 1px solid #3775e6;
-                background: none;
+                background: #152b5380;
                 color: #3775e6;
             }
             button.btn:hover {
-                background:  #5590ff;
+                background:  #5590ff80;
                 color: #0f2144;
+                text-shadow: 0px 0px 2px #3775e6;
             }
             button.small { 
-                text-align:center;
                 width: 145px;
-                height: 50px;
                 margin: 5px 0px;
-                padding: 15px;
-                border-radius: 5px;
-                border: 1px solid #3775e6;
-                background: none;
-                color: #3775e6;
-            }
-            button.small:hover {
-                background:  #5590ff;
-                color: #0f2144;
             }
             label {
                 width: 234px;
@@ -58,16 +67,11 @@
                 margin: 8px;
                 background: #3775e6;
             }
-            div {
-                text-align: center;
-                vertical-align: middle;
-            }
             hr {
                 margin: 23px auto;
                 width: 300px;
                 color: #3775e6;
                 border: 1px dashed;
-
             }
             #main {
                 text-align: center;
@@ -76,10 +80,10 @@
             #color {
                 background-image: linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%);
                 border: 1px solid #3775e6;
+                text-shadow: 0px 0px 2px #3775e6;
             }
             #color:hover {
-                background:  #5590ff;
-                color: #0f2144;
+                background:  #5590ff80;
             }
             p.txt {
                 font-weight: lighter;
@@ -93,7 +97,6 @@
                 display: flex;
                 align-items: center;
             }
-            
             input[type="range"] {
                 -webkit-appearance: none; 
                 appearance: none; 
@@ -103,13 +106,11 @@
                 border-radius: 5px; 
                 outline: none; 
             }
-
             input[type="range"]::-webkit-slider-runnable-track {
                 background: #3775e6; 
                 height: 5px;
                 border-radius: 5px;
             }
-
             input[type="range"]::-webkit-slider-thumb {
                 -webkit-appearance: none; 
                 appearance: none;
@@ -120,13 +121,11 @@
                 cursor: pointer; 
                 box-shadow: 0 0 5px rgba(0, 0, 0, 0.6); 
             }
-
             input[type="range"]::-moz-range-track {
                 background: #3775e6; 
                 height: 5px;
                 border-radius: 5px;
             }
-
             input[type="range"]::-moz-range-thumb {
                 width: 23px; 
                 height: 23px;
@@ -140,7 +139,7 @@
         
     <head>
     <body>
-        <span><b><i>nom:ctrl</i></b></span>
+        <span class="logo">nom:ctrl</span>
         <br>
         <br>
         <br>
@@ -156,30 +155,36 @@
             <br>
             <br>
             <br>
+            <br> <!-- weeeeeeee -->
+            <br>
+            <br>
             <p class="txt">
                 now <span id="power">? W</span>
                 <br>
+                <br>
                 daily <span id="energy">?/? KWh</span>
             </p>
-            <br>
-            <br>
-            <button class="small" onclick="send('do day')">day</button>
-            <button class="small" onclick="send('do evening')">evening</button>
-            <br>
-            <button class="small" onclick="send('do night')">night</button>
-            <button class="small" onclick="send('do late')">late</button>
-            <br>
-            <br>
-            <button class="small" onclick="send('set living toggle')">~living</button>
-            <button class="small" onclick="send('set sleep toggle')">~sleep</button>
-            <br>
-            <button class="small" onclick="send('set xmas toggle')">~xmas</button>
-            <button class="small" onclick="send('set amp toggle')">~amp</button>
+            <br> <!-- uhiiiiii -->
             <br>
             <br>
             <br>
-            <button class="small" id="color">👾</button>
-            <button class="small" onclick="send('do off')">OFF</button>
+            <button class="btn small" onclick="send('do day')">day</button>
+            <button class="btn small" onclick="send('do evening')">evening</button>
+            <br>
+            <button class="btn small" onclick="send('do night')">night</button>
+            <button class="btn small" onclick="send('do late')">late</button>
+            <br>
+            <br>
+            <button class="btn small" onclick="send('set living toggle')">~living</button>
+            <button class="btn small" onclick="send('set sleep toggle')">~sleep</button>
+            <br>
+            <button class="btn small" onclick="send('set xmas toggle')">~xmas</button>
+            <button class="btn small" onclick="send('set amp toggle')">~amp</button>
+            <br>
+            <br>
+            <br>
+            <button class="btn small" id="color">👾</button>
+            <button class="btn small" onclick="send('do off')">OFF</button>
             <br>
         </div>
         <script>
