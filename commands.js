@@ -65,7 +65,7 @@ class Commands {
         if (arg.match(CMDS.STATUS)) {
             arg = next(args);
             results = this.parse_status(arg, args, opts);
-e
+
         // DO
         } else if (arg.match(CMDS.DO)) {
             arg = next(args);
