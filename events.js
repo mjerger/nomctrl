@@ -37,7 +37,7 @@ class Events
     static init (cfg_actions, execute) {
         this.execute = execute;
 
-        console.log ('Loading Action Events...');
+        console.log ('Loading events...');
         this.events = [];
 
         // actions
@@ -70,8 +70,8 @@ class Events
     }
 
     static async start() {
-        console.log ('Starting events subsystem');
-        this.send_time_events();
+        console.log ('Starting events...');
+        setTimeout(this.send_time_events.bind(this), 100);
     }
 
     static last_tick_minute = 0;

@@ -99,21 +99,22 @@ class Commands {
         let getter = [];
         let errors = [];
 
-        // status of all devices
+        // just show online state of all devices
         if (!arg) {
             const nodes = Nodes.all();
             for (const node of Nodes.all()) {
-                if (node.hasGet('status'))
-                    getter.push([node.id, 'status']);
+                getter.push([node.id, 'online']);
             }
         } else {
             // status of nodes
-            let nodes = this.parse_node(arg, args, opts);
-            nodes = nodes.filter(n => n.hasSet('status'));
-            if (nodes.length > 0)
-                getter = getter.concat(nodes.map(node => [node.id, 'status']));
-            else
+            let nodes = this.parse_nodes(arg, args, opts);
+            nodes = nodes.filter(n => n.hasGet('info'));
+            if (nodes.length > 0) {
+                getter = getter.concat(nodes.map(node => [node.id, 'info']));
+                getter = getter.concat(nodes.map(node => [node.id, 'online']));
+            } else {
                 errors.push(`'${arg}' is not a node or status command`); 
+            }
 
             // TODO other special status commands
         }
@@ -241,7 +242,7 @@ class Commands {
             if (attr) {
                 for (const node of nodes) {
                     const device = Devices.get(node.device);
-                    if (node.hasSet(attr)) {
+                    if (device.hasSet(attr)) {
                         setter.push([node.id, attr, val]);
                     }
                 }

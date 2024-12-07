@@ -134,15 +134,15 @@ class Timers
     static init(cfg_timers, execute) {
         this.execute = execute;
 
-        console.log ('Loading Timers...');
+        console.log ('Loading timers...');
         this.timers.clear();
         let error = false;
 
-        // Timer definitions
+        // timer definitions
         for (const cfg of cfg_timers) {
             const id = cfg.id
             if (this.timers.has(id)) {
-                // marge timer definitions
+                // merge timer definitions
                 if ('node' in cfg && this.timers.get(id).node === cfg.node) {
                     this.timers.set(id, merge(cfg));
                 } else {
@@ -158,9 +158,9 @@ class Timers
     }
     
     static async start() {
-        console.log ('Starting timers');
-        this.tick_static_timers();
-        this.tick_faders();
+        console.log ('Starting timers...');
+        setTimeout(this.tick_static_timers.bind(this), 100);
+        setTimeout(this.tick_faders.bind(this), 100);
     }
 
     static getTimer(id) {
@@ -245,7 +245,7 @@ class Timers
                 this.timers.delete(timer.id);
 
                 const cmd = timer.get_command();
-                console.log(`Timer '${timer.id}' single: ${cmd}`);
+                console.log(`Timer: ${timer.id} single`);
                 await this.execute(cmd, {'include_timed' : true});
             }
         }
@@ -260,20 +260,21 @@ class Timers
             if (!timer.strict || timer.single)
                 continue;
             
-            // we have take into account the events for yesterday, so timers can behave correctly during midnigh
+            // we have take into account the events for yesterday, so timers can behave correctly during midnight
             const times_today = timer.events.map(e => Utils.parseTime(e[0]));
             const times_yesterday = times_today.map(t => t - (3600*24*1000));
             const times = times_yesterday.concat(times_today);
+
             let cmds = timer.events.map(e => e[1]);
             cmds = cmds.concat(cmds);
             const currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
-            console.log(`Timer '${timer.id}' strict: ${currentStateCmd}`);
+            console.log(`Timer: ${timer.id} strict`);
             await this.execute(currentStateCmd, {'include_timed' : true});
         }
 
         // tick again
-        setTimeout(this.tick_static_timers.bind(this),Config.app().timer_interval_seconds * 1000);
+        setTimeout(this.tick_static_timers.bind(this),Config.app().timer_interval * 1000);
     }
 }
 

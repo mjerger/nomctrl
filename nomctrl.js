@@ -21,6 +21,11 @@ app.listen(Config.app().port, function () {
     let success = Config.validate();
     if (!success) process.exit(-1);
 
+    const line = "~".repeat(26+(""+Config.app().port).length)
+    console.log(line);
+    console.log(`nomctrl listening on port ${Config.app().port}`);
+    console.log(line);
+
     Devices.init(Config.devices());
     Nodes.init(Config.nodes(), Config.groups());
     Timers.init(Config.timers(), execute);
@@ -29,8 +34,6 @@ app.listen(Config.app().port, function () {
     Devices.start();
     Timers.start();
     Events.start();
-
-    console.log(`nomctrl listening on port ${Config.app().port}!`);
 });
 
 // ROUTES
@@ -83,6 +86,9 @@ function overrides(a, b) {
 async function execute(cmds, opts={}) {
     let results = { errors : []};
 
+    if (!cmds)
+        return;
+
     //
     // 1) PARSE
     //
@@ -102,7 +108,7 @@ async function execute(cmds, opts={}) {
          todo = Utils.merge(todo, res);
     }
 
-    if (todo.errors) results.errors = todo.errors
+    if (todo.errors) results.errors = todo.errors 
 
     //
     // 2) EXECUTE GETTER

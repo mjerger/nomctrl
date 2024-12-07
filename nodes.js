@@ -47,7 +47,7 @@ class Node
     }
 
     async set (attr, val) {
-        console.log(`Call: set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
+        console.log(`> set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
 
         // call
         const device = Devices.get(this.device);
@@ -92,7 +92,7 @@ class Nodes
 
     // Note: load after devices
     static init(cfg_nodes, cfg_groups) {
-        console.log ('Loading Nodes...');
+        console.log ('Loading nodes...');
 
         let error = false;
         

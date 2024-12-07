@@ -4,7 +4,6 @@ const config  = require('./config.json');
 class Config {
 
     static app()     { return config.app;     }
-    static ctrl()    { return config.ctrl;    }
     static devices() { return config.devices; }
     static nodes()   { return config.nodes;   }
     static groups()  { return config.groups;  }

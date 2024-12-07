@@ -10,8 +10,8 @@
             "long"    : "9.18"
         },
 
-        "timer_interval_seconds" : 60,
-        "device_monitor_seconds" : 10
+        "timer_interval" : 60,
+        "ping_interval" : 60
     },
 
     "colors" : [

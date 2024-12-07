@@ -5,24 +5,23 @@ const config  = require('./config.json');
 class Utils {
 
     static async get(host, path) {
-        const url = `//${host}${path}`;
-        const response = await Axios.get(url).catch(e => console.error("GET: " + e));
+        const url = `${host}${path}`;
+        const response = await Axios.get(url).catch(e => (console.error(''+e)));
         if (response)
             return response.data;
     }
 
     static async post(host, path, json = {}) {
-        const url = `//${host}${path}`;
-        const response = await Axios.post(url, json).catch(e => console.error("POST: " + e));
+        const url = `${host}${path}`;
+        const response = await Axios.post(url, json).catch(e => console.error(''+e));
         if (response) 
             return response.data;
     }
 
     static hexToRGB(str) {
         const parsed = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(str);
-        if (!parsed) {
+        if (!parsed)
             return null;
-        }
 
         const r = parseInt(parsed[1], 16);
         const g = parseInt(parsed[2], 16);
