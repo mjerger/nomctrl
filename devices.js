@@ -71,11 +71,15 @@ class HttpDevice extends Device
     }
 
     async http_get(path) {
-        return Utils.get(this.host, path).then(res => this.set_online(!!res));
+        const res = Utils.get(this.host, path)
+        this.set_online(!!res); 
+        return res;
     }
 
     async http_post(path, json) {
-        Utils.post(this.host, path, json).then(res => this.set_online(!!res));
+        const res = Utils.post(this.host, path, json);
+        this.set_online(!!res);
+        return res;
     }
 
     async get_online() { 
