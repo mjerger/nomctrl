@@ -198,7 +198,7 @@
 
             }
             async function cmd(command) {
-                return await fetch('http://nompi:1337/cmd/' + encodeURIComponent(command)).then(response => response.json());
+                return await fetch('cmd/' + encodeURIComponent(command)).then(response => response.json());
             }
 
             async function fetchPower() {
@@ -238,7 +238,7 @@
                 }
                 
                 fetchPower();
-                setInterval(fetchPower, 5000);
+                setInterval(fetchPower, 15000);
             };
 
             window.addEventListener('visibilitychange', function() {
