@@ -67,8 +67,8 @@
     ],
 
     "timers" : [
-        { "id" : "grow",    "node" : "grow",    "on" : "10:00",         "off" : "23:00", "strict" : true },
-        { "id" : "growbox", "node" : "growbox", "on" : "12:00",         "off" : "23:50", "strict" : true },
+        { "id" : "grow",    "node" : "grow",    "on" : "08:00",         "off" : "23:00", "strict" : true },
+        { "id" : "growbox", "node" : "growbox", "on" : "09:00",         "off" : "01:00", "strict" : true },
         { "id" : "plants",  "node" : "plants",  "on" : "sunriseEnd+1h", "off" : "21:00", "strict" : true },
         { "id" : "terra",   "node" : "terra",   "on" : "sunriseEnd+1h", "off" : "22:00", "strict" : true }
     ],
