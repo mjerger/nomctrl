@@ -2,6 +2,7 @@ const Utils    = require('./utils.js');
 const Config   = require('./config.js');
 const Devices  = require('./devices.js');
 const Nodes    = require('./nodes.js');
+const Logger   = require('./logger.js');
 const Timers   = require('./timers.js');
 const Events   = require('./events.js');
 const Commands = require('./commands.js');
@@ -28,6 +29,7 @@ app.listen(Config.app().port, function () {
 
     Devices.init(Config.devices());
     Nodes.init(Config.nodes(), Config.groups());
+    Logger.init(Config.app().logs);
     Timers.init(Config.timers(), execute);
     Events.init(Config.actions(), execute);
 

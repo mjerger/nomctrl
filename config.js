@@ -21,7 +21,7 @@ class Config {
                 unique = false;
                 console.log(`Config Error: duplicate id ${item.id}`);
             } else {
-                ids.add(item.id);
+                if (item.id) ids.add(item.id);
             }
         }
 

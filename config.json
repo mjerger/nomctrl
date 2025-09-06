@@ -1,6 +1,10 @@
 {
     "app" : {
         "port" : 1337,
+        "logs" : "log/",
+
+        "timer_interval" : 60,
+        "ping_interval" : 60,
 
         "loc" : { 
             "lang"    : "en",
@@ -10,8 +14,7 @@
             "long"    : "9.18"
         },
 
-        "timer_interval" : 60,
-        "ping_interval" : 60
+        "write_cul_config" : false
     },
 
     "colors" : [
@@ -40,7 +43,13 @@
         { "id" : "w-bed-ceil" , "type" : "wled", "host" : "wled-bed-ceil" },
         { "id" : "w-string-1" , "type" : "wled", "host" : "wled-string-1" },
         { "id" : "w-string-2" , "type" : "wled", "host" : "wled-string-2" },
-        { "id" : "nn-nomframe", "type" : "nomframe", "host" : "nomframe" }
+        { "id" : "nn-nomframe", "type" : "nomframe", "host" : "nomframe" },
+
+        { "type" : "cul", "path" : "/dev/ttyACM0" },
+        { "type" : "cul", "path" : "/dev/ttyACM1" },
+        { "type" : "elro", "code" : "A1"},
+        { "type" : "elro", "code" : "A2"},
+        { "type" : "elro", "code" : "A3"}
     ],
 
     "nodes" : [
@@ -56,7 +65,11 @@
         { "id" : "bedroom-light", "device" : "w-bed-ceil" },
         { "id" : "string-1"     , "device" : "w-string-1" },
         { "id" : "string-2"     , "device" : "w-string-2" },
-        { "id" : "nomframe"     , "device" : "nn-nomframe" }
+        { "id" : "nomframe"     , "device" : "nn-nomframe" },
+        
+        { "id" : "a1", "device" : "a1" },
+        { "id" : "a2", "device" : "a2" },
+        { "id" : "a3", "device" : "a3" }
     ],
 
     "groups" : [
@@ -68,7 +81,7 @@
 
     "timers" : [
         { "id" : "grow",    "node" : "grow",    "on" : "08:00",         "off" : "23:00", "strict" : true },
-        { "id" : "growbox", "node" : "growbox", "on" : "09:00",         "off" : "01:00", "strict" : true },
+        { "id" : "growbox", "node" : "growbox", "on" : "11:00",         "off" : "23:00", "strict" : true },
         { "id" : "plants",  "node" : "plants",  "on" : "sunriseEnd+1h", "off" : "21:00", "strict" : true },
         { "id" : "terra",   "node" : "terra",   "on" : "sunriseEnd+1h", "off" : "22:00", "strict" : true }
     ],
