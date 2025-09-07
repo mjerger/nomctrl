@@ -30,27 +30,48 @@
         { "id" : "night"  , "color" : "dorange" }
     ],
 
-    "devices" : [
-        { "id" : "s1", "type" : "tasmota", "host" : "tasmota-s1" },
-        { "id" : "s2", "type" : "tasmota", "host" : "tasmota-s2" },
-        { "id" : "s3", "type" : "tasmota", "host" : "tasmota-s3" },
-        { "id" : "s4", "type" : "tasmota", "host" : "tasmota-s4" },
-        { "id" : "s5", "type" : "tasmota", "host" : "tasmota-s5" },
-        { "id" : "s6", "type" : "tasmota", "host" : "tasmota-s6" },
-        { "id" : "w-desk"     , "type" : "wled", "host" : "wled-desk"    },
-        { "id" : "w-stuff"    , "type" : "wled", "host" : "wled-stuff"   },
-        { "id" : "w-tv"       , "type" : "wled", "host" : "wled-tv"      },
-        { "id" : "w-bed-ceil" , "type" : "wled", "host" : "wled-bed-ceil" },
-        { "id" : "w-string-1" , "type" : "wled", "host" : "wled-string-1" },
-        { "id" : "w-string-2" , "type" : "wled", "host" : "wled-string-2" },
-        { "id" : "nn-nomframe", "type" : "nomframe", "host" : "nomframe" },
+    "devices" : {
+        "tasmota" : [
+            { "id" : "s1", "host" : "tasmota-s1" },
+            { "id" : "s2", "host" : "tasmota-s2" },
+            { "id" : "s3", "host" : "tasmota-s3" },
+            { "id" : "s4", "host" : "tasmota-s4" },
+            { "id" : "s5", "host" : "tasmota-s5" },
+            { "id" : "s6", "host" : "tasmota-s6" }
+        ],
+        "wled" : [
+            { "id" : "w-desk"     , "host" : "wled-desk"     },
+            { "id" : "w-stuff"    , "host" : "wled-stuff"    },
+            { "id" : "w-tv"       , "host" : "wled-tv"       },
+            { "id" : "w-bed-ceil" , "host" : "wled-bed-ceil" },
+            { "id" : "w-string-1" , "host" : "wled-string-1" },
+            { "id" : "w-string-2" , "host" : "wled-string-2" }
+        ],
+        "nomframe" : [
+            { "id" : "nn-nomframe", "host" : "nomframe" }
+        ],
+        
+        "cul" : [
+            { "type" : "cul", "path" : "/dev/ttyACM0" },
+            { "type" : "cul", "path" : "/dev/ttyACM1" }
+        ],
 
-        { "type" : "cul", "path" : "/dev/ttyACM0" },
-        { "type" : "cul", "path" : "/dev/ttyACM1" },
-        { "type" : "elro", "code" : "A1"},
-        { "type" : "elro", "code" : "A2"},
-        { "type" : "elro", "code" : "A3"}
-    ],
+        "elro" : [
+            { "addr" : "A1" },
+            { "addr" : "A2" },
+            { "addr" : "A3" }
+        ],
+
+        "fs20s4" : [
+            { "type" : "fs20s4", "addr" : "4FC5" }
+        ],
+
+        "s300th" : [
+            { "id" : "env-balcony", "addr" : "0" },
+            { "id" : "env-living",  "addr" : "1" },
+            { "id" : "env-sleep",   "addr" : "2" }
+        ]
+    },
 
     "nodes" : [
         { "id" : "amp"      , "device" : "s1" },
@@ -69,7 +90,10 @@
         
         { "id" : "a1", "device" : "a1" },
         { "id" : "a2", "device" : "a2" },
-        { "id" : "a3", "device" : "a3" }
+        { "id" : "a3", "device" : "a3" },
+
+
+        { "id" : "test", "device" : "env-sleep" }
     ],
 
     "groups" : [

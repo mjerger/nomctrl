@@ -17,6 +17,7 @@ class Device
     constructor(config) { 
         this.id   = config.id;
         this.type = config.type;
+        this.addr = config.addr;
         this.subtype = undefined
     }
 
@@ -221,7 +222,13 @@ const drivers = {
                 const h = parseFloat(`${data[7]}${data[8]}.${data[5]}`);
 
                 const id = firstbyte & 7;
-                console.log(`S300HT: id=${id} temp=${t}°C humid=${h}%`);
+                console.log(`S300TH: id=${id} temp=${t}°C humid=${h}%`);
+
+                let device = Devices.find('s300th', id);
+                if (device) 
+                    device.update_data(t, h);
+                else 
+                    console.log("unknown device address");
             
             // FS20 switch
             } else if (data[0] === 'F') {
@@ -229,8 +236,7 @@ const drivers = {
                 let housecode = data.slice(1,5);
                 let device = data.slice(6,7);
                 let command = data.slice(8,9);
-                let timespec = data.slice(10,11);
-                console.log('FS20: id=%s btn=%s cmd=%s t=%s', housecode, device, command, timespec);
+                console.log('FS20: id=%s btn=%s cmd=%s', housecode, device, command);
             }
         }
 
@@ -285,10 +291,10 @@ const drivers = {
             this.getter = this.getter.concat(['info', 'state']);
             this.setter = this.setter.concat(['state', 'flip']);
 
-            this.code = config.code.trim().toUpperCase();
-            this.#parseAddr(this.code);
+            this.addr = config.addr.trim().toUpperCase();
+            this.#parseAddr(this.addr);
 
-            this.id = this.id ?? this.code.toLowerCase();
+            this.id = this.id ?? this.addr.toLowerCase();
             
         }
         // Table per Intertechno (V1) mapping (tristate nibbles)
@@ -306,13 +312,46 @@ const drivers = {
         }
         
         async set_state(enabled) {
-            const { house, unit } = this.#parseAddr(this.code);
+            const { house, unit } = this.#parseAddr(this.addr);
             const payload = this.TRI[house] + this.TRI[unit] + "0F" + (enabled ? "FF" : "F0");
             
-            await Devices.find('cul', '433')
+            await Devices.get_subtype('cul', '433')
                          .send('is' + payload);
         }
     },
+
+    //
+    // FS20 S4 A-2
+    //
+    'fs20s4' : class FS20S4 extends Device 
+    {
+        constructor(config) { 
+            super(config);
+            this.getter = this.getter.concat(['info']);
+        }
+    },
+
+    //
+    // S3000TH 
+    //
+    's300th' : class S300TH extends Device 
+    {
+        
+        constructor(config) { 
+            super(config);
+            this.getter = this.getter.concat(['info', 'temp', 'humid']);
+        }
+
+        update_data(temp, humid) {
+            this.temp = temp;
+            this.humid = humid;
+            // TODO this.last_updated?
+        }
+ 
+        async get_temp()  { return this.temp; }
+        async get_humid() { return this.humid; }
+    },
+
 
     //
     // TASMOTA
@@ -484,11 +523,15 @@ class Devices
         
         let err = false;
 
-        for (const cfg of config) {
-            if (cfg.type in drivers) {
-                this.devices.push(new drivers[cfg.type](cfg));
+        const types = Object.keys(config);
+        for (const type of types) {
+            if (type in drivers) {
+                for (const cfg of config[type]) {
+                    cfg.type = type;
+                    this.devices.push(new drivers[type](cfg));
+                }
             } else {
-                console.error(`Config Error: Device ${cfg.id} has unknown device type ${cfg.type}.`);
+                console.error(`Config Error: Unknown device type ${type}.`);
                 err = true;
             }
         }
@@ -504,8 +547,12 @@ class Devices
         return this.devices.find(d => d.id === id);
     } 
 
-    static find(type, subtype) {
+    static get_subtype(type, subtype) {
         return this.devices.find(d => d.type === type && d.subtype === subtype);
+    }
+
+    static find(type, addr) {
+        return this.devices.find(d => d.type == type && d.addr == addr);
     } 
 
     static async start() {

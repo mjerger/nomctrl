@@ -134,7 +134,6 @@ async function execute(cmds, opts={}) {
         for (const id in get_results)
             for (const attr in get_results[id])
                 get_results[id][attr] = await get_results[id][attr];
-    
 
         // apply calc funcs
         if (todo.calc) {
