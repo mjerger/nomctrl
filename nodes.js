@@ -18,7 +18,7 @@ class Node
     }
     
     setter() {
-        return Devices.get(this.device).setteer;
+        return Devices.get(this.device).setter;
     }
     
     hasSet(attr) {
@@ -32,11 +32,10 @@ class Node
     }
 
     async get (attr) {
-        console.log(`get ${this.id} ${attr}`);
+        console.log(`> get ${this.id} ${attr}`);
 
-        // call
         const device = Devices.get(this.device);
-        let val = await device.call(this, 'get', attr, null);
+        let val = await device.get(attr, null);
 
         // on success, update value
         if (val) {
@@ -49,9 +48,8 @@ class Node
     async set (attr, val) {
         console.log(`> set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
 
-        // call
         const device = Devices.get(this.device);
-        let result = await device.call(this, 'set', attr, val);
+        let result = await device.set(attr, val);
         
         // on success, cache value if we have a getter for this attribute
         if (result) {
@@ -107,7 +105,7 @@ class Nodes
             }
             else
             {
-                console.log (`Config Error: Node '${cfg.id}' has unknown device '${cfg.device}'`)
+                console.error(`Config Error: Node '${cfg.id}' has unknown device '${cfg.device}'`)
             }
         }
 
@@ -120,11 +118,11 @@ class Nodes
                 for (const id of cfg_group.groups) {
                     const cfg = Config.groups().find(g => g.id === id);
                     if (!cfg) {
-                        console.log(`Config Error: Group '${cfg_group.id}' contains reference to invalid group '${id}'`)
+                        console.error(`Config Error: Group '${cfg_group.id}' contains reference to invalid group '${id}'`)
                     } else if (group_ids.includes(id)) {
-                        console.log(`Config Error: Circular reference with group id '${id}'`);
+                        console.error(`Config Error: Circular reference with group id '${id}'`);
                     } else if (cfg_group.id === id) {
-                        console.log(`Config Error: Group '${id}' references itself'`);
+                        console.error(`Config Error: Group '${id}' references itself'`);
                     } else {
                         group_ids.push(id);
                         const sub_nodes = resolve(cfg, group_ids);
@@ -137,7 +135,7 @@ class Nodes
             if (cfg_group.nodes) {
                 for (const id of cfg_group.nodes) {
                     if (!Nodes.get(id)) {
-                        console.log(`Config Error: Group '${cfg_group.id}' contains reference to invalid node '${id}'`)
+                        console.error(`Config Error: Group '${cfg_group.id}' contains reference to invalid node '${id}'`)
                         error = true;
                     } else {
                         node_ids.push(id);

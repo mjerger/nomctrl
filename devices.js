@@ -2,11 +2,12 @@ const Config  = require('./config.js');
 const Utils   = require('./utils.js');
 
 const { SerialPort } = require('serialport')
+const mqtt = require('mqtt');
 
 class Device 
 {
     setter = [];
-    getter = ['online'];
+    getter = ['online', 'last_seen'];
     
     hasSet(attr) { return this.setter.includes(attr); }
     hasGet(attr) { return this.getter.includes(attr); }
@@ -21,50 +22,66 @@ class Device
         this.subtype = undefined
     }
 
-    setup() {
+    is_online() { 
+        return this.online;
+    }
 
+    set_online(online) {
+        if (this.online != online) {
+            this.online = online;
+            console.log (`Device: ${this.id} ${online ? 'online' : `offline [${this.host ?? this.path ?? this.addr}]`}`)
+        }
+
+        if(online)
+            this.update_last_seen();
+    }
+
+    update_last_seen() {
+        this.last_seen = +Date.now();
+    }
+
+    get_online() {
+        return this.online;
+    }
+
+    get_last_seen() {
+        return this.last_seen;
+    }
+
+    async get(attr) {
+        try {
+            return this['set_' + attr]();
+        } catch (e) {
+            console.error(`Device Error: ${this.id} get ${attr}`);
+        }
+    }
+
+    async set(attr, val) {
+        try {
+            return this['set_' + attr](val);
+        } catch (e) {
+            console.error(`Device Error: ${this.id} set ${attr}`);
+        }
+    }
+}
+
+class HttpDevice extends Device 
+{
+    ping_path = '/'
+
+    constructor(config) { 
+        super(config);
+        this.id = this.id ?? config.host;
+        this.host = 'http://' + config.host; 
     }
 
     start() {
         setTimeout(this.check_online.bind(this), 100);
     }
 
-    async call(node, prefix, attr, val) {
-        try {
-            if (val !== null)
-                return this[prefix + '_' + attr](val);
-            else
-                return this[prefix + '_' + attr]();
-        } catch (e) {
-            console.log (`Call error ${prefix} ${node.id}.${attr} ${val?val:''}`)
-        }
-    }
-
     async check_online() {
-        setTimeout(this.check_online.bind(this), Config.app().ping_interval * 1000);
         if (this.ping) this.ping();
-    }
-}
-
-
-class HttpDevice extends Device 
-{
-    ping_path = "/"
-
-    constructor(config) { 
-        super(config);
-        this.id = this.id ?? config.host;
-        this.host = "http://" + config.host; 
-    }
-
-    set_online(online) {
-        if (this.online != online) {
-            this.online = online;
-            console.log (`Device: ${this.id} ${online ? 'online' : `offline [${this.host}]`}`)
-        }
-
-        if(online)
-            this.last_seen = +Date.now();
+        setTimeout(this.check_online.bind(this), Config.app().ping_interval * 1000);
     }
 
     async ping() {
@@ -83,36 +100,33 @@ class HttpDevice extends Device
         this.set_online(!!res);
         return res;
     }
-
-    async get_online() { 
-        return this.online;
-    }
 }
-
 
 class SerialDevice extends Device 
 {
     constructor(config) { 
         super(config);
+        this.id = this.id ?? config.path;
         this.path = config.path; 
         this.serial = undefined;
     }
 
     open() {
-        if (this.serial.isOpen) 
+        if (this.serial.isOpen)
             return Promise.resolve();
         return new Promise((res, rej) => this.serial.open(err => err ? rej(err) : res()));
     }
 
     close() {
-        this.online = false;
         if (this.serial.isOpen)
              return new Promise((res, rej) => this.serial.close(err => err ? rej(err) : res()));
         return Promise.resolve();
     }
 
     drain() {
-        return new Promise((res, rej) => this.serial.drain(err => err ? rej(err) : res()));
+        if (this.serial.isOpen)
+            return new Promise((res, rej) => this.serial.drain(err => err ? rej(err) : res()));
+        return Promise.resolve();
     }
 
     write(buf) {
@@ -121,8 +135,10 @@ class SerialDevice extends Device
       });
     }
 
-    send(buf) {
-        return this.write(buf+'\n');
+    async send(buf) {
+        await this.write(buf+'\n')
+                  .catch((error) => { console.log('Error writing to serial port ' + this.path); })
+                  .then();
     }
 
     read(timeout = 1000) {
@@ -152,59 +168,75 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
-            this.frequency = undefined
+            this.online = false;
+            this.frequency = undefined;
             this.path = config.path;
             this.serial = new SerialPort({
                 path: this.path,
                 baudRate: 38400,
                 autoOpen: false
             });
-            
+            this.serial.on('close', ()=>{this.set_online(false);});
+            this.serial.on('error', console.log);
             this.serial.setEncoding('ascii');
+        }
+
+        start() {
+            setTimeout(this.check_device.bind(this), 100);
+        }
+    
+        check_device() {
+            if (!this.is_online())
+                this.setup();
+    
+            setTimeout(this.check_device.bind(this), 1000);
         }
     
         async setup() {
-            await this.close();
-            await this.open();
-            await this.drain();
+            try
+            {
+                await this.close();
+                await this.open();
+                await this.drain();
 
-            // get version
-            await this.send('V');
-            const v = await this.read();
-            switch(true) {
-                case /CUL868/.test(v): this.subtype='868'; this.freq=868.35; break;
-                case /CUL433/.test(v): this.subtype='433'; this.freq=433.93; break;
-                default: 
-                   console.warning(`Device ${this.path} is not a CUL`);
-            }
+                // get version
+                await this.write('V\n');
+                const v = await this.read();
+                switch(true) {
+                    case /CUL868/.test(v): this.subtype='868'; this.freq=868.35; this.id='cul-868'; break;
+                    case /CUL433/.test(v): this.subtype='433'; this.freq=433.93; this.id='cul-433'; break;
+                    default: 
+                    console.warn(`Device ${this.path} is not a CUL`);
+                }
 
-            console.log(`Found CUL${this.subtype} at ${this.path}`);
+                console.log(`Found CUL${this.subtype} at ${this.path}`);
 
-            // (re)config the stick
-            // Note: writes to eeprom, no need to do it everytime
-            if (Config.app().write_cul_config) {
+                // (re)config the stick
+                // Note: writes to eeprom, no need to do it everytime
+                if (Config.app().setup_cul_on_connect) {
 
-                // set frequency 
-                await this.set_freq(this.freq);
+                    // set frequency 
+                    await this.set_freq(this.freq);
 
-                // 8dB gain
-                await this.set_sens(8);
+                    // 8dB gain
+                    await this.set_sens(8);
 
-                // tx pwoer
-                await this.send('x09');
-            }
+                    // tx power
+                    await this.write('x09\n');
+                }
 
-            // start normal mode
-            await this.send('X21'); 
-            
-            this.serial.on('readable', this.receive);
+                // start normal mode
+                await this.write('X21\n'); 
+                
+                this.serial.on('readable', this.receive);
 
-            this.online = true;
+                this.set_online(true);
+            } catch { }
         }
 
         receive() {
             let data = this.read();
-            console.log('rx', data.trim())
+            console.log(`cul rx ${id}:`, data.trim());
 
             // TODO forward to the appropriate device
 
@@ -225,15 +257,15 @@ const drivers = {
                 console.log(`S300TH: id=${id} temp=${t}°C humid=${h}%`);
 
                 let device = Devices.find('s300th', id);
-                if (device) 
+                if (device && device.is_online())
                     device.update_data(t, h);
                 else 
-                    console.log("unknown device address");
+                    console.warb('unknown device address');
             
-            // FS20 switch
+            // FS20
             } else if (data[0] === 'F') {
 
-                let housecode = data.slice(1,5);
+                let code = data.slice(1,5);
                 let device = data.slice(6,7);
                 let command = data.slice(8,9);
                 console.log('FS20: id=%s btn=%s cmd=%s', housecode, device, command);
@@ -248,9 +280,9 @@ const drivers = {
         async set_freq(freq_mhz) {
 
             const f  = (freq_mhz / 26) * 65536;
-            const f2 = ((f / 65536) & 0xff).toString(16).padStart(2, "0");
-            const f1 = (Math.floor(f % 65536 / 256) & 0xff).toString(16).padStart(2, "0");
-            const f0 = (Math.floor(f % 256) & 0xff).toString(16).padStart(2, "0");
+            const f2 = ((f / 65536) & 0xff).toString(16).padStart(2, '0');
+            const f1 = (Math.floor(f % 65536 / 256) & 0xff).toString(16).padStart(2, '0');
+            const f0 = (Math.floor(f % 256) & 0xff).toString(16).padStart(2, '0');
         
             const revcalc = (
             ((parseInt(f2, 16) * 65536 +
@@ -266,13 +298,13 @@ const drivers = {
             await this.send(`W11${f0}`);
         }
 
-        // set frontend sensitivity, gain in decibel
+        // set frontend sens threshold in dB
         async set_sens(db) {
-            if (typeof db !== "number" || db < 4 || db > 16)
-                throw new Error("Sensitivity: value 4–16 expected");
+            if (typeof db !== 'number' || db < 4 || db > 16)
+                throw new Error('Sensitivity: value 4–16 expected');
         
             const w = Math.floor(db / 4) * 4; // step 4
-            const v = "9" + (db / 4 - 1);     // register code string
+            const v = '9' + (db / 4 - 1);     // register code string
         
             console.log(`CUL ${this.path} set AGCCTRL0=0x1D -> ${v} (${w} dB)`);
             await this.send(`W1F${v}`);
@@ -288,35 +320,52 @@ const drivers = {
         constructor(config) { 
             super(config);
 
-            this.getter = this.getter.concat(['info', 'state']);
+            this.getter = this.getter.concat(['info', 'state', 'howto']);
             this.setter = this.setter.concat(['state', 'flip']);
 
             this.addr = config.addr.trim().toUpperCase();
             this.#parseAddr(this.addr);
 
             this.id = this.id ?? this.addr.toLowerCase();
-            
         }
+
         // Table per Intertechno (V1) mapping (tristate nibbles)
-        TRI = [ "0000","F000","0F00","FF00",
-                "00F0","F0F0","0FF0","FFF0",
-                "000F","F00F","0F0F","FF0F",
-                "00FF","F0FF","0FFF","FFFF" ];
+        TRI = [ '0000','F000','0F00','FF00',
+                '00F0','F0F0','0FF0','FFF0',
+                '000F','F00F','0F0F','FF0F',
+                '00FF','F0FF','0FFF','FFFF' ];
     
         #parseAddr(addr) {
             const m = addr.match(/^([A-P])(1[0-6]|[1-9])$/);
             if (!m) 
-                throw new Error("address must be A1..P16");
+                throw new Error('address must be A1..P16');
             return { house: m[1].charCodeAt(0) - 65,   // A=0..P=15
                      unit: parseInt(m[2], 10) - 1   }; // 1..16 -> 0..15
         }
         
         async set_state(enabled) {
             const { house, unit } = this.#parseAddr(this.addr);
-            const payload = this.TRI[house] + this.TRI[unit] + "0F" + (enabled ? "FF" : "F0");
+            const payload = this.TRI[house] + this.TRI[unit] + '0F' + (enabled ? 'FF' : 'F0');
             
-            await Devices.get_subtype('cul', '433')
-                         .send('is' + payload);
+            const device = Devices.get_subtype('cul', '433');
+            if (device && device.is_online())
+                await device.send('is' + payload);
+            else
+                console.error('Cannot send: no CUL433 device available');
+        }
+
+        // return info on how to set the dip switches :)
+        async get_info() {
+            const { house, unit } = parseItAddr(this.addr);
+            const houseNibble = TRI[house];
+            const unitNibble  = TRI[unit];
+            
+            // 10 DIP switches: 1–5 (house), A–E (unit). 
+            // Fifth in each row is typically unused -> 0.
+            const houseRow = houseNibble.padEnd(5, '0');
+            const unitRow  = unitNibble.padEnd(5, '0');
+            
+            return '\n12345ABCDE\n' + houseRow + unitRow;
         }
     },
 
@@ -336,7 +385,6 @@ const drivers = {
     //
     's300th' : class S300TH extends Device 
     {
-        
         constructor(config) { 
             super(config);
             this.getter = this.getter.concat(['info', 'temp', 'humid']);
@@ -345,11 +393,103 @@ const drivers = {
         update_data(temp, humid) {
             this.temp = temp;
             this.humid = humid;
-            // TODO this.last_updated?
+            this.update_last_seen();
         }
  
         async get_temp()  { return this.temp; }
         async get_humid() { return this.humid; }
+    },
+
+    //
+    // ZIGBEE MQTT Bridge
+    //
+
+    'zigbee2mqtt' : class Zigbee2Mqtt extends Device
+    {
+        constructor(config) { 
+            super(config);
+            this.id = this.id ?? config.url;
+            this.url = config.url;
+            this.pwd = config.pwd;
+            this.usr = config.usr;
+        }
+
+        start() {
+            const creds = (this.pwd || this.usr) ? { password : this.pwd, username: this.usr } : {};
+            let client = mqtt.connect(this.url, creds);
+
+            client.on('connect', () => {
+                console.log('MQTT connected', this.url);
+            
+                client.subscribe(
+                    ['zigbee2mqtt/bridge/devices', 'zigbee2mqtt/#'],
+                    (err) => err && console.error('MQTT subscribe error:', err)
+                );
+            });
+
+            client.on('message', (topic, message) => {
+
+                // topic format: zigbee2mqtt/<friendly_name>(/optional)
+                const parts = topic.split('/');
+                if (parts[0] !== 'zigbee2mqtt' || parts.length < 2) return;
+              
+                const id = parts[1];
+
+                // TODO do sth with this info
+                if (id == 'bridge') {
+                    return;
+                }
+              
+                let data;
+                try {
+                  data = JSON.parse(message.toString());
+                } catch {
+                    // silently ignore if not json, its not for us
+                    return;
+                }
+
+                let device = Devices.find('zigbee', id);
+                if (device) {
+                    const entries = Object.entries(data);
+                    for (let [attr, val] of entries)
+                        device.update_data(attr, val);
+                } else 
+                    console.warn(`zigbee: unknown device address ${id}`);
+
+                console.log(`zigbee rx ${id}:`, data);
+              });
+        }
+    },
+
+
+    //
+    // ZIGBEE via zigbee2mqtt
+    //
+
+    'zigbee' : class Zigbee extends Device
+    {
+        data = new Map();
+
+        constructor(config) { 
+            super(config);
+            this.getter = this.getter.concat(['info', 'battery', 'linkquality']);
+            this.setter = [];
+            this.addr = this.id;
+        }
+
+        update_data(attr, value) {
+            this.data.set(attr, value);
+
+            this.update_last_seen();
+
+            // allow any value from zigbee device
+            if (!this.getter.includes(attr))
+                this.getter.push(attr);
+        }
+
+        async get(attr) {
+            return this.data.get(attr);
+        }
     },
 
 
@@ -363,7 +503,7 @@ const drivers = {
             super(config);
             this.getter = this.getter.concat(['info', 'state', 'power', 'power_status',  'energy', 'energy_t', 'energy_y', 'voltage', 'current']);
             this.setter = this.setter.concat(['state', 'flip']);
-            this.ping_path = "/cm"
+            this.ping_path = '/cm'
         }
 
         async _get(attr1, attr2) {
@@ -450,7 +590,7 @@ const drivers = {
             super(config);
             this.getter = this.getter.concat(['info', 'state', 'color', 'brightness']);
             this.setter = this.setter.concat(['state', 'flip', 'color', 'brightness', 'effect']);
-            this.ping_path = "/json/state"
+            this.ping_path = '/json/state'
         }
 
         static set_path = '/json/state';
@@ -478,7 +618,7 @@ const drivers = {
 
         static get_effect(effect) {
             switch (effect) {
-                case "solid": return { fx : 0 }
+                case 'solid': return { fx : 0 }
             }
         }
         
@@ -557,10 +697,8 @@ class Devices
 
     static async start() {
         for (var device of this.all())
-            device.setup();
-
-        for (var device of this.all())
-            device.start();
+            if (device.start) 
+                await device.start();
     }
 }
 

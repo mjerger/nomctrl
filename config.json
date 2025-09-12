@@ -14,7 +14,7 @@
             "long"    : "9.18"
         },
 
-        "write_cul_config" : false
+        "setup_cul_on_connect" : false
     },
 
     "colors" : [
@@ -39,6 +39,7 @@
             { "id" : "s5", "host" : "tasmota-s5" },
             { "id" : "s6", "host" : "tasmota-s6" }
         ],
+        
         "wled" : [
             { "id" : "w-desk"     , "host" : "wled-desk"     },
             { "id" : "w-stuff"    , "host" : "wled-stuff"    },
@@ -47,6 +48,7 @@
             { "id" : "w-string-1" , "host" : "wled-string-1" },
             { "id" : "w-string-2" , "host" : "wled-string-2" }
         ],
+
         "nomframe" : [
             { "id" : "nn-nomframe", "host" : "nomframe" }
         ],
@@ -70,6 +72,17 @@
             { "id" : "env-balcony", "addr" : "0" },
             { "id" : "env-living",  "addr" : "1" },
             { "id" : "env-sleep",   "addr" : "2" }
+        ],
+
+        "zigbee2mqtt" : [
+            { "url" : "mqtt://localhost:1883" }
+        ],
+
+        "zigbee" : [
+            { "id" : "button-1" },
+            { "id" : "water-1" },
+            { "id" : "water-2" },
+            { "id" : "precense-1" }
         ]
     },
 
@@ -86,14 +99,7 @@
         { "id" : "bedroom-light", "device" : "w-bed-ceil" },
         { "id" : "string-1"     , "device" : "w-string-1" },
         { "id" : "string-2"     , "device" : "w-string-2" },
-        { "id" : "nomframe"     , "device" : "nn-nomframe" },
-        
-        { "id" : "a1", "device" : "a1" },
-        { "id" : "a2", "device" : "a2" },
-        { "id" : "a3", "device" : "a3" },
-
-
-        { "id" : "test", "device" : "env-sleep" }
+        { "id" : "nomframe"     , "device" : "nn-nomframe" }
     ],
 
     "groups" : [

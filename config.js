@@ -19,7 +19,7 @@ class Config {
         function check(item) { 
             if(ids.has(item.id)) {
                 unique = false;
-                console.log(`Config Error: duplicate id ${item.id}`);
+                console.error(`Config Error: duplicate id ${item.id}`);
             } else {
                 if (item.id) ids.add(item.id);
             }

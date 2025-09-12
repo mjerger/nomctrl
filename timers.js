@@ -146,7 +146,7 @@ class Timers
                 if ('node' in cfg && this.timers.get(id).node === cfg.node) {
                     this.timers.set(id, merge(cfg));
                 } else {
-                    console.log(`Config Error: incompatible timer configuration on timer '${id}'`);
+                    console.error(`Config Error: incompatible timer configuration on timer '${id}'`);
                     error = true;
                 }
             } else {

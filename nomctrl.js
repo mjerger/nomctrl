@@ -222,6 +222,7 @@ async function execute(cmds, opts={}) {
                 Timers.removeFader(id, attr);
             }
         }
+
         set_results = await Promise.all(set_results);
         // TODO do something with result?
     }
@@ -260,7 +261,7 @@ async function execute(cmds, opts={}) {
     }
 
     if (results.errors)
-         console.log({error: results.errors})
+         console.error({error: results.errors})
 
     return JSON.stringify(results);
 }
