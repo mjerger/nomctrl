@@ -154,11 +154,19 @@ class Nodes
         for (const cfg of cfg_groups) {
             this.groups.set(cfg.id,  resolve(cfg));
         }
+
+        // Add a node if device hat none
+        for (const dev of Devices.all()) {
+            const found = [...this.nodes.entries()].filter(([k,v]) => v.device == dev.id);
+            if (found.length == 0 && !this.nodes.has(dev.id)) {
+                const cfg = { "id" : dev.id, "device" : dev.id };
+                this.nodes.set(dev.id, new Node(cfg));
+            }
+        }
     }
 
-    static all() {
-        const values =  this.nodes.values();
-        return values;
+    static has(id) {
+        return this.nodes.has(id);
     }
 
     static get(id) {
