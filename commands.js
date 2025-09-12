@@ -108,7 +108,7 @@ class Commands {
         } else {
             // status of nodes
             let nodes = this.parse_nodes(arg, args, opts);
-            nodes = nodes.filter(n => n.hasGet('info'));
+            nodes = nodes.filter(n => n.has_get('info'));
             if (nodes.length > 0) {
                 getter = getter.concat(nodes.map(node => [node.id, 'info']));
                 getter = getter.concat(nodes.map(node => [node.id, 'online']));
@@ -133,8 +133,8 @@ class Commands {
         while (arg) {
             const action = Config.actions().find(a => a.id === arg);
             if (!action) {
-                if (!(errors in todo)) errors.todo = {};
-                todo.errors.push(`Action '${arg}' not found.`);
+                if (todo.errors == undefined) todo.errors = [];
+                todo.errors.push(`Action '${action}' not found.`);
                 arg = next(args);
                 continue;
             }
@@ -188,7 +188,7 @@ class Commands {
             while (arg)
             {
                 for (const node of nodes) {
-                    if (node.hasGet(arg))
+                    if (node.has_get(arg))
                         getter.push([node.id, arg]);
                     else if(nodes.length == 1)
                         errors.push(`Node '${node.id}' does not have a getter '${arg}'`);
@@ -242,7 +242,7 @@ class Commands {
             if (attr) {
                 for (const node of nodes) {
                     const device = Devices.get(node.device);
-                    if (device.hasSet(attr)) {
+                    if (device.has_set(attr)) {
                         setter.push([node.id, attr, val]);
                     }
                 }
@@ -263,7 +263,7 @@ class Commands {
                     const device = Devices.get(id);
 
                     // set rgb only if device supports it
-                    if (device.hasSet('color')) {
+                    if (device.has_set('color')) {
                         setter.push([node.id, 'color', color]);
                     } else if (nodes.length == 1) { 
                         errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
@@ -290,20 +290,20 @@ class Commands {
                     const device = Devices.get(id);
 
                     // set brightness if device supports it
-                    if (device.hasSet('brightness')) {
+                    if (device.has_set('brightness')) {
                         setter.push([node.id, 'brightness', percent]);
 
                     // no brightness, but has 'on': use threshold
-                    } else if (node.thresh && percent > node.thresh && device.hasSet('state') && node.class !== 'power') {
+                    } else if (node.thresh && percent > node.thresh && device.has_set('state') && node.class !== 'power') {
                         setter.push([node.id, 'state', true]);
 
                     // no brightness, but has 'off': use threshold
-                    } else if (node.thresh && percent <= node.thresh && device.hasSet('state') && node.class !== 'power') {
+                    } else if (node.thresh && percent <= node.thresh && device.has_set('state') && node.class !== 'power') {
                         setter.push([node.id, 'state', false]);
 
                     } else if (nodes.length == 1) {
                         errors.push(`Device ${id} of node ${node.id} does not support brightness control.`);
-                        console.log(node.thresh, percent >= node.thresh, device.hasSet('state'), node.class);
+                        console.log(node.thresh, percent >= node.thresh, device.has_set('state'), node.class);
                     }
                 };
             }
@@ -448,7 +448,7 @@ class Commands {
         {
             if (color1 !== null && color2 !== null) {
                 for (const node of nodes) {
-                    if (node.hasSet('color')) {
+                    if (node.has_set('color')) {
                         faders.push([node.id, 'color', color1, color2, duration]);
                     }
                 }
@@ -456,7 +456,7 @@ class Commands {
             
             if (brightness1 !== null && brightness2 !== null) {
                 for (const node of nodes) {
-                    if (node.hasSet('brightness')) {
+                    if (node.has_set('brightness')) {
                         faders.push([node.id, 'brightness', brightness1, brightness2, duration]);
                     }
                 }

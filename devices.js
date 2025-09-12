@@ -1,5 +1,6 @@
-const Config  = require('./config.js');
-const Utils   = require('./utils.js');
+const Config = require('./config.js');
+const Utils  = require('./utils.js');
+const Events = require('./events.js');
 
 const { SerialPort } = require('serialport')
 const mqtt = require('mqtt');
@@ -9,8 +10,8 @@ class Device
     setter = [];
     getter = ['online', 'last_seen'];
     
-    hasSet(attr) { return this.setter.includes(attr); }
-    hasGet(attr) { return this.getter.includes(attr); }
+    has_set(attr) { return this.setter.includes(attr); }
+    has_get(attr) { return this.getter.includes(attr); }
 
     online = true;
     last_seen = 0;
@@ -50,9 +51,9 @@ class Device
 
     async get(attr) {
         try {
-            return this['set_' + attr]();
+            return this['get_' + attr]();
         } catch (e) {
-            console.error(`Device Error: ${this.id} get ${attr}`);
+            console.error(`Device Error: ${this.id} get ${attr}\n${e}`);
         }
     }
 
@@ -155,6 +156,11 @@ class SerialDevice extends Device
           this.serial.on('error', onErr);
         });
     }
+ 
+    async ping() {
+        return this.serial !== undefined && this.serial.isOpen;
+    }
+
 }
 
 
@@ -258,7 +264,7 @@ const drivers = {
 
                 let device = Devices.find('s300th', id);
                 if (device && device.is_online())
-                    device.update_data(t, h);
+                    device.message(t, h);
                 else 
                     console.warb('unknown device address');
             
@@ -270,10 +276,6 @@ const drivers = {
                 let command = data.slice(8,9);
                 console.log('FS20: id=%s btn=%s cmd=%s', housecode, device, command);
             }
-        }
-
-        async ping() {
-            // TODO implementme
         }
 
         // set frontend frequency
@@ -314,7 +316,7 @@ const drivers = {
     //
     // ELRO / INTERTECHNO
     //
-
+    
     'elro' : class Elro extends Device 
     {
         constructor(config) { 
@@ -324,7 +326,7 @@ const drivers = {
             this.setter = this.setter.concat(['state', 'flip']);
 
             this.addr = config.addr.trim().toUpperCase();
-            this.#parseAddr(this.addr);
+            this.#parse_addr(this.addr);
 
             this.id = this.id ?? this.addr.toLowerCase();
         }
@@ -335,7 +337,7 @@ const drivers = {
                 '000F','F00F','0F0F','FF0F',
                 '00FF','F0FF','0FFF','FFFF' ];
     
-        #parseAddr(addr) {
+        #parse_addr(addr) {
             const m = addr.match(/^([A-P])(1[0-6]|[1-9])$/);
             if (!m) 
                 throw new Error('address must be A1..P16');
@@ -344,7 +346,7 @@ const drivers = {
         }
         
         async set_state(enabled) {
-            const { house, unit } = this.#parseAddr(this.addr);
+            const { house, unit } = this.#parse_addr(this.addr);
             const payload = this.TRI[house] + this.TRI[unit] + '0F' + (enabled ? 'FF' : 'F0');
             
             const device = Devices.get_subtype('cul', '433');
@@ -372,6 +374,7 @@ const drivers = {
     //
     // FS20 S4 A-2
     //
+
     'fs20s4' : class FS20S4 extends Device 
     {
         constructor(config) { 
@@ -383,6 +386,7 @@ const drivers = {
     //
     // S3000TH 
     //
+
     's300th' : class S300TH extends Device 
     {
         constructor(config) { 
@@ -390,9 +394,13 @@ const drivers = {
             this.getter = this.getter.concat(['info', 'temp', 'humid']);
         }
 
-        update_data(temp, humid) {
+        message(temp, humid) {
             this.temp = temp;
             this.humid = humid;
+
+            Events.message(this, 'temp', temp);
+            Events.message(this, 'humid', humid);
+
             this.update_last_seen();
         }
  
@@ -448,13 +456,16 @@ const drivers = {
                     return;
                 }
 
+
                 let device = Devices.find('zigbee', id);
                 if (device) {
                     const entries = Object.entries(data);
                     for (let [attr, val] of entries)
-                        device.update_data(attr, val);
+                        device.message(attr, val);
                 } else 
+                {
                     console.warn(`zigbee: unknown device address ${id}`);
+                }
 
                 console.log(`zigbee rx ${id}:`, JSON.stringify(data));
               });
@@ -473,12 +484,13 @@ const drivers = {
         constructor(config) { 
             super(config);
             this.getter = this.getter.concat(['info', 'battery', 'linkquality']);
-            this.setter = [];
             this.addr = this.id;
         }
 
-        update_data(attr, value) {
+        message(attr, value) {
             this.data.set(attr, value);
+
+            Events.message(this, attr, value);
 
             this.update_last_seen();
 

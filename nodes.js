@@ -21,14 +21,14 @@ class Node
         return Devices.get(this.device).setter;
     }
     
-    hasSet(attr) {
+    has_set(attr) {
         const device = Devices.get(this.device);
-        return device && device.hasSet(attr);
+        return device && device.has_set(attr);
     }
 
-    hasGet(attr) {
+    has_get(attr) {
         const device = Devices.get(this.device);
-        return device && device.hasGet(attr);
+        return device && device.has_get(attr);
     }
 
     async get (attr) {
@@ -53,7 +53,7 @@ class Node
         
         // on success, cache value if we have a getter for this attribute
         if (result) {
-            if (this.hasGet(attr)) {
+            if (this.has_get(attr)) {
                 this.set_current(attr, val);
             }
         }

@@ -2,17 +2,17 @@ const Utils   = require('./utils.js');
 
 class Event
 {
-    constructor(name, value, condition, cmd) { 
-        this.name = name;
+    constructor(event, value, condition, cmd) { 
+        this.event = event;
         this.value = value;
         this.condition = condition;
         this.cmd = cmd;
     }
 
-    is_triggered(name, value) {
+    is_triggered(event, value) {
 
-        // event name matches
-        if (this.name !== name)
+        // event name must match
+        if (this.event !== event)
             return false;
 
         // value must match if set
@@ -42,24 +42,23 @@ class Events
 
         // actions
         for (const cfg of cfg_actions) {
-            // shorthand for time events
+            let event;
             if (Utils.parseTime(cfg.event)) {
-                var event = new Event('time', cfg.event, cfg.cond, `do ${cfg.id}`);
+                // shorthand for time events
+                event = new Event('time', cfg.event, cfg.cond, cfg.do);
             } else {
-                var event = new Event(cfg.event, cfg.value, cfg.cond, `do ${cfg.id}`);
+                event = new Event(cfg.event, cfg.value, cfg.cond, cfg.do);
             }
             
             this.events.push(event);
         }
     }
 
-    static addEvent(event, value, condition, cmd) {
+    static add_event(event, value, condition, cmd) {
         this.events.push(new Event(event, value, condition, cmd));
     }
 
     static async trigger(event, value) {
-        console.log(`Event: ${event} ${value !== undefined ? value : ''}`);
-
         for (const e of this.events) {
             if (!e.is_triggered(event, value))
                 continue;
@@ -67,6 +66,10 @@ class Events
             console.log(`Event: ${event} ${value == undefined ? '' : value}`);
             this.execute(e.cmd);
         }
+    }
+
+    static async message(device, attr, value) {
+            return this.trigger(device.id + '.' + attr + '.' + value);
     }
 
     static async start() {
