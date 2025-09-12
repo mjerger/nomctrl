@@ -456,7 +456,7 @@ const drivers = {
                 } else 
                     console.warn(`zigbee: unknown device address ${id}`);
 
-                console.log(`zigbee rx ${id}:`, data);
+                console.log(`zigbee rx ${id}:`, JSON.stringify(data));
               });
         }
     },
