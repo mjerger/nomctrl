@@ -124,8 +124,8 @@
         { "id" : "night"  , "event" : "22:00" , "do" : [ "set all night", "set living 50%", "set nomframe off", "set sleep 25%" ] },
         { "id" : "late"  ,                      "do" : [ "set all sun", "set living 50%", "set nomframe off", "set sleep 25%" ] },
         
-        { "event" : "button-1.action.on", "do" : "set sleep on 20%" },
-        { "event" : "button-1.action.off", "do" : "set sleep off" },
-        { "event" : "button-1.action.toggle", "do" : "set sleep toggle" }
+        { "event" : "button-1.action.on",       "do" : "set sleep on 20%" },
+        { "event" : "button-1.action.off",      "do" : "set sleep off"    },
+        { "event" : "button-1.action.toggle",   "do" : "set sleep toggle" }
     ]
 }
