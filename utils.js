@@ -29,6 +29,41 @@ class Utils {
         return [r,g,b];
     }
 
+    // Assumes h, s, l are in [0,1] (but is tolerant) and
+    // returns [r, g, b] as integers in [0,255].
+    static hslToRgb(h, s, l) {
+        // Normalize inputs
+        h = ((h % 1) + 1) % 1;             // wrap hue to [0,1)
+        s = Math.min(1, Math.max(0, s));   // clamp to [0,1]
+        l = Math.min(1, Math.max(0, l));   // clamp to [0,1]
+    
+        function hueToRgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+        }
+    
+        let r, g, b;
+    
+        // Treat very low saturation as gray to avoid floating-point glitches
+        if (s <= 1e-12) {
+        r = g = b = l;
+        } else {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hueToRgb(p, q, h + 1/3);
+            g = hueToRgb(p, q, h);
+            b = hueToRgb(p, q, h - 1/3);
+        }
+    
+        // Convert to 0..255 integers and clamp
+        const toByte = x => Math.min(255, Math.max(0, Math.round(x * 255)));
+        return [toByte(r), toByte(g), toByte(b)];
+    }
+
     static parseRGB(str) {
         const arr = str.split(/,/);
         if (arr.length == 3)

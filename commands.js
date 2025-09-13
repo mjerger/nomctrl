@@ -514,6 +514,14 @@ class Commands {
             else
                 return color;
         }
+
+            // random nice color
+        if (arg === 'random-color') {
+            let h = Math.random();
+            let s = Math.random() / 2 + 0.5;
+            let l = 0.5;
+            return Utils.hslToRgb(h, s, l);
+        }
         
         // try to find it in config
         let color = Config.colors().find(c => c.id === arg);

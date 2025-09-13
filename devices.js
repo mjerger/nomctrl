@@ -716,6 +716,7 @@ class Devices
         for (const type of types) {
             if (type in drivers) {
                 for (const cfg of config[type]) {
+                    if (cfg.enabled === false) continue;
                     cfg.type = type;
                     this.devices.push(new drivers[type](cfg));
                 }

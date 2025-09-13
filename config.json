@@ -50,7 +50,7 @@
         ],
 
         "nomframe" : [
-            { "id" : "nn-nomframe", "host" : "nomframe" }
+            { "host" : "nomframe", "enabled" : false}
         ],
         
         "cul" : [
@@ -82,7 +82,9 @@
             { "id" : "button-1" },
             { "id" : "water-1" },
             { "id" : "water-2" },
-            { "id" : "precense-1" }
+            { "id" : "presence-1" },
+            { "id" : "presence-2" },
+            { "id" : "cube" }
         ]
     },
 
@@ -98,8 +100,7 @@
         { "id" : "tv-light"     , "device" : "w-tv"    },
         { "id" : "bedroom-light", "device" : "w-bed-ceil" },
         { "id" : "string-1"     , "device" : "w-string-1" },
-        { "id" : "string-2"     , "device" : "w-string-2" },
-        { "id" : "nomframe"     , "device" : "nn-nomframe" }
+        { "id" : "string-2"     , "device" : "w-string-2" }
     ],
 
     "groups" : [
@@ -128,6 +129,8 @@
         { "event" : "button-1.action.off",      "do" : "set sleep off"    },
         { "event" : "button-1.action.toggle",   "do" : "set sleep toggle" },
 
-        { "event" : "quadro.b1.on", "do" : "set desk flip" }
+        { "event" : "quadro.b1.on", "do" : "set desk flip" },
+
+        { "event" : "cube.action.shake", "do" : "set all random-color"}
     ]
 }
