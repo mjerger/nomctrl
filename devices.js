@@ -10,8 +10,10 @@ class Device
     setter = [];
     getter = ['online', 'last_seen'];
     
-    has_set(attr) { return this.setter.includes(attr); }
-    has_get(attr) { return this.getter.includes(attr); }
+    has_set(attr)   { return this.setter.includes(attr); }
+    has_get(attr)   { return this.getter.includes(attr); }
+    add_setter(arr) { this.setter = this.setter.concat(arr); }
+    add_getter(arr) { this.getter = this.getter.concat(arr); }
 
     online = true;
     last_seen = 0;
@@ -174,6 +176,7 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
+            this.id='cul-?'
             this.online = false;
             this.frequency = undefined;
             this.path = config.path;
@@ -242,9 +245,7 @@ const drivers = {
 
         receive() {
             let data = this.read();
-            console.log(`cul rx ${id}:`, data.trim());
-
-            // TODO forward to the appropriate device
+            console.log(`cul rx ${data.trim()}`);
 
             // S300HT and similar
             if (data[0] === 'K') {
@@ -260,21 +261,29 @@ const drivers = {
                 const h = parseFloat(`${data[7]}${data[8]}.${data[5]}`);
 
                 const id = firstbyte & 7;
-                console.log(`S300TH: id=${id} temp=${t}°C humid=${h}%`);
 
                 let device = Devices.find('s300th', id);
-                if (device && device.is_online())
+                if (device && device.is_online()) {
                     device.message(t, h);
-                else 
-                    console.warb('unknown device address');
-            
+                    console.log(`S300TH rx id=${id} temp=${t}°C humid=${h}%`);
+                } else {
+                    console.warn(`S300TH rx unknown device address ${id}`);
+                }
+                
             // FS20
             } else if (data[0] === 'F') {
 
                 let code = data.slice(1,5);
-                let device = data.slice(6,7);
-                let command = data.slice(8,9);
-                console.log('FS20: id=%s btn=%s cmd=%s', housecode, device, command);
+                let id = data.slice(6,7);
+                let cmd = data.slice(8,9);
+                
+                let device = Devices.find('fs20', code);
+                if (device && device.is_online()) {
+                    device.message(id, cmd);
+                    console.log(`FS20 rx hcode=${code} dev=${id} cmd=${cmd}`);
+                } else {
+                    console.warn(`FS20 rx unknown device address ${code}`);
+                }
             }
         }
 
@@ -322,8 +331,8 @@ const drivers = {
         constructor(config) { 
             super(config);
 
-            this.getter = this.getter.concat(['info', 'state', 'howto']);
-            this.setter = this.setter.concat(['state', 'flip']);
+            this.add_getter(['info', 'state', 'howto']);
+            this.add_setter(['state', 'flip']);
 
             this.addr = config.addr.trim().toUpperCase();
             this.#parse_addr(this.addr);
@@ -372,15 +381,45 @@ const drivers = {
     },
 
     //
-    // FS20 S4 A-2
+    // FS20
     //
 
-    'fs20s4' : class FS20S4 extends Device 
+    'fs20' : class FS20 extends Device 
     {
+        data = new Map();
+
         constructor(config) { 
             super(config);
-            this.getter = this.getter.concat(['info']);
+            this.add_getter(['info']);
+            this.subtype = config.subtype;
+
+            if (this.subtype === 'fs20s4') {
+                this.add_getter(['b1', 'b2', 'b3', 'b4']);
+            }
         }
+
+        message (device_id, command) {
+
+            if (this.subtype === 'fs20s4') {
+
+                let val;
+                if (command == 2)
+                    val = "on"
+                else if (command == 5)
+                    val = "off"
+                else return;
+
+                const attr = `b${parseInt(device_id)+1}`;
+
+                this.data.set(attr, val);
+                
+                Events.message(this, attr, val);
+
+                this.update_last_seen();
+            }
+        }
+
+        async get(attr) { return this.data.get(attr); }
     },
 
     //
@@ -391,7 +430,7 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
-            this.getter = this.getter.concat(['info', 'temp', 'humid']);
+            this.add_getter(['info', 'temp', 'humid']);
         }
 
         message(temp, humid) {
@@ -483,7 +522,7 @@ const drivers = {
 
         constructor(config) { 
             super(config);
-            this.getter = this.getter.concat(['info', 'battery', 'linkquality']);
+            this.add_getter(['info', 'battery', 'linkquality']);
             this.addr = this.id;
         }
 
@@ -499,9 +538,7 @@ const drivers = {
                 this.getter.push(attr);
         }
 
-        async get(attr) {
-            return this.data.get(attr);
-        }
+        async get(attr) { return this.data.get(attr); }
     },
 
 
@@ -513,8 +550,8 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
-            this.getter = this.getter.concat(['info', 'state', 'power', 'power_status',  'energy', 'energy_t', 'energy_y', 'voltage', 'current']);
-            this.setter = this.setter.concat(['state', 'flip']);
+            this.add_getter(['info', 'state', 'power', 'power_status',  'energy', 'energy_t', 'energy_y', 'voltage', 'current']);
+            this.add_setter(['state', 'flip']);
             this.ping_path = '/cm'
         }
 
@@ -600,8 +637,8 @@ const drivers = {
     {
         constructor(config)  { 
             super(config);
-            this.getter = this.getter.concat(['info', 'state', 'color', 'brightness']);
-            this.setter = this.setter.concat(['state', 'flip', 'color', 'brightness', 'effect']);
+            this.add_getter(['info', 'state', 'color', 'brightness']);
+            this.add_setter(['state', 'flip', 'color', 'brightness', 'effect']);
             this.ping_path = '/json/state'
         }
 
@@ -656,7 +693,7 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
-            this.setter = this.setter.concat(['state', 'flip', 'brightness']);
+            this.add_setter(['state', 'flip', 'brightness']);
         }
 
         // SET

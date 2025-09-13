@@ -64,8 +64,8 @@
             { "addr" : "A3" }
         ],
 
-        "fs20s4" : [
-            { "type" : "fs20s4", "addr" : "4FC5" }
+        "fs20" : [
+            { "id" : "quadro", "addr" : "4FC5", "subtype" : "fs20s4" }
         ],
 
         "s300th" : [
@@ -126,6 +126,8 @@
         
         { "event" : "button-1.action.on",       "do" : "set sleep on 20%" },
         { "event" : "button-1.action.off",      "do" : "set sleep off"    },
-        { "event" : "button-1.action.toggle",   "do" : "set sleep toggle" }
+        { "event" : "button-1.action.toggle",   "do" : "set sleep toggle" },
+
+        { "event" : "quadro.b1.on", "do" : "set desk flip" }
     ]
 }
