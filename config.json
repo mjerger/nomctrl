@@ -80,10 +80,15 @@
 
         "zigbee" : [
             { "id" : "button-1" },
+            { "id" : "button-2" },
             { "id" : "water-1" },
             { "id" : "water-2" },
             { "id" : "presence-1" },
             { "id" : "presence-2" },
+            { "id" : "temp-1" },
+            { "id" : "temp-2" },
+            { "id" : "contact-1" },
+            { "id" : "vibration-1" },
             { "id" : "cube" }
         ]
     },
@@ -125,9 +130,13 @@
         { "id" : "night"  , "event" : "22:00" , "do" : [ "set all night", "set living 50%", "set nomframe off", "set sleep 25%" ] },
         { "id" : "late"  ,                      "do" : [ "set all sun", "set living 50%", "set nomframe off", "set sleep 25%" ] },
         
-        { "event" : "button-1.action.on",       "do" : "set sleep on 20%" },
-        { "event" : "button-1.action.off",      "do" : "set sleep off"    },
+        { "event" : "button-1.action.on",       "do" : "set sleep morning 10%" },
+        { "event" : "button-1.action.off",      "do" : "set all off"    },
         { "event" : "button-1.action.toggle",   "do" : "set sleep toggle" },
+
+        { "event" : "button-2.action.single",   "do" : "do evening"     },
+        { "event" : "button-2.action.double",   "do" : "set amp toggle" },
+        { "event" : "button-2.action.long",     "do" : "set all off"    },
 
         { "event" : "quadro.b1.on", "do" : "set desk flip" },
 
