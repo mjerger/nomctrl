@@ -3,6 +3,7 @@ const Utils  = require('./utils.js');
 const Events = require('./events.js');
 
 const { SerialPort } = require('serialport')
+const fs = require('fs');
 const mqtt = require('mqtt');
 
 class Device 
@@ -114,24 +115,6 @@ class SerialDevice extends Device
         this.serial = undefined;
     }
 
-    open() {
-        if (this.serial.isOpen)
-            return Promise.resolve();
-        return new Promise((res, rej) => this.serial.open(err => err ? rej(err) : res()));
-    }
-
-    close() {
-        if (this.serial.isOpen)
-             return new Promise((res, rej) => this.serial.close(err => err ? rej(err) : res()));
-        return Promise.resolve();
-    }
-
-    drain() {
-        if (this.serial.isOpen)
-            return new Promise((res, rej) => this.serial.drain(err => err ? rej(err) : res()));
-        return Promise.resolve();
-    }
-
     write(buf) {
       return new Promise((res, rej) => {
         this.serial.write(buf, err => err ? rej(err) : this.serial.drain(err2 => err2 ? rej(err2) : res()));
@@ -180,14 +163,7 @@ const drivers = {
             this.online = false;
             this.frequency = undefined;
             this.path = config.path;
-            this.serial = new SerialPort({
-                path: this.path,
-                baudRate: 38400,
-                autoOpen: false
-            });
-            this.serial.on('close', ()=>{this.set_online(false);});
-            this.serial.on('error', console.log);
-            this.serial.setEncoding('ascii');
+            
         }
 
         start() {
@@ -197,25 +173,37 @@ const drivers = {
         check_device() {
             if (!this.is_online())
                 this.setup();
-    
+
             setTimeout(this.check_device.bind(this), 1000);
         }
     
         async setup() {
-            try
-            {
-                await this.close();
-                await this.open();
-                await this.drain();
 
-                // get version
-                await this.write('V\n');
-                const v = await this.read();
+            // test if path exists first
+            if (!fs.existsSync(this.path))
+                return;
+
+            let serial = new SerialPort({
+                path: this.path,
+                baudRate: 38400,
+                autoOpen: false
+            });
+
+            this.serial = serial
+            serial.setEncoding('ascii');
+            serial.on('disconnect', () => { this.set_online(false); });
+            serial.on('close',      () => { this.set_online(false); });
+            serial.on('error', console.log);
+
+            const on_version_response = () => {
+                let v = serial.read();
+
                 switch(true) {
                     case /CUL868/.test(v): this.subtype='868'; this.freq=868.35; this.id='cul-868'; break;
                     case /CUL433/.test(v): this.subtype='433'; this.freq=433.93; this.id='cul-433'; break;
                     default: 
-                    console.warn(`Device ${this.path} is not a CUL`);
+                        console.warn(`Device ${this.path} is not a CUL`);
+                        return;
                 }
 
                 console.log(`Found CUL${this.subtype} at ${this.path}`);
@@ -225,26 +213,43 @@ const drivers = {
                 if (Config.app().setup_cul_on_connect) {
 
                     // set frequency 
-                    await this.set_freq(this.freq);
+                    this.set_freq(this.freq);
 
                     // 8dB gain
-                    await this.set_sens(8);
+                    this.set_sens(8);
 
                     // tx power
-                    await this.write('x09\n');
+                    serial.write('x09\n');
                 }
 
                 // start normal mode
-                await this.write('X21\n'); 
+                serial.write('X21\n'); 
                 
-                this.serial.on('readable', this.receive);
+                serial.off('readable', on_version_response);
+                serial.on('readable', this.receive);
 
                 this.set_online(true);
-            } catch { }
+            }
+
+            serial.open((err) => {
+                if (!err) {
+                    serial.on('readable', on_version_response);
+
+                    // get version
+                    serial.write('V\n');
+                    serial.drain();
+                }
+            });
         }
 
         receive() {
             let data = this.read();
+            if (!data) {
+                console.log(`cul rx ${data}`);
+                return;
+            }
+
+            data = data.trim()
             console.log(`cul rx ${data.trim()}`);
 
             // S300HT and similar
@@ -304,9 +309,7 @@ const drivers = {
         
             console.log(`CUL ${this.path} set FREQ2..0 (0D,0E,0F) to ${f2} ${f1} ${f0} = ${revcalc} MHz`);
         
-            await this.send(`W0F${f2}`);
-            await this.send(`W10${f1}`);
-            await this.send(`W11${f0}`);
+            this.send(`W0F${f2}\nW10${f1}\nW11${f0}`);
         }
 
         // set frontend sens threshold in dB
