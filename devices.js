@@ -334,11 +334,11 @@ const drivers = {
         constructor(config) { 
             super(config);
 
-            this.add_getter(['info', 'state', 'howto']);
+            this.add_getter(['info', 'state']);
             this.add_setter(['state', 'flip']);
 
             this.addr = config.addr.trim().toUpperCase();
-            this.#parse_addr(this.addr);
+            this.parse_addr(this.addr);
 
             this.id = this.id ?? this.addr.toLowerCase();
         }
@@ -349,7 +349,7 @@ const drivers = {
                 '000F','F00F','0F0F','FF0F',
                 '00FF','F0FF','0FFF','FFFF' ];
     
-        #parse_addr(addr) {
+        parse_addr(addr) {
             const m = addr.match(/^([A-P])(1[0-6]|[1-9])$/);
             if (!m) 
                 throw new Error('address must be A1..P16');
@@ -358,7 +358,7 @@ const drivers = {
         }
         
         async set_state(enabled) {
-            const { house, unit } = this.#parse_addr(this.addr);
+            const { house, unit } = this.parse_addr(this.addr);
             const payload = this.TRI[house] + this.TRI[unit] + '0F' + (enabled ? 'FF' : 'F0');
             
             const device = Devices.get_subtype('cul', '433');
@@ -370,9 +370,9 @@ const drivers = {
 
         // return info on how to set the dip switches :)
         async get_info() {
-            const { house, unit } = parseItAddr(this.addr);
-            const houseNibble = TRI[house];
-            const unitNibble  = TRI[unit];
+            const { house, unit } = this.parse_addr(this.addr);
+            const houseNibble = this.TRI[house];
+            const unitNibble  = this.TRI[unit];
             
             // 10 DIP switches: 1–5 (house), A–E (unit). 
             // Fifth in each row is typically unused -> 0.
@@ -381,6 +381,9 @@ const drivers = {
             
             return '\n12345ABCDE\n' + houseRow + unitRow;
         }
+
+        async get_state () {}
+
     },
 
     //

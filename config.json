@@ -37,7 +37,7 @@
             { "id" : "s3", "host" : "tasmota-s3" },
             { "id" : "s4", "host" : "tasmota-s4" },
             { "id" : "s5", "host" : "tasmota-s5" },
-            { "id" : "s6", "host" : "tasmota-s6" }
+            { "id" : "s6", "host" : "tasmota-s6", "enabled" : false }
         ],
         
         "wled" : [
@@ -50,7 +50,7 @@
         ],
 
         "nomframe" : [
-            { "host" : "nomframe", "enabled" : false}
+            { "host" : "nomframe", "enabled" : false }
         ],
         
         "cul" : [
@@ -99,7 +99,7 @@
         { "id" : "terra"    , "device" : "s3" },
         { "id" : "grow"     , "device" : "s4" },
         { "id" : "growbox"  , "device" : "s5" },
-        { "id" : "fairy-1"  , "device" : "s6", "thresh" : 50 },
+        { "id" : "fairy-1"  , "device" : "a1", "thresh" : 50 },
         { "id" : "desk"         , "device" : "w-desk"  },
         { "id" : "stuff-light"  , "device" : "w-stuff" },
         { "id" : "tv-light"     , "device" : "w-tv"    },
