@@ -205,6 +205,7 @@
                 const info = await cmd('get sum all power energy_t energy_y');
                 document.getElementById('power').innerHTML = info.power_sum + "W";
                 document.getElementById('energy').innerHTML = info.energy_t_sum.toFixed(1) + "/" + info.energy_y_sum.toFixed(1) + "KWh"; 
+                setTimeout(fetchPower, 60*1000);
             }
 
             function Sleep(milliseconds) {
@@ -236,18 +237,19 @@
                         await cmd('set all '+color.hex.slice(0, -2));
                     }
                 }
-                
-                fetchPower();
-                setInterval(fetchPower, 15000);
+            
             };
 
             window.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 let last = +new Date();
+                refresh();
             }
             });
 
             refresh();
+            fetchPower();
+
         </script>
     </body>
 </html>
