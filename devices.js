@@ -75,7 +75,8 @@ class Device
             return;
 
         this.data[attr] = val;
-        Logger.log(this.id, this.data);
+        
+        Logger.log(this.id, attr, val);
     }
 }
 
@@ -444,21 +445,22 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
-            this.add_getter(['info', 'temp', 'humid']);
+            this.add_getter(['info', 'temperature', 'humidity']);
         }
 
         message(temp, humid) {
-            this.temp = temp;
-            this.humid = humid;
+            this.update_data('temperature', temp);
+            this.update_data('humidity', humid);
 
-            Events.message(this, 'temp', temp);
-            Events.message(this, 'humid', humid);
+            Events.message(this, 'temperature', temp);
+            Events.message(this, 'humidity', humid);
 
             this.update_last_seen();
         }
  
-        async get_temp()  { return this.temp; }
-        async get_humid() { return this.humid; }
+        // TODO generalize
+        async get_temperature()  { return this.data['temperature']; }
+        async get_humidity()     { return this.data['humidity']; }
     },
 
     //
