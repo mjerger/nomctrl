@@ -1,8 +1,7 @@
 {
     "app" : {
         "port" : 1337,
-        "logs" : "log/",
-
+        
         "timer_interval" : 60,
         "ping_interval" : 60,
 
@@ -15,6 +14,16 @@
         },
 
         "setup_cul_on_connect" : false
+    },
+
+    "log" : {
+        "influx" : {
+            "host" : "nompi",
+            "port" : 8086,
+            "database" : "nomctrl",
+            "username" : "nomctrl",
+            "password" : "nomctrl"
+        }
     },
 
     "colors" : [
@@ -135,8 +144,8 @@
         { "event" : "button-1.action.toggle",   "do" : "set sleep toggle" },
 
         { "event" : "button-2.action.single",   "do" : "do evening"     },
-        { "event" : "button-2.action.double",   "do" : "set amp toggle" },
-        { "event" : "button-2.action.long",     "do" : "set all off"    },
+        { "event" : "button-2.action.long",     "do" : "set amp toggle" },
+        { "event" : "button-2.action.double",   "do" : "set all off"    },
 
         { "event" : "quadro.b1.on", "do" : "set desk flip" },
 

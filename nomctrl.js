@@ -29,7 +29,7 @@ app.listen(Config.app().port, function () {
 
     Devices.init(Config.devices());
     Nodes.init(Config.nodes(), Config.groups());
-    Logger.init(Config.app().logs);
+    Logger.init(Config.log());
     Timers.init(Config.timers(), execute);
     Events.init(Config.actions(), execute);
 

@@ -1,6 +1,7 @@
 const Config = require('./config.js');
 const Utils  = require('./utils.js');
 const Events = require('./events.js');
+const Logger = require('./logger.js');
 
 const { SerialPort } = require('serialport')
 const fs = require('fs');
@@ -18,12 +19,13 @@ class Device
 
     online = true;
     last_seen = 0;
+    data = new Map();
+    subtype;
 
     constructor(config) { 
         this.id   = config.id;
         this.type = config.type;
         this.addr = config.addr;
-        this.subtype = undefined
     }
 
     is_online() { 
@@ -54,7 +56,7 @@ class Device
 
     async get(attr) {
         try {
-            return this['get_' + attr]();
+            return this['get_' + attr]().then((val) => this.update_data(attr, val));
         } catch (e) {
             console.error(`Device Error: ${this.id} get ${attr}\n${e}`);
         }
@@ -62,10 +64,18 @@ class Device
 
     async set(attr, val) {
         try {
-            return this['set_' + attr](val);
+            return this['set_' + attr](val).then(() => this.update_data(attr, val));
         } catch (e) {
             console.error(`Device Error: ${this.id} set ${attr}`);
         }
+    }
+
+    update_data(attr, val) {
+        if (this.data[attr] === val)
+            return;
+
+        this.data[attr] = val;
+        Logger.log(this.id, this.data);
     }
 }
 
@@ -392,8 +402,6 @@ const drivers = {
 
     'fs20' : class FS20 extends Device 
     {
-        data = new Map();
-
         constructor(config) { 
             super(config);
             this.add_getter(['info']);
@@ -417,7 +425,7 @@ const drivers = {
 
                 const attr = `b${parseInt(device_id)+1}`;
 
-                this.data.set(attr, val);
+                this.update_data(attr, val);
                 
                 Events.message(this, attr, val);
 
@@ -524,8 +532,6 @@ const drivers = {
 
     'zigbee' : class Zigbee extends Device
     {
-        data = new Map();
-
         constructor(config) { 
             super(config);
             this.add_getter(['info', 'battery', 'linkquality']);
@@ -533,7 +539,7 @@ const drivers = {
         }
 
         message(attr, value) {
-            this.data.set(attr, value);
+            this.update_data(attr, value);
 
             Events.message(this, attr, value);
 
