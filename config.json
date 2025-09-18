@@ -96,7 +96,7 @@
 
         "zigbee" : [
             { "id" : "button-1", "map" : { "action" : { "toggle" : "single", "on" : "double", "off" : "long" } } },
-            { "id" : "button-2", "map" : { "action" : { "long" : "off",  "single" : "on" } } },
+            { "id" : "button-2" },
             { "id" : "water-1" , "map" : { "alarm_1" : "action", "action" : { "true" : "wet", "false" : "dry" } } },
             { "id" : "water-2" , "map" : { "alarm_1" : "action", "action" : { "true" : "wet", "false" : "dry" } } },
             { "id" : "presence-1" },
