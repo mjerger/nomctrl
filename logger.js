@@ -67,12 +67,18 @@ class Logger
             val = String(val);
         }
 
+        let tags = { device : device.id, 
+                     type :   device.type};
+
+        if (device.subtype)
+            tags.type = `${device.type}.${device.subtype}`;
+
         // log it
         await this.influx.writePoints(
             [
                 {
                     measurement : group,
-                    tags : { device: device.id },
+                    tags : tags, 
                     fields: { [attr]: val },
                 },
             ]
