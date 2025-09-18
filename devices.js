@@ -76,25 +76,31 @@ class Device
     map_attrs(attr, value) {
         if (this.map) {
             const keys = Object.keys(this.map);
+
+            // 1. remap attribute names first
             for (const k of keys) {
                 if (k == attr) {
                     const v = this.map[k];
-
-                    // rename attribute name
                     if (typeof v === "string") 
-                        return { attr: v, val: value };
-                    // rename value
-                    else if (typeof v === "object") {
-                        for (const [from, to] of v) {
-                            if (value == from) // note: allow compare of "true" <> true 
-                                return { attr: attr, val: to };
+                        attr = v;
+                }
+            }
+
+            // 2. remap values 
+            for (const k of keys) {
+                if (k == attr) {
+                    const v = this.map[k];
+                    if (typeof v === "object") {
+                        const vkeys = Object.keys(v);
+                        for (const vkey of vkeys) {
+                            if (String(value) == vkey) { // note: allow compare of "true"
+                                value = v[vkey];
+                            }
                         }
                     }
                 }
             }
         }
-
-        // unchanged
         return { attr: attr, val: value };
     }
 

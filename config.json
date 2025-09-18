@@ -97,14 +97,14 @@
         "zigbee" : [
             { "id" : "button-1", "map" : { "action" : { "toggle" : "single", "on" : "double", "off" : "long" } } },
             { "id" : "button-2", "map" : { "action" : { "long" : "off",  "single" : "on" } } },
-            { "id" : "water-1" , "map" : { "alarm_1" : "water" } },
-            { "id" : "water-2" , "map" : { "alarm_1" : "water" } },
+            { "id" : "water-1" , "map" : { "alarm_1" : "action", "action" : { "true" : "wet", "false" : "dry" } } },
+            { "id" : "water-2" , "map" : { "alarm_1" : "action", "action" : { "true" : "wet", "false" : "dry" } } },
             { "id" : "presence-1" },
             { "id" : "presence-2" },
             { "id" : "temp-1" },
             { "id" : "temp-2" },
-            { "id" : "contact-1",   "map" : { "contact" : { "true" : "open", "false" : "closed" } } },
-            { "id" : "vibration-1", "map" : { "alarm_1" : "movement" } },
+            { "id" : "contact-1",   "map" : { "contact" : "action", "action" : { "true" : "open", "false" : "close" } } },
+            { "id" : "vibration-1", "map" : { "alarm_1" : "action", "action" : { "true" : "move", "false" : "rest"  } } },
             { "id" : "cube" }
         ]
     },
