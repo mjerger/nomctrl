@@ -12,6 +12,7 @@ class Logger
 
         this.db = config.database;
         this.groups = config.groups;
+        this.ignore = config.ignore
         this.log_unmapped = config.log_unmapped
 
         this.influx = new InfluxDB(config.influx);
@@ -34,6 +35,10 @@ class Logger
     }
         
     static async log(device, attr, val) {
+
+        // configurable filter
+        if (this.is_ignored(device, attr, val))
+            return;
 
         // get the measurement group
         const group = this.get_group_for(device, attr);
@@ -73,6 +78,26 @@ class Logger
             ]
         );
 
+    }
+
+    static is_ignored(device, attr, val) {
+        if (this.ignore === undefined)
+            return false;
+        
+        const keys = Object.keys(this.ignore);
+        for (const k of keys) {
+            if (k == attr) {
+                const v = this.ignore[k];
+                if (typeof v === "string") {
+                    if (val == v)
+                        return true;
+                }
+            }
+            
+            // more filtering can go here
+        }
+        
+        return false;
     }
 
     static get_group_for(device, attr) {
