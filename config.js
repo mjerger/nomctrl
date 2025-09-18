@@ -26,7 +26,6 @@ class Config {
             }
         }
 
-        Object.keys(this.devices()).forEach(type => this.devices()[type].forEach(check));
         this.nodes  ().forEach(check);
         this.groups ().forEach(check);
         this.colors ().forEach(check);

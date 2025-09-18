@@ -17,6 +17,8 @@ class Device
     add_setter(arr) { this.setter = this.setter.concat(arr); }
     add_getter(arr) { this.getter = this.getter.concat(arr); }
 
+    static subtypes = [];
+
     online = true;
     last_seen = 0;
     data = new Map();
@@ -26,6 +28,7 @@ class Device
         this.id   = config.id;
         this.type = config.type;
         this.addr = config.addr;
+        this.map  = config.map;
     }
 
     is_online() { 
@@ -70,13 +73,39 @@ class Device
         }
     }
 
-    update_data(attr, val) {
-        if (this.data[attr] === val)
-            return;
+    map_attrs(attr, value) {
+        if (this.map) {
+            const keys = Object.keys(this.map);
+            for (const k of keys) {
+                if (k == attr) {
+                    const v = this.map[k];
 
-        this.data[attr] = val;
-        
-        Logger.log(this.id, attr, val);
+                    // rename attribute name
+                    if (typeof v === "string") 
+                        return { attr: v, val: value };
+                    // rename value
+                    else if (typeof v === "object") {
+                        for (const [from, to] of v) {
+                            if (value == from) // note: allow compare of "true" <> true 
+                                return { attr: attr, val: to };
+                        }
+                    }
+                }
+            }
+        }
+
+        // unchanged
+        return { attr: attr, val: value };
+    }
+
+    update_data(attr, val) {
+        const mapped = this.map_attrs(attr, val);
+
+        this.data[mapped.attr] = mapped.val;
+
+        Logger.log(this, mapped.attr, mapped.val);
+
+        return mapped;
     }
 }
 
@@ -96,7 +125,7 @@ class HttpDevice extends Device
 
     async check_online() {
         if (this.ping) this.ping();
-        setTimeout(this.check_online.bind(this), Config.app().ping_interval * 1000);
+        setTimeout(this.check_online.bind(this), Config.app().poll_interval * 1000);
     }
 
     async ping() {
@@ -127,9 +156,9 @@ class SerialDevice extends Device
     }
 
     write(buf) {
-      return new Promise((res, rej) => {
-        this.serial.write(buf, err => err ? rej(err) : this.serial.drain(err2 => err2 ? rej(err2) : res()));
-      });
+        return new Promise((res, rej) => {
+            this.serial.write(buf, err => err ? rej(err) : this.serial.drain(err2 => err2 ? rej(err2) : res()));
+        });
     }
 
     async send(buf) {
@@ -156,9 +185,7 @@ class SerialDevice extends Device
     async ping() {
         return this.serial !== undefined && this.serial.isOpen;
     }
-
 }
-
 
 const drivers = {
 
@@ -293,12 +320,12 @@ const drivers = {
                 let id = data.slice(6,7);
                 let cmd = data.slice(8,9);
                 
-                let device = Devices.find('fs20', code);
+                let device = Devices.find('fs20', code, id);
                 if (device && device.is_online()) {
-                    device.message(id, cmd);
+                    device.message(cmd);
                     console.log(`FS20 rx hcode=${code} dev=${id} cmd=${cmd}`);
                 } else {
-                    console.warn(`FS20 rx unknown device address ${code}`);
+                    console.warn(`FS20 rx unknown device addr=${code} dev=${id}`);
                 }
             }
         }
@@ -403,30 +430,36 @@ const drivers = {
 
     'fs20' : class FS20 extends Device 
     {
+        static subtypes = ['fs20s4']; 
+
         constructor(config) { 
             super(config);
-            this.add_getter(['info']);
             this.subtype = config.subtype;
+            this.dev = config.dev;
 
-            if (this.subtype === 'fs20s4') {
-                this.add_getter(['b1', 'b2', 'b3', 'b4']);
+            this.add_getter(['info']);
+
+            if (this.subtype === FS20.subtypes[0]) {
+                this.add_getter('action');
             }
         }
 
-        message (device_id, command) {
+        message (command) {
 
-            if (this.subtype === 'fs20s4') {
-
+            // different behavior for each subtype
+            if (this.subtype === FS20.subtypes[0]) {
                 let val;
                 if (command == 2)
-                    val = "on"
+                    val = 'single';
                 else if (command == 5)
-                    val = "off"
+                    val = 'long';
                 else return;
 
-                const attr = `b${parseInt(device_id)+1}`;
+                let attr = 'action';
 
-                this.update_data(attr, val);
+                const mapped = this.update_data(attr, val);
+                attr = mapped.attr;
+                val = mapped.val;
                 
                 Events.message(this, attr, val);
 
@@ -541,7 +574,11 @@ const drivers = {
         }
 
         message(attr, value) {
-            this.update_data(attr, value);
+            
+            const mapped = this.update_data(attr, value);
+
+            attr = mapped.attr;
+            value = mapped.val;
 
             Events.message(this, attr, value);
 
@@ -728,11 +765,29 @@ class Devices
 
         const types = Object.keys(config);
         for (const type of types) {
-            if (type in drivers) {
-                for (const cfg of config[type]) {
-                    if (cfg.enabled === false) continue;
-                    cfg.type = type;
-                    this.devices.push(new drivers[type](cfg));
+            if (type in drivers && typeof config[type] === 'object') {
+                if (Array.isArray(config[type])) {
+                    for (const cfg of config[type]) {
+                        if (cfg.enabled === false) continue;
+                        cfg.type = type;
+                        this.devices.push(new drivers[type](cfg));
+                    }
+                } else  {
+                    const subtypes = Object.keys(config[type]);
+                    for (const subtype of subtypes) {
+                        const array = config[type][subtype]
+                        if (drivers[type].subtypes.includes(subtype) && Array.isArray(array)) 
+                        {
+                            for (const cfg of array) {
+                                if (cfg.enabled === false) continue;
+                                cfg.type = type;
+                                cfg.subtype = subtype
+                                this.devices.push(new drivers[type](cfg));
+                            }
+                        } else {
+                            console.error(`Config Error: Unknown device subtype ${subtype}.`);
+                        }
+                    }
                 }
             } else {
                 console.error(`Config Error: Unknown device type ${type}.`);
@@ -755,8 +810,16 @@ class Devices
         return this.devices.find(d => d.type === type && d.subtype === subtype);
     }
 
+    // find device of type with address
     static find(type, addr) {
         return this.devices.find(d => d.type == type && d.addr == addr);
+    } 
+
+    // find device of type with address and internal device id
+    static find(type, addr, dev) {
+        return this.devices.find(d => d.type == type && 
+                                      d.addr == addr && 
+                                      d.dev  == dev);
     } 
 
     static async start() {
