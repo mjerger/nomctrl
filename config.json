@@ -103,7 +103,7 @@
             { "id" : "presence-2" },
             { "id" : "temp-1" },
             { "id" : "temp-2" },
-            { "id" : "contact-1",   "map" : { "contact" : "action", "action" : { "true" : "open", "false" : "close" } } },
+            { "id" : "contact-1",   "map" : { "contact" : "action", "action" : { "true" : "close", "false" : "open" } } },
             { "id" : "vibration-1", "map" : { "alarm_1" : "action", "action" : { "true" : "move", "false" : "rest"  } } },
             { "id" : "cube" }
         ]
