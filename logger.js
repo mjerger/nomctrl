@@ -37,7 +37,6 @@ class Logger
 
         // get the measurement group
         const group = this.get_group_for(device, attr);
-        console.log(`>>>>>> ${group} ${device.id} ${attr}=${val}`)
         
         // drop unmapped stuff
         if (!group)
