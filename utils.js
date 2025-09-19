@@ -1,6 +1,6 @@
 const SunCalc = require('./suncalc.js');
 const Axios   = require('axios')
-const config  = require('./config.json');
+const config  = require('./definitions.js');
 
 class Utils {
 
@@ -87,7 +87,7 @@ class Utils {
         str = str.replace(/\s/g, '');
 
         // sun state (words like "sunset")
-        const times = SunCalc.getTimes(new Date(), config.app.loc.lat, config.app.loc.long);
+        const times = SunCalc.getTimes(new Date(), config.loc.lat, config.loc.long);
         
         // TODO replace this with a more generic expression parser, try to use JS for that but don't just use eval()
         // parse simple time shift expressions

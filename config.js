@@ -1,5 +1,5 @@
 const Utils   = require('./utils.js');
-const config  = require('./config.json');
+const config  = require('./definitions.js');
 
 class Config {
 
