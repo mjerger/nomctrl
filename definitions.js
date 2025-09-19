@@ -43,21 +43,21 @@ module.exports = {
 
     devices: {
         tasmota: [
-            { id: "s1", host: "tasmota-s1" },
-            { id: "s2", host: "tasmota-s2" },
-            { id: "s3", host: "tasmota-s3" },
-            { id: "s4", host: "tasmota-s4" },
-            { id: "s5", host: "tasmota-s5" },
-            { id: "s6", host: "tasmota-s6", enabled: false }
+            { host: "tasmota-s1" },
+            { host: "tasmota-s2" },
+            { host: "tasmota-s3" },
+            { host: "tasmota-s4" },
+            { host: "tasmota-s5" },
+            { host: "tasmota-s6", enabled: false }
         ],
         
         wled: [
-            { id: "w-desk"     , host: "wled-desk"     },
-            { id: "w-stuff"    , host: "wled-stuff"    },
-            { id: "w-tv"       , host: "wled-tv"       },
-            { id: "w-bed-ceil" , host: "wled-bed-ceil" },
-            { id: "w-string-1" , host: "wled-string-1" },
-            { id: "w-string-2" , host: "wled-string-2" }
+            { host: "wled-desk"     },
+            { host: "wled-stuff"    },
+            { host: "wled-tv"       },
+            { host: "wled-bed-ceil" },
+            { host: "wled-string-1" },
+            { host: "wled-string-2" }
         ],
 
         nomframe: [
@@ -70,9 +70,9 @@ module.exports = {
         ],
 
         elro: [
-            { addr: "A1" },
-            { addr: "A2" },
-            { addr: "A3" }
+            { id: "elro-a1", addr: "A1" },
+            { id: "elro-a2", addr: "A2" },
+            { id: "elro-a3", addr: "A3" }
         ],
 
         fs20: {
@@ -110,18 +110,18 @@ module.exports = {
     },
 
     nodes: [
-        { id: "amp"      , device: "s1" },
-        { id: "plants"   , device: "s2" },
-        { id: "terra"    , device: "s3" },
-        { id: "grow"     , device: "s4" },
-        { id: "growbox"  , device: "s5" },
-        { id: "fairy-1"  , device: "a1", thresh: 80 },
-        { id: "desk"         , device: "w-desk"  },
-        { id: "stuff-light"  , device: "w-stuff" },
-        { id: "tv-light"     , device: "w-tv"    },
-        { id: "bedroom-light", device: "w-bed-ceil" },
-        { id: "string-1"     , device: "w-string-1" },
-        { id: "string-2"     , device: "w-string-2" }
+        { id: "amp"      , device: "tasmota-s1" },
+        { id: "plants"   , device: "tasmota-s2" },
+        { id: "terra"    , device: "tasmota-s3" },
+        { id: "grow"     , device: "tasmota-s4" },
+        { id: "growbox"  , device: "tasmota-s5" },
+        { id: "fairy-1"  , device: "elro-a1", thresh: 80 },
+        { id: "desk"         , device: "wled-desk"  },
+        { id: "stuff-light"  , device: "wled-stuff" },
+        { id: "tv-light"     , device: "wled-tv"    },
+        { id: "bedroom-light", device: "wled-bed-ceil" },
+        { id: "string-1"     , device: "wled-string-1" },
+        { id: "string-2"     , device: "wled-string-2" }
     ],
 
     groups: [
