@@ -29,6 +29,7 @@ class Device
         this.type = config.type;
         this.addr = config.addr;
         this.map  = config.map;
+        this.log  = config.log;
     }
 
     is_online() { 
@@ -561,7 +562,8 @@ const drivers = {
                     console.warn(`zigbee: unknown device address ${id}`);
                 }
 
-                console.log(`zigbee rx ${id}:`, JSON.stringify(data));
+                if (device.log ?? true)
+                    console.log(`zigbee rx ${id}:`, JSON.stringify(data));
               });
         }
     },
