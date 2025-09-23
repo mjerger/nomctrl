@@ -16,6 +16,12 @@ module.exports = {
         long: "9.18"
     },
 
+    users: {
+        nom: {
+            ips: [ "" ]
+        }
+    },
+
     log: {
         influx: {
             host: "nompi",
@@ -26,12 +32,12 @@ module.exports = {
         },
 
         groups: {
-            environment: [ "humidity", "temperature", "illumination", "occupancy" ],
-            devices:     [ "battery", "battery_low", "linkquality", "zigbee.voltage" ],
+            environment: [ "humidity", "temperature", "illumination", "illuminance", "occupancy", "co2", "formaldehyd", "voc" ],
+            devices:     [ "battery", "battery_low", "linkquality", "zigbee.voltage", "tamper" ],
             inputs:      [ "action", "alarm", "contact", "water", "movement" ],
             energy:      [ "power", "power_status",  "energy", "energy_t", "energy_y", "tasmota.voltage", "current" ],
             switches:    [ "tasmota.state", "elro.state" ],
-            lights:      [ "wled.state", "brightness", "color" ]
+            lights:      [ "wled.state", "FIXME_brightness", "color" ]
         },
 
         ignore: {
@@ -101,9 +107,12 @@ module.exports = {
             { id: "water-2" ,    map: { alarm_1: "action", action: { true: "wet", false: "dry" } } },
             { id: "presence-1" },
             { id: "presence-2" },
+            { id: "presence-3", log: false },
             { id: "temp-1" },
             { id: "temp-2" },
+            { id: "air-1", log: false },
             { id: "contact-1",   map: { contact: "action", action: { true: "close", false: "open" } } },
+            { id: "contact-2",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "vibration-1", map: { alarm_1: "action", action: { true: "move", false: "rest"  } } },
             { id: "cube" }
         ]
@@ -154,7 +163,12 @@ module.exports = {
         { event: "button-2.action.double",   do: "set all off"    },
         { event: "button-2.action.long",     do: "set amp toggle" },
 
-        { event: "quadro-1.action.long", do: "set desk flip" },
+        { event: "quadro-1.action.single", do: "set living on" },
+        { event: "quadro-1.action.long", do: "set living off" },
+        { event: "quadro-2.action.single", do: "set living 100" },
+        { event: "quadro-2.action.long", do: "set living 20" },
+        { event: "quadro-3.action.single", do: "set amp on" },
+        { event: "quadro-3.action.long", do: "set amp off" },
 
         { event: "cube.action.shake", do: "set all random-color"}
     ],
