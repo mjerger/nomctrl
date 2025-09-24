@@ -103,6 +103,8 @@ module.exports = {
         zigbee: [
             { id: "button-1",    map: { action: { toggle: "single", on: "double", off: "long" } } },
             { id: "button-2" },
+            { id: "button-3",    map: { action: { toggle: "single", on: "double", off: "long" } } },
+            { id: "buttons-1" },
             { id: "water-1" ,    map: { alarm_1: "action", action: { true: "wet", false: "dry" } } },
             { id: "water-2" ,    map: { alarm_1: "action", action: { true: "wet", false: "dry" } } },
             { id: "presence-1" },
@@ -114,7 +116,8 @@ module.exports = {
             { id: "contact-1",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "contact-2",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "vibration-1", map: { alarm_1: "action", action: { true: "move", false: "rest"  } } },
-            { id: "cube" }
+            { id: "cube" },
+            { id: "soil-1" }
         ]
     },
 
@@ -163,12 +166,14 @@ module.exports = {
         { event: "button-2.action.double",   do: "set all off"    },
         { event: "button-2.action.long",     do: "set amp toggle" },
 
-        { event: "quadro-1.action.single", do: "set living on" },
-        { event: "quadro-1.action.long", do: "set living off" },
-        { event: "quadro-2.action.single", do: "set living 100" },
-        { event: "quadro-2.action.long", do: "set living 20" },
-        { event: "quadro-3.action.single", do: "set amp on" },
-        { event: "quadro-3.action.long", do: "set amp off" },
+        { event: "buttons-1.action.1_single", do: "set all random-color" },
+
+        { event: "quadro-1.action.single", do: "set living on 100" },
+        { event: "quadro-1.action.long",   do: "set living off" },
+        { event: "quadro-2.action.single", do: "set living 60" },
+        { event: "quadro-3.action.single", do: "set living 20" },
+        { event: "quadro-4.action.single", do: "set amp on" },
+        { event: "quadro-4.action.long",   do: "set amp off" },
 
         { event: "cube.action.shake", do: "set all random-color"}
     ],
