@@ -562,7 +562,7 @@ const drivers = {
                     console.warn(`zigbee: unknown device address ${id}`);
                 }
 
-                if (device.log ?? true)
+                if (device?.log ?? true)
                     console.log(`zigbee rx ${id}:`, JSON.stringify(data));
               });
         }
