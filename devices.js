@@ -29,7 +29,7 @@ class Device
         this.type = config.type;
         this.addr = config.addr;
         this.map  = config.map;
-        this.log  = config.log;
+        this.log  = config.log ?? true;
     }
 
     is_online() { 
@@ -109,6 +109,10 @@ class Device
         const mapped = this.map_attrs(attr, val);
 
         this.data[mapped.attr] = mapped.val;
+
+        this.update_last_seen();
+
+        this.last_log = Date.now();
 
         Logger.log(this, mapped.attr, mapped.val);
 
@@ -469,8 +473,6 @@ const drivers = {
                 val = mapped.val;
                 
                 Events.message(this, attr, val);
-
-                this.update_last_seen();
             }
         }
 
@@ -494,9 +496,7 @@ const drivers = {
 
             Events.message(this, 'temperature', temp);
             Events.message(this, 'humidity', humid);
-
-            this.update_last_seen();
-        }
+        } 
  
         // TODO generalize
         async get_temperature()  { return this.data['temperature']; }
@@ -507,7 +507,7 @@ const drivers = {
     // ZIGBEE MQTT Bridge
     //
 
-    'zigbee2mqtt' : class Zigbee2Mqtt extends Device
+    'mqtt' : class Mqtt extends Device
     {
         constructor(config) { 
             super(config);
@@ -525,7 +525,7 @@ const drivers = {
                 console.log('MQTT connected', this.url);
             
                 client.subscribe(
-                    ['zigbee2mqtt/bridge/devices', 'zigbee2mqtt/#'],
+                    ['zigbee2mqtt/bridge/devices', 'zigbee2mqtt/#', 'airgradient/#'],
                     (err) => err && console.error('MQTT subscribe error:', err)
                 );
             });
@@ -534,36 +534,67 @@ const drivers = {
 
                 // topic format: zigbee2mqtt/<friendly_name>(/optional)
                 const parts = topic.split('/');
-                if (parts[0] !== 'zigbee2mqtt' || parts.length < 2) return;
-              
-                const id = parts[1];
+                
+                // zigbee
+                if (parts[0] == 'zigbee2mqtt') {
 
-                // TODO do sth with this info
-                if (id == 'bridge') {
-                    return;
+                    if (parts.length < 2)
+                        return;
+                
+                    const id = parts[1];
+
+                    // TODO do sth with this info?
+                    if (id == 'bridge') {
+                        return;
+                    }
+
+                    try {
+                        let data = JSON.parse(message.toString());
+                    
+                        let device = Devices.find('zigbee', id);
+                        if (device) {
+                            const entries = Object.entries(data);
+                            for (let [attr, val] of entries)
+                                device.message(attr, val);
+                        } else 
+                        {
+                            console.warn(`zigbee: unknown device address ${id}`);
+                        }
+
+                        if (device?.log ?? true)
+                            console.log(`zigbee rx ${id}:`, JSON.stringify(data));
+                    } catch {
+                        // ignore silently
+                    }
                 }
-              
-                let data;
-                try {
-                  data = JSON.parse(message.toString());
-                } catch {
-                    // silently ignore if not json, its not for us
-                    return;
+                // AirGradient
+                else if (parts[0] == 'airgradient') {
+
+                    if (parts.length < 3)
+                        return;
+
+                    if (parts[1] === 'readings') {
+                        const id = parts[2];
+                        try {
+                            let data = JSON.parse(message.toString());
+                        
+                            let device = Devices.find('airgradient', id);
+                            if (device) {
+                                const entries = Object.entries(data);
+                                for (let [attr, val] of entries)
+                                    device.message(attr, val);
+                            } else 
+                            {
+                                console.warn(`airgradient: unknown device address ${id}`);
+                            }
+    
+                            if (device?.log ?? true)
+                                console.log(`airgradient rx ${id}:`, JSON.stringify(data));
+                        } catch {
+                            console.error(`received invalid json from airgradient device`);
+                        }
+                    }
                 }
-
-
-                let device = Devices.find('zigbee', id);
-                if (device) {
-                    const entries = Object.entries(data);
-                    for (let [attr, val] of entries)
-                        device.message(attr, val);
-                } else 
-                {
-                    console.warn(`zigbee: unknown device address ${id}`);
-                }
-
-                if (device?.log ?? true)
-                    console.log(`zigbee rx ${id}:`, JSON.stringify(data));
               });
         }
     },
@@ -584,7 +615,6 @@ const drivers = {
         message(attr, value) {
             
             const mapped = this.update_data(attr, value);
-
             attr = mapped.attr;
             value = mapped.val;
 
@@ -600,6 +630,43 @@ const drivers = {
         async get(attr) { return this.data.get(attr); }
     },
 
+    //
+    // AIR GRADIENT via mqtt
+    //
+
+    'airgradient' : class AirGradient extends Device
+    {
+        constructor(config) { 
+            super(config);
+            this.add_getter(['info']);
+
+            // map
+            this.map = { 
+                atmp: "temperature", 
+                rhum: "humidity",
+                rco2: "co2",
+                tvocIndex: "voc",   // Sensirion VOC Index
+                noxIndex: "nox",    // Sensirion NOx Index
+            }
+        }
+
+        message(attr, value) {
+            
+            const mapped = this.update_data(attr, value);
+            attr = mapped.attr;
+            value = mapped.val;
+
+            Events.message(this, attr, value);
+
+            this.update_last_seen();
+
+            // allow any value from zigbee device
+            if (!this.getter.includes(attr))
+                this.getter.push(attr);
+        }
+
+        async get(attr) { return this.data.get(attr); }
+    },
 
     //
     // TASMOTA

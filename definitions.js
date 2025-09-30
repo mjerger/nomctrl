@@ -32,8 +32,8 @@ module.exports = {
         },
 
         groups: {
-            environment: [ "humidity", "temperature", "illumination", "illuminance", "occupancy", "co2", "formaldehyd", "voc" ],
-            devices:     [ "battery", "battery_low", "linkquality", "zigbee.voltage", "tamper" ],
+            environment: [ "temperature", "humidity", "illumination", "illuminance", "occupancy", "co2", "voc", "nox", "pm01", "pm02", "pm10" ],
+            devices:     [ "battery", "battery_low", "linkquality", "zigbee.voltage", "tamper", "last_seen" ],
             inputs:      [ "action", "alarm", "contact", "water", "movement" ],
             energy:      [ "power", "power_status",  "energy", "energy_t", "energy_y", "tasmota.voltage", "current" ],
             switches:    [ "tasmota.state", "elro.state" ],
@@ -96,7 +96,7 @@ module.exports = {
             { id: "env-sleep",   addr: "2" }
         ],
 
-        zigbee2mqtt: [
+        mqtt: [
             { url: "mqtt://localhost:1883" }
         ],
 
@@ -104,6 +104,7 @@ module.exports = {
             { id: "button-1",    map: { action: { toggle: "single", on: "double", off: "long" } } },
             { id: "button-2" },
             { id: "button-3",    map: { action: { toggle: "single", on: "double", off: "long" } } },
+            { id: "rotary-1" },
             { id: "buttons-1" },
             { id: "water-1" ,    map: { alarm_1: "action", action: { true: "wet", false: "dry" } } },
             { id: "water-2" ,    map: { alarm_1: "action", action: { true: "wet", false: "dry" } } },
@@ -112,12 +113,16 @@ module.exports = {
             { id: "presence-3", log: false },
             { id: "temp-1" },
             { id: "temp-2" },
-            { id: "air-1", log: false },
+            { id: "air-2", log: false },
             { id: "contact-1",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "contact-2",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "vibration-1", map: { alarm_1: "action", action: { true: "move", false: "rest"  } } },
             { id: "cube" },
             { id: "soil-1" }
+        ],
+
+        airgradient: [
+            { id: "air-1", addr: "d83bda1cbc48" },
         ]
     },
 
