@@ -2,7 +2,7 @@ const Config  = require('./config.js');
 const Utils   = require('./utils.js');
 const Devices = require('./devices.js');
 const Nodes   = require('./nodes.js');
-const Timers  = require('./timers.js');
+const Events  = require('./events.js');
 
 const CMDS = {
     STATUS : 'status',      // return full status of a node
@@ -131,7 +131,7 @@ class Commands {
         let todo = {};
 
         while (arg) {
-            const action = Config.actions().find(a => a.id === arg);
+            const action = Events.events.find(e => e.id === arg);
             if (!action) {
                 if (todo.errors == undefined) todo.errors = [];
                 todo.errors.push(`Action '${action}' not found.`);
@@ -139,14 +139,10 @@ class Commands {
                 continue;
             }
 
-            const cmds = action.do;
-            if (cmds.constructor == [].constructor) {
-                for (const cmd of cmds) {
-                    todo = Utils.merge(todo, this.parse(cmd, opts));
-                }
-            } else {
-                todo = Utils.merge(todo, this.parse(cmds, opts));
+            for (const cmd of action.get_commands()) {
+                todo = Utils.merge(todo, this.parse(cmd, opts));
             }
+
             arg = next(args);
         }
 

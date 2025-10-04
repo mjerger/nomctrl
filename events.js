@@ -5,6 +5,7 @@ class Event
     constructor(event, value, config) { 
         this.event = event;
         this.value = value;
+        this.id        = config.id;
         this.condition = config.cond    ? [].concat(config.cond)    : [];
         this.command   = config.do      ? [].concat(config.do)      : [];
         this.set       = config.set     ? [].concat(config.set)     : [];
@@ -29,6 +30,27 @@ class Event
         }
 
         return true;
+    }
+
+    get_commands() {
+        let cmds = [];
+
+        // command
+        for (let cmd of this.command) {
+            cmds.push(cmd);
+        }
+
+        // set shorthand
+        for (let id_val of this.set) {
+            cmds.push(`set ${id_val}`);
+        }
+        
+        // forward the value to a setter
+        for (let id of this.forward) {
+            cmds.push(`set ${id} ${value}`);
+        }
+
+        return cmds;
     }
 }
 
@@ -70,20 +92,7 @@ class Events
 
             console.log(`Event: ${event} ${value == undefined ? '' : value}`);
 
-            // command
-            for (let cmd of e.command) {
-                this.execute(cmd);
-            }
-
-            // set shorthand
-            for (let id_val of e.set) {
-                this.execute(`set ${id_val}`);
-            }
-            
-            // forward the value to a setter
-            for (let id of e.forward) {
-                this.execute(`set ${id} ${value}`);
-            }
+            this.execute(e.get_commands());
         }
     }
 

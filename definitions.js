@@ -189,8 +189,8 @@ module.exports = {
 
         { event: 'cube.action.shake', set: 'all random-color'},
 
-        { event: 'presence-4.occupancy.true', do: 'set lamp-1 on for 10s'},
-        { event: 'presence-5.occupancy.true', do: 'set lamp-2 on for 30s'},
+        { event: 'presence-4.occupancy', forward: 'lamp-1'},
+        { event: 'presence-5.occupancy', forward: 'lamp-2'},
     ],
 
     colors: [
