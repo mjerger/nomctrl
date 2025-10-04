@@ -511,6 +511,7 @@ const drivers = {
             Events.message(this, 'temperature', temp);
             Events.message(this, 'humidity', humid);
         }
+        // TODO fix getters
     },
 
     //
@@ -523,7 +524,7 @@ const drivers = {
             super(config);
             this.add_getter(['info', 'power', 'energy', 'energy_t', 'energy_y']);
 
-            this.kwhPerRev = config.kwhPerRev
+            this.kwhPerRev = 1.0 / config.revolutions;
 
             // Convert device “counts” into real units:
             // - current_cnt is average rev per 5 minutes -> kW = rev * (kWh/rev) / (5/60 h)
@@ -550,6 +551,8 @@ const drivers = {
             const type = Number(a[1] + a[2]);            // e.g., "01" -> 1 (decimal)
             const code = parseInt(a[3] + a[4], 16);      // device code
             const seq  = parseInt(a[5] + a[6], 16);      // sequence #
+
+            // TODO could check sequence number here
 
             // 16-bit values (little-endian on nibble pairs like in FHEM)
             let total_cnt   = parseInt(a[9]  + a[10] + a[7]  + a[8] , 16); // cumulative revolutions
@@ -590,6 +593,8 @@ const drivers = {
             }
 
             const total_kWh = total_rev * this.corr2;
+
+            console.log(`>>>> total_rev=${total_rev} current_kW=${current_kW} peak_kW=${peak_kW} total_kWh=${total_kWh}`)
 
             this.update_data('power', current_kW);
             this.update_data('energy', total_kWh);

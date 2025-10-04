@@ -97,7 +97,7 @@ module.exports = {
         ],
 
         em1000: [
-            { id: 'power', addr: 1 }
+            { id: 'power', addr: 1, revolutions: 375 }
         ],
 
         mqtt: [
