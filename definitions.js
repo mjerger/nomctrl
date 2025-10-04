@@ -110,15 +110,21 @@ module.exports = {
             { id: "water-2" ,    map: { alarm_1: "action", action: { true: "wet", false: "dry" } } },
             { id: "presence-1" },
             { id: "presence-2" },
-            { id: "presence-3", log: false },
+            { id: "presence-3", log: false, map: { alarm_1: "occupancy" }},
+            { id: "presence-4", log: true, map: { alarm_1: "occupancy" }},
             { id: "temp-1" },
             { id: "temp-2" },
+            { id: "temp-3" },
+            { id: "temp-4" },
+            { id: "temp-5" },
             { id: "air-2", log: false },
             { id: "contact-1",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "contact-2",   map: { contact: "action", action: { true: "close", false: "open" } } },
             { id: "vibration-1", map: { alarm_1: "action", action: { true: "move", false: "rest"  } } },
             { id: "cube" },
-            { id: "soil-1" }
+            { id: "soil-1" },
+            { id: "lamp-1", setter: ['state'] },
+            { id: "lamp-2", setter: ['state'] },
         ],
 
         airgradient: [
@@ -180,7 +186,10 @@ module.exports = {
         { event: "quadro-4.action.single", do: "set amp on" },
         { event: "quadro-4.action.long",   do: "set amp off" },
 
-        { event: "cube.action.shake", do: "set all random-color"}
+        { event: "cube.action.shake", do: "set all random-color"},
+
+        { event: "presence-4.occupancy.true", do: "set lamp-1 off"},
+        { event: "presence-4.occupancy.false", do: "set lamp-1 on"}
     ],
 
     colors: [
