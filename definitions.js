@@ -96,6 +96,10 @@ module.exports = {
             { id: 'env-sleep',   addr: '2' }
         ],
 
+        em1000: [
+            { id: 'power', addr: 1 }
+        ],
+
         mqtt: [
             { url: 'mqtt://localhost:1883' }
         ],

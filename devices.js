@@ -318,7 +318,7 @@ const drivers = {
                 const id = firstbyte & 7;
 
                 let device = Devices.find('s300th', id);
-                if (device && device.is_online()) {
+                if (device) {
                     device.message(t, h);
                     console.log(`S300TH rx id=${id} temp=${t}°C humid=${h}%`);
                 } else {
@@ -333,11 +333,24 @@ const drivers = {
                 let cmd = data.slice(8,9);
                 
                 let device = Devices.find('fs20', code, id);
-                if (device && device.is_online()) {
+                if (device) {
                     device.message(cmd);
                     console.log(`FS20 rx hcode=${code} dev=${id} cmd=${cmd}`);
                 } else {
                     console.warn(`FS20 rx unknown device addr=${code} dev=${id}`);
+                }
+            
+            // EM1000
+            } else if (data[0] === 'E') {                                
+                // device code
+                const code = parseInt(data.slice(3, 5), 16);     
+
+                let device = Devices.find('em1000', code);
+                if (device) {
+                    device.message(data);
+                    console.log(`EM1000 rx code=${code}`);
+                } else {
+                    console.warn(`EM1000 rx unknown device addr=${code}`);
                 }
             }
         }
@@ -481,7 +494,7 @@ const drivers = {
     },
 
     //
-    // S3000TH 
+    // S3000TH
     //
 
     's300th' : class S300TH extends Device 
@@ -497,11 +510,92 @@ const drivers = {
 
             Events.message(this, 'temperature', temp);
             Events.message(this, 'humidity', humid);
-        } 
- 
-        // TODO generalize
-        async get_temperature()  { return this.data['temperature']; }
-        async get_humidity()     { return this.data['humidity']; }
+        }
+    },
+
+    //
+    // ELV EM1000
+    //
+
+    em1000 : class EM1000 extends Device 
+    {
+        constructor(config) { 
+            super(config);
+            this.add_getter(['info', 'power', 'energy', 'energy_t', 'energy_y']);
+
+            this.kwhPerRev = config.kwhPerRev
+
+            // Convert device “counts” into real units:
+            // - current_cnt is average rev per 5 minutes -> kW = rev * (kWh/rev) / (5/60 h)
+            //   => corr1 = 12 * kWh/rev
+            // - total_cnt is cumulative rev               -> kWh = rev * (kWh/rev)
+            this.corr1 = 12 * this.kwhPerRev; // kW per (rev/5min)
+            this.corr2 = this.kwhPerRev;      // kWh per rev
+            this.maxPeakKW = config.maxPeakKW ?? 6;
+        
+            this._basisCnt = 0;      // wraparound correction (in rev)
+            this._lastTotalCnt = 0;  // last raw total_cnt to detect wrap
+        }
+
+        message(raw) {
+            //  frame like: "E01010C02011500890038"
+            if (!/^E[0-9A-F]+$/.test(raw) || raw.length < 19) {
+                console.error('received invalid EM1000 data frame');
+                return;
+            }
+
+            const a = raw.split(""); // nibble-wise like the FHEM parser
+            
+            // Header
+            const type = Number(a[1] + a[2]);            // e.g., "01" -> 1 (decimal)
+            const code = parseInt(a[3] + a[4], 16);      // device code
+            const seq  = parseInt(a[5] + a[6], 16);      // sequence #
+
+            // 16-bit values (little-endian on nibble pairs like in FHEM)
+            let total_cnt   = parseInt(a[9]  + a[10] + a[7]  + a[8] , 16); // cumulative revolutions
+            let current_cnt = parseInt(a[13] + a[14] + a[11] + a[12], 16); // avg rev/5min
+            let peak_cnt    = parseInt(a[17] + a[18] + a[15] + a[16], 16); // ds/rev (if type!=2)
+            // Optional checksum/extra trailing nibbles exist on some raws; ignored.
+
+            // Wraparound handling (mirrors FHEM)
+            if (total_cnt < this._lastTotalCnt) {
+                this._basisCnt += (this._lastTotalCnt > 65000 ? 65536 : this._lastTotalCnt);
+            }
+            
+            this._lastTotalCnt = total_cnt;
+
+            const total_rev = this._basisCnt + total_cnt;
+
+            // Power/energy calculations
+            const current_kW = current_cnt * this.corr1;
+
+            // For type!=2, peak_cnt is deciseconds per revolution.
+            // pulses per 5min = 300 seconds = 3000 deciseconds; kW = (3000/peak_cnt) * corr1
+            let peak_kW;
+            if (type !== 2) {
+                peak_kW = (current_cnt && peak_cnt) ? (3000 / peak_cnt) * this.corr1 : 0;
+
+                // Glitch filter like FHEM's maxPeak: drop one spurious rev and adjust basis
+                if (this.maxPeakKW != null && peak_kW > this.maxPeakKW) {
+                    current_cnt = Math.max(0, current_cnt - 1);
+                    this._basisCnt = Math.max(0, this._basisCnt - 1); // keep total stable
+                    peak_kW = current_cnt * this.corr1;
+
+                    // Keep a reasonable derived peak_cnt (best-effort)
+                    peak_cnt = peak_kW ? Math.floor((3000 * this.corr1) / peak_kW) : 0;
+                }
+            } else {
+                // For type==2 devices FHEM treats peak_cnt already like “rev/5min”
+                peak_kW = peak_cnt * this.corr1;
+            }
+
+            const total_kWh = total_rev * this.corr2;
+
+            this.update_data('power', current_kW);
+            this.update_data('energy', total_kWh);
+            Events.message(this, 'power', current_kW);
+            Events.message(this, 'energy', total_kWh);
+        }
     },
 
     //
@@ -847,10 +941,10 @@ const drivers = {
     },
 
     //
-    // nomframe
+    // nomraw
     //
 
-    'nomframe' : class NomFrame extends HttpDevice 
+    'nomraw' : class NomFrame extends HttpDevice 
     {
         constructor(config) { 
             super(config);

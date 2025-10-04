@@ -65,6 +65,9 @@ class Logger
                  typeof val !== 'string')
         {
             val = String(val);
+        } else if (typeof val === 'number' && (isNaN(val) || !isFinite(val))) {
+            // invalid value
+            return;
         }
 
         let tags = { device : device.id, 

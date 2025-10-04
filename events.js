@@ -44,11 +44,6 @@ class Event
         for (let id_val of this.set) {
             cmds.push(`set ${id_val}`);
         }
-        
-        // forward the value to a setter
-        for (let id of this.forward) {
-            cmds.push(`set ${id} ${value}`);
-        }
 
         return cmds;
     }
@@ -92,7 +87,14 @@ class Events
 
             console.log(`Event: ${event} ${value == undefined ? '' : value}`);
 
-            this.execute(e.get_commands());
+            let cmds = e.get_commands();
+
+            // forward the value to a setter
+            for (let id of e.forward) {
+                cmds.push(`set ${id} ${value}`);
+            }
+            
+            this.execute(cmds);
         }
     }
 
