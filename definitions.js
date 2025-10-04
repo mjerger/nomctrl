@@ -162,34 +162,34 @@ module.exports = {
     ],
 
     actions: [
-        { id: 'off'    ,                  do: 'set all off' },
-        { id: 'morning', event: '10:00' , do: 'set sleep morning 5%' },
-        { id: 'day'    , event: '12:00' , do: [ 'set sleep off', 'set living day 50%', 'set nomframe 100%' ] },
-        { id: 'evening', event: 'sunset', do: [ 'set all evening', 'set living 100%', 'set sleep 25%', 'set nomframe off'  ] },
-        { id: 'night'  , event: '22:00' , do: [ 'set all night', 'set living 50%', 'set nomframe off', 'set sleep 25%' ] },
-        { id: 'late'  ,                   do: [ 'set all sun', 'set living 50%', 'set nomframe off', 'set sleep 25%' ] },
+        { id: 'off'    ,                  set: 'all off' },
+        { id: 'morning', event: '10:00' , set: 'sleep morning 5%' },
+        { id: 'day'    , event: '12:00' , set: [ 'sleep off', 'living day 50%', 'nomframe 100%' ] },
+        { id: 'evening', event: 'sunset', set: [ 'all evening', 'living 100%', 'sleep 25%', 'nomframe off'  ] },
+        { id: 'night'  , event: '22:00' , set: [ 'all night', 'living 50%', 'nomframe off', 'sleep 25%' ] },
+        { id: 'late'  ,                   set: [ 'all sun', 'living 50%', 'nomframe off', 'sleep 25%' ] },
         
-        { event: 'button-1.action.single',   do: 'set sleep toggle' },
-        { event: 'button-1.action.double',   do: 'set sleep morning 10%' },
-        { event: 'button-1.action.long',     do: 'set all off'    },
+        { event: 'button-1.action.single',   set: 'sleep toggle' },
+        { event: 'button-1.action.double',   set: 'sleep morning 10%' },
+        { event: 'button-1.action.long',     set: 'all off'    },
 
         { event: 'button-2.action.single',   do: 'do evening'     },
-        { event: 'button-2.action.double',   do: 'set all off'    },
-        { event: 'button-2.action.long',     do: 'set amp toggle' },
+        { event: 'button-2.action.double',   set: 'all off'    },
+        { event: 'button-2.action.long',     set: 'amp toggle' },
 
-        { event: 'buttons-1.action.1_single', do: 'set all random-color' },
+        { event: 'buttons-1.action.1_single', set: 'all random-color' },
 
-        { event: 'quadro-1.action.single', do: 'set living on 100' },
-        { event: 'quadro-1.action.long',   do: 'set living off' },
-        { event: 'quadro-2.action.single', do: 'set living 60' },
-        { event: 'quadro-3.action.single', do: 'set living 20' },
-        { event: 'quadro-4.action.single', do: 'set amp on' },
-        { event: 'quadro-4.action.long',   do: 'set amp off' },
+        { event: 'quadro-1.action.single', set: 'living on 100' },
+        { event: 'quadro-1.action.long',   set: 'living off' },
+        { event: 'quadro-2.action.single', set: 'living 60' },
+        { event: 'quadro-3.action.single', set: 'living 20' },
+        { event: 'quadro-4.action.single', set: 'amp on' },
+        { event: 'quadro-4.action.long',   set: 'amp off' },
 
-        { event: 'cube.action.shake', do: 'set all random-color'},
+        { event: 'cube.action.shake', set: 'all random-color'},
 
-        { event: 'presence-4.occupancy.true', do: 'set lamp-1 off'},
-        { event: 'presence-4.occupancy.false', do: 'set lamp-1 on'}
+        { event: 'presence-4.occupancy', forward: 'lamp-1'},
+        { event: 'presence-5.occupancy', forward: 'lamp-2'}
     ],
 
     colors: [

@@ -30,6 +30,7 @@ class Device
         this.addr = config.addr;
         this.map  = config.map;
         this.log  = config.log ?? true;
+        this.setter = config.setter ?? [];
     }
 
     is_online() { 
@@ -82,7 +83,7 @@ class Device
             for (const k of keys) {
                 if (k == attr) {
                     const v = this.map[k];
-                    if (typeof v === "string") 
+                    if (typeof v === 'string') 
                         attr = v;
                 }
             }
@@ -91,10 +92,10 @@ class Device
             for (const k of keys) {
                 if (k == attr) {
                     const v = this.map[k];
-                    if (typeof v === "object") {
+                    if (typeof v === 'object') {
                         const vkeys = Object.keys(v);
                         for (const vkey of vkeys) {
-                            if (String(value) == vkey) { // note: allow compare of "true"
+                            if (String(value) == vkey) { // note: allow compare of 'true'
                                 value = v[vkey];
                             }
                         }
@@ -504,7 +505,7 @@ const drivers = {
     },
 
     //
-    // ZIGBEE MQTT Bridge
+    // MQTT Bridge 
     //
 
     'mqtt' : class Mqtt extends Device
@@ -517,22 +518,41 @@ const drivers = {
             this.usr = config.usr;
         }
 
+        publish(topic, message) {
+
+            // coerce value type
+            if (typeof message === 'object') 
+            {
+                try {
+                    message = JSON.stringify(message);
+                } catch {ou
+                    message = String(message);
+                }
+            } 
+            else if (typeof message !== 'number' &&
+                     typeof message !== 'boolean' &&
+                     typeof message !== 'string')
+            {
+                message = String(message);
+            }
+
+            this.client.publish(topic, message);
+        }
+
         start() {
             const creds = (this.pwd || this.usr) ? { password : this.pwd, username: this.usr } : {};
-            let client = mqtt.connect(this.url, creds);
-
-            client.on('connect', () => {
+            this.client = mqtt.connect(this.url, creds);
+            this.client.on('connect', () => {
                 console.log('MQTT connected', this.url);
             
-                client.subscribe(
+                this.client.subscribe(
                     ['zigbee2mqtt/bridge/devices', 'zigbee2mqtt/#', 'airgradient/#'],
                     (err) => err && console.error('MQTT subscribe error:', err)
                 );
             });
 
-            client.on('message', (topic, message) => {
+            this.client.on('message', (topic, message) => {
 
-                // topic format: zigbee2mqtt/<friendly_name>(/optional)
                 const parts = topic.split('/');
                 
                 // zigbee
@@ -628,6 +648,21 @@ const drivers = {
         }
 
         async get(attr) { return this.data.get(attr); }
+
+        async set(attr, val) {
+            let mqtt = Devices.find('mqtt')
+            if (mqtt) {
+
+                // TODO need to translate values somehow, also should know about the type?
+                if (attr === 'state') {
+                    val = val ? "ON" : "OFF";
+                }
+                mqtt.publish(`zigbee2mqtt/${this.id}/set`, { [attr]: val } );
+            } else {
+                console.error(`Device Error: ${this.id} has no available mqtt bridge`);
+            }
+        }
+
     },
 
     //
@@ -642,11 +677,11 @@ const drivers = {
 
             // map
             this.map = { 
-                atmp: "temperature", 
-                rhum: "humidity",
-                rco2: "co2",
-                tvocIndex: "voc",   // Sensirion VOC Index
-                noxIndex: "nox",    // Sensirion NOx Index
+                atmp: 'temperature', 
+                rhum: 'humidity',
+                rco2: 'co2',
+                tvocIndex: 'voc',   // Sensirion VOC Index
+                noxIndex: 'nox',    // Sensirion NOx Index
             }
         }
 
@@ -884,6 +919,11 @@ class Devices
     static get_subtype(type, subtype) {
         return this.devices.find(d => d.type === type && d.subtype === subtype);
     }
+
+    // find device of type, returns first
+    static find(type) {
+        return this.devices.find(d => d.type == type);
+    } 
 
     // find device of type with address
     static find(type, addr) {
