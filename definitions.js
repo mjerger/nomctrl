@@ -126,7 +126,7 @@ module.exports = {
             { id: 'contact-1',   map: { contact: 'action', action: { true: 'close', false: 'open' } } },
             { id: 'contact-2',   map: { contact: 'action', action: { true: 'close', false: 'open' } } },
             { id: 'vibration-1', map: { alarm_1: 'action', action: { true: 'move', false: 'rest'  } } },
-            { id: 'cube' },
+            { id: 'cube', map: { power: 'ignore' } },
             { id: 'soil-1' },
             { id: 'lamp-1', setter: ['state'] },
             { id: 'lamp-2', setter: ['state'] },

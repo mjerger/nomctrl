@@ -596,10 +596,17 @@ const drivers = {
 
             console.log(`>>>> total_rev=${total_rev} current_kW=${current_kW} peak_kW=${peak_kW} total_kWh=${total_kWh}`)
 
-            this.update_data('power', current_kW);
-            this.update_data('energy', total_kWh);
-            Events.message(this, 'power', current_kW);
-            Events.message(this, 'energy', total_kWh);
+            // power in watts
+            const power = current_kW * 1000.0;
+
+            // TODO energy-per-day
+            // energy in kWh
+            const energy_t = total_kWh;
+
+            this.update_data('power', power);
+            this.update_data('energy_t', energy_t);
+            Events.message(this, 'power', power);
+            Events.message(this, 'energy_t', energy_t);
         }
     },
 
