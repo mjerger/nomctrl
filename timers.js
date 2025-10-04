@@ -61,8 +61,7 @@ class SingleShotTimer extends Timer
 
     is_triggered (time) {
         const when = this.events[0][0];
-        const int = Utils.parseTime(when);
-        return (int < time);
+        return (Utils.parseTime(when) < time);
     }
 
     get_command () {

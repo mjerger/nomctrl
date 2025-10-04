@@ -109,10 +109,15 @@ class Utils {
             return Date.parse(today + "T" + str);
         }
 
-        // epoch, in seconds
+        // epoch, convert to ms
         if (str.match(/^\d+/)) {
-            const ts = parseInt(str) * 1000;
-            return ts;
+            const ts = parseInt(str);
+            if (ts > 1E13)
+                return ts / 1000;
+            else if (ts > 1E10)
+                return ts;
+            else
+                return ts * 1000;
         }
 
         // TODO more formats ?
@@ -126,6 +131,7 @@ class Utils {
             let val = parseInt(str);
             if (val >= 0) {
                 switch (str.slice(-1)) {
+                    case 's' :                          break;
                     case 'm' :          val *= 60;      break;
                     case 'h' : default: val *= 3600;    break;
                     case 'd' :          val *= 3600*24; break;

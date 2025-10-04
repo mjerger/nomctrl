@@ -241,7 +241,7 @@ async function execute(cmds, opts={}) {
     //
     if (todo.set_at) {
         for (const [node, attr, value, time] of todo.set_at) {
-            Timers.addSingleShot(node, attr, `set ${node} ${attr}${value ? ' '+value : ''}`, time);
+            Timers.addSingleShot(node, attr, `set ${node} ${attr}${value !== undefined ? ' '+value : ''}`, time);
         }
     }
 

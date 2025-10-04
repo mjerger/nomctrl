@@ -348,38 +348,42 @@ class Commands {
                     }
                 
                 // set now and undo at specified time
-                } else if (arg.match(TOKENS.UNTIL)) {
-                    arg = next(args);
-                    if (arg && arg.match(TOKENS.TIME)) {
-                        const time = Utils.parseTime(arg);
-                        arg = next(args);
-
-                        // add setters with current value at specified time
-                        for (const [node, attr, val] of setter) {
-                            const cur_val = Nodes.get(node).get_current(attr);
-                            set_at.push([node, attr, cur_val, time]);
-                        }
-
-                    } else {
-                        return { errors : ['Missing time argument.'] };
-                    }
-                
-                // set now and undo in x seconds
-                } else if (arg.match(TOKENS.FOR)) {
-                    arg = next(args);
-                    if (arg && arg.match(TOKENS.DURATION)) {
-                        const duration = Utils.parseDuration(arg);
-                        const time = Date.now() + duration*1000;
+                } else if (arg.match(TOKENS.UNTIL) || arg.match(TOKENS.FOR)) {
+                    let time;
+                    if (arg.match(TOKENS.UNTIL)) {
                         arg = next(args);
                         
-                        // add setters with current value at specified time
-                        for (const [node, attr, val] of setter) {
-                            const cur_val = Nodes.get(node).get_current(attr);
-                            set_at.push([node, attr, cur_val, time]);
+                        if (arg !== undefined && arg.match(TOKENS.TIME)) {
+                            time = Utils.parseTime(arg);
+                            arg = next(args);
+                        } else {
+                            return { errors : ['Missing time argument.'] };
                         }
-
+                    } else if (arg.match(TOKENS.FOR)) {
+                        arg = next(args);
+                        
+                        if (arg !== undefined && arg.match(TOKENS.DURATION)) {
+                            const ms = Utils.parseDuration(arg);
+                            time = Date.now() + ms;
+                            arg = next(args);
+                        }
                     } else {
                         return { errors : ['Missing duration argument.'] };
+                    }
+
+
+                    // add setters with current value at specified time
+                    for (const [node, attr, val] of setter) {
+                        // determine unset-value
+                        let undo_val;
+                        if (attr === 'state') {
+                            undo_val = !val;    // flip bool state
+                        } else {
+                            // use node's current value, this leads to unintuitive behavior when using this command repeatedly
+                            undo_val = Nodes.get(node).get_current(attr); 
+                        }
+
+                        set_at.push([node, attr, undo_val, time]);
                     }
                 }
             }

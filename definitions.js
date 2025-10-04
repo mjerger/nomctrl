@@ -33,7 +33,7 @@ module.exports = {
 
         groups: {
             environment: [ 'temperature', 'humidity', 'illumination', 'illuminance', 'occupancy', 'co2', 'voc', 'nox', 'pm01', 'pm02', 'pm10' ],
-            devices:     [ 'battery', 'battery_low', 'linkquality', 'zigbee.voltage', 'tamper', 'last_seen' ],
+            devices:     [ 'battery', 'battery_low', 'linkquality', 'zigbee.voltage', 'tamper' ],
             inputs:      [ 'action', 'alarm', 'contact', 'water', 'movement' ],
             energy:      [ 'power', 'power_status',  'energy', 'energy_t', 'energy_y', 'tasmota.voltage', 'current' ],
             switches:    [ 'tasmota.state', 'elro.state' ],
@@ -108,10 +108,11 @@ module.exports = {
             { id: 'buttons-1' },
             { id: 'water-1' ,    map: { alarm_1: 'action', action: { true: 'wet', false: 'dry' } } },
             { id: 'water-2' ,    map: { alarm_1: 'action', action: { true: 'wet', false: 'dry' } } },
-            { id: 'presence-1' },
-            { id: 'presence-2' },
+            { id: 'presence-1', log: false },
+            { id: 'presence-2', log: false },
             { id: 'presence-3', log: false, map: { alarm_1: 'occupancy' }},
-            { id: 'presence-4', log: true, map: { alarm_1: 'occupancy' }},
+            { id: 'presence-4', log: false, map: { alarm_1: 'occupancy' }},
+            { id: 'presence-5', log: false, map: { alarm_1: 'occupancy' }},
             { id: 'temp-1' },
             { id: 'temp-2' },
             { id: 'temp-3' },
@@ -188,8 +189,8 @@ module.exports = {
 
         { event: 'cube.action.shake', set: 'all random-color'},
 
-        { event: 'presence-4.occupancy', forward: 'lamp-1'},
-        { event: 'presence-5.occupancy', forward: 'lamp-2'}
+        { event: 'presence-4.occupancy.true', do: 'set lamp-1 on for 10s'},
+        { event: 'presence-5.occupancy.true', do: 'set lamp-2 on for 30s'},
     ],
 
     colors: [
