@@ -106,6 +106,26 @@ class Device
         return { attr: attr, val: value };
     }
 
+    unmap_attrs(attr, value) {
+        if (this.map) {
+            const keys = Object.keys(this.map);
+
+            // 1. unmap attribute names first
+            for (const k of keys) {
+                const v = this.map[k];
+                if (typeof v === 'string') {
+                    if (v == attr) {
+                        attr = k;
+                    }
+                }
+            }
+
+            // 2. unmap values 
+            // TODO when needed, i'm lazy
+        }
+        return { attr: attr, val: value };
+    }
+
     update_data(attr, val) {
         const mapped = this.map_attrs(attr, val);
 
@@ -677,18 +697,18 @@ const drivers = {
                     try {
                         let data = JSON.parse(message.toString());
                     
-                        let device = Devices.find('zigbee', id);
+                        let device = Devices.find('zigbee', addr);
                         if (device) {
                             const entries = Object.entries(data);
                             for (let [attr, val] of entries)
                                 device.message(attr, val);
                         } else 
                         {
-                            console.warn(`zigbee: unknown device address ${id}`);
+                            console.warn(`zigbee: unknown device address ${addr}`);
                         }
 
                         if (device?.log ?? true)
-                            console.log(`zigbee rx ${id}:`, JSON.stringify(data));
+                            console.log(`zigbee rx ${addr}:`, JSON.stringify(data));
                     } catch {
                         // ignore silently
                     }
@@ -704,18 +724,18 @@ const drivers = {
                         try {
                             let data = JSON.parse(message.toString());
                         
-                            let device = Devices.find('airgradient', id);
+                            let device = Devices.find('airgradient', addr);
                             if (device) {
                                 const entries = Object.entries(data);
                                 for (let [attr, val] of entries)
                                     device.message(attr, val);
                             } else 
                             {
-                                console.warn(`airgradient: unknown device address ${id}`);
+                                console.warn(`airgradient: unknown device address ${addr}`);
                             }
     
                             if (device?.log ?? true)
-                                console.log(`airgradient rx ${id}:`, JSON.stringify(data));
+                                console.log(`airgradient rx ${addr}:`, JSON.stringify(data));
                         } catch {
                             console.error(`received invalid json from airgradient device`);
                         }
@@ -735,7 +755,7 @@ const drivers = {
         constructor(config) { 
             super(config);
             this.add_getter(['info', 'battery', 'linkquality']);
-            this.addr = this.id;
+            this.addr = this.addr ?? this.id;
         }
 
         message(attr, value) {
@@ -759,13 +779,18 @@ const drivers = {
             let mqtt = Devices.find('mqtt')
             if (mqtt) {
 
+                const unmapped = this.unmap_attrs(attr, val);
+                attr = unmapped.attr;
+                val = unmapped.val;
+    
                 // TODO need to translate values somehow, also should know about the type?
-                if (attr === 'state') {
+                if (attr.startsWith('state')) {
                     val = val ? "ON" : "OFF";
                 }
-                mqtt.publish(`zigbee2mqtt/${this.id}/set`, { [attr]: val } );
+
+                mqtt.publish(`zigbee2mqtt/${this.addr}/set`, { [attr]: val } );
             } else {
-                console.error(`Device Error: ${this.id} has no available mqtt bridge`);
+                console.error(`Device Error: ${this.addr} has no available mqtt bridge`);
             }
         }
 
@@ -779,6 +804,7 @@ const drivers = {
     {
         constructor(config) { 
             super(config);
+            this.addr = this.addr ?? this.id;
             this.add_getter(['info']);
 
             // map

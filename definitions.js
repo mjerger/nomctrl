@@ -130,6 +130,9 @@ module.exports = {
             { id: 'soil-1' },
             { id: 'lamp-1', setter: ['state'] },
             { id: 'lamp-2', setter: ['state'] },
+            { id: 'usb-1', addr: 'usb-switch-1', setter: ['state'], map: { state_l1 : 'state' } },
+            { id: 'usb-2', addr: 'usb-switch-1', setter: ['state'], map: { state_l2 : 'state' } },
+            { id: 'usb-3', addr: 'usb-switch-1', setter: ['state'], map: { state_l3 : 'state' } },
         ],
 
         airgradient: [
