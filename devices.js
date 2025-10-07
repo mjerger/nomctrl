@@ -694,24 +694,26 @@ const drivers = {
                         return;
                     }
 
+                    let data;
                     try {
-                        let data = JSON.parse(message.toString());
-                    
-                        let device = Devices.find('zigbee', addr);
-                        if (device) {
-                            const entries = Object.entries(data);
-                            for (let [attr, val] of entries)
-                                device.message(attr, val);
-                        } else 
-                        {
-                            console.warn(`zigbee: unknown device address ${addr}`);
-                        }
-
-                        if (device?.log ?? true)
-                            console.log(`zigbee rx ${addr}:`, JSON.stringify(data));
+                        data = JSON.parse(message.toString());
                     } catch {
-                        // ignore silently
+                        console.error(`received invalid json from zigbee device ${id}`);
+                        return;
                     }
+
+                    let device = Devices.find('zigbee', id);
+                    if (device) {
+                        const entries = Object.entries(data);
+                        for (let [attr, val] of entries)
+                            device.message(attr, val);
+                    } else {
+                        console.warn(`zigbee: unknown device address ${id}`);
+                    }
+
+                    if (device?.log ?? true)
+                        console.log(`zigbee rx ${id}:`, JSON.stringify(data));
+
                 }
                 // AirGradient
                 else if (parts[0] == 'airgradient') {
@@ -721,24 +723,26 @@ const drivers = {
 
                     if (parts[1] === 'readings') {
                         const id = parts[2];
+
+                        let data;
                         try {
-                            let data = JSON.parse(message.toString());
-                        
-                            let device = Devices.find('airgradient', addr);
-                            if (device) {
-                                const entries = Object.entries(data);
-                                for (let [attr, val] of entries)
-                                    device.message(attr, val);
-                            } else 
-                            {
-                                console.warn(`airgradient: unknown device address ${addr}`);
-                            }
-    
-                            if (device?.log ?? true)
-                                console.log(`airgradient rx ${addr}:`, JSON.stringify(data));
+                            data = JSON.parse(message.toString());
                         } catch {
-                            console.error(`received invalid json from airgradient device`);
+                            console.error(`received invalid json from airgradient device ${id}`);
+                            return;
                         }
+                        
+                        let device = Devices.find('airgradient', id);
+                        if (device) {
+                            const entries = Object.entries(data);
+                            for (let [attr, val] of entries)
+                                device.message(attr, val);
+                        } else {
+                            console.warn(`airgradient: unknown device address ${id}`);
+                        }
+
+                        if (device?.log ?? true)
+                            console.log(`airgradient rx ${id}:`, JSON.stringify(data));
                     }
                 }
               });
