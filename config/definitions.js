@@ -5,7 +5,9 @@ module.exports = {
         timer_interval: 60,
         poll_interval: 60,
 
-        setup_cul_on_connect: false
+        setup_cul_on_connect: false,
+
+        storage: '/opt/nomctrl/data/storage.json'
     },
 
     loc: { 
@@ -24,7 +26,7 @@ module.exports = {
 
     log: {
         influx: {
-            host: 'nompi',
+            host: 'localhost',
             port: 8086,
             database: 'nomctrl',
             username: 'nomctrl',
@@ -76,9 +78,11 @@ module.exports = {
         ],
 
         elro: [
-            { id: 'elro-a1', addr: 'A1' },
-            { id: 'elro-a2', addr: 'A2' },
-            { id: 'elro-a3', addr: 'A3' }
+            { id: 'elro-n1', addr: 'N1' },
+            { id: 'elro-n2', addr: 'N2' },
+            { id: 'elro-n3', addr: 'N3' },
+            { id: 'elro-n4', addr: 'N4' },
+            { id: 'elro-n5', addr: 'N5' },
         ],
 
         fs20: {
@@ -98,6 +102,10 @@ module.exports = {
 
         em1000: [
             { id: 'power', addr: 1, revolutions: 375 }
+        ],
+
+        esa1000: [
+            { id: 'gas', addr: '0543' }
         ],
 
         mqtt: [
@@ -146,17 +154,19 @@ module.exports = {
         { id: 'terra'    , device: 'tasmota-s3' },
         { id: 'grow'     , device: 'tasmota-s4' },
         { id: 'growbox'  , device: 'tasmota-s5' },
-        { id: 'fairy-1'  , device: 'elro-a1', thresh: 80 },
+        { id: 'fairy-1'  , device: 'elro-n1', thresh: 80 },
+        { id: 'humid-gen', device: 'elro-n2'},
         { id: 'desk'         , device: 'wled-desk'  },
         { id: 'stuff-light'  , device: 'wled-stuff' },
         { id: 'tv-light'     , device: 'wled-tv'    },
         { id: 'bedroom-light', device: 'wled-bed-ceil' },
         { id: 'string-1'     , device: 'wled-string-1' },
-        { id: 'string-2'     , device: 'wled-string-2' }
+        { id: 'string-2'     , device: 'wled-string-2' },
+        { id: 'usb-1'        , device: 'usb-1', thresh: 10 }
     ],
 
     groups: [
-        { id: 'living'   , nodes: [ 'desk', 'amp', 'plants', 'terra', 'stuff-light', 'tv-light', 'grow' ], groups: [ 'xmas' ] },
+        { id: 'living'   , nodes: [ 'desk', 'amp', 'plants', 'terra', 'stuff-light', 'tv-light', 'grow', 'usb-1'], groups: [ 'xmas' ] },
         { id: 'sleep'    , nodes: [ 'bedroom-light', 'growbox' ] },
         { id: 'xmas'     , nodes: [ 'string-1', 'string-2', 'fairy-1'] },
         { id: 'all'      , groups: [ 'living', 'sleep'] }
@@ -179,10 +189,10 @@ module.exports = {
         
         { event: 'button-1.action.single',   set: 'sleep toggle' },
         { event: 'button-1.action.double',   set: 'sleep morning 10%' },
-        { event: 'button-1.action.long',     set: 'all off'    },
+        { event: 'button-1.action.long',     set: 'all off' },
 
-        { event: 'button-2.action.single',   do: 'do evening'     },
-        { event: 'button-2.action.double',   set: 'all off'    },
+        { event: 'button-2.action.single',   do: 'do evening' },
+        { event: 'button-2.action.double',   set: 'all off' },
         { event: 'button-2.action.long',     set: 'amp toggle' },
 
         { event: 'buttons-1.action.1_single', set: 'all random-color' },
@@ -194,7 +204,9 @@ module.exports = {
         { event: 'quadro-4.action.single', set: 'amp on' },
         { event: 'quadro-4.action.long',   set: 'amp off' },
 
-        { event: 'cube.action.shake', set: 'all random-color'},
+        //{ event: 'cube.action.shake', set: 'all random-color'},
+        //{ event: 'cube.action.throw', do: 'set usb-1 on for 2s'},
+        { event: 'cube.action.flip90', set: 'all random-color'},
 
         { event: 'presence-4.occupancy', forward: 'lamp-1'},
         { event: 'presence-5.occupancy', forward: 'lamp-2'},

@@ -10,7 +10,7 @@ class Logger
 
         this.ready = false;
 
-        this.db = config.database;
+        this.db = undefined;
         this.groups = config.groups;
         this.ignore = config.ignore
         this.log_unmapped = config.log_unmapped
@@ -20,14 +20,14 @@ class Logger
         await this.influx
             .getDatabaseNames()
             .catch(err => {
-                console.error(`error fetching influxdb database: ${err}`);
+                console.error(`error fetching InfluxDB database: ${err}`);
             })
             .then( (dbs) => {
                 if (dbs && !dbs.includes(this.db)) {
                     this.influx.createDatabase(this.db)
-                            .catch(err => { console.error(`Error creating Influx database`)})
+                            .catch(err => { console.error(`Error creating InfluxDB database`)})
                             .then(() => {
-                            console.log ("influxdb connected");
+                            console.log (`InfluxDB connected ${config.influx.host}:${config.influx.port}/${config.influx.database}`);
                             this.ready = true;
                             });
                 };

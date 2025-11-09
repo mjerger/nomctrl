@@ -1,5 +1,6 @@
 const Utils    = require('./utils.js');
 const Config   = require('./config.js');
+const Storage  = require('./storage.js');
 const Devices  = require('./devices.js');
 const Nodes    = require('./nodes.js');
 const Logger   = require('./logger.js');
@@ -14,7 +15,7 @@ const app = express();
 // STARTUP
 
 app.listen(Config.app().port, function () {
-    app.use(express.static('www'))
+    app.use(express.static('data/www'))
     app.use(bodyParser.json());
     app.use(express.urlencoded())
 
@@ -27,6 +28,7 @@ app.listen(Config.app().port, function () {
     console.log(`nomctrl listening on port ${Config.app().port}`);
     console.log(line);
 
+    Storage.init(Config.app());
     Devices.init(Config.devices());
     Nodes.init(Config.nodes(), Config.groups());
     Logger.init(Config.log());

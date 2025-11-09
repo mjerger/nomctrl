@@ -1,6 +1,6 @@
 const SunCalc = require('./suncalc.js');
 const Axios   = require('axios')
-const config  = require('./definitions.js');
+const config  = require('./config/definitions.js');
 
 class Utils {
 

@@ -244,7 +244,7 @@ class Timers
                 this.timers.delete(timer.id);
 
                 const cmd = timer.get_command();
-                console.log(`Timer: ${timer.id} single`);
+                console.log(`timer ${timer.id} single`);
                 await this.execute(cmd, {'include_timed' : true});
             }
         }
@@ -268,7 +268,7 @@ class Timers
             cmds = cmds.concat(cmds);
             const currentStateCmd = Utils.findClosest(times, cmds, Date.now());
 
-            console.log(`Timer: ${timer.id} strict`);
+            console.log(`timer ${timer.id} strict`);
             await this.execute(currentStateCmd, {'include_timed' : true});
         }
 

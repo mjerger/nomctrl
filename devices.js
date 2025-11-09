@@ -1,13 +1,14 @@
-const Config = require('./config.js');
-const Utils  = require('./utils.js');
-const Events = require('./events.js');
-const Logger = require('./logger.js');
+const Config  = require('./config.js');
+const Storage = require('./storage.js');
+const Utils   = require('./utils.js');
+const Events  = require('./events.js');
+const Logger  = require('./logger.js');
 
 const { SerialPort } = require('serialport')
 const fs = require('fs');
 const mqtt = require('mqtt');
 
-class Device 
+class Device
 {
     setter = [];
     getter = ['online', 'last_seen'];
@@ -40,7 +41,7 @@ class Device
     set_online(online) {
         if (this.online != online) {
             this.online = online;
-            console.log (`Device: ${this.id} ${online ? 'online' : `offline [${this.host ?? this.path ?? this.addr}]`}`)
+            console.log (`device ${this.id} ${online ? 'online' : `offline [${this.host ?? this.path ?? this.addr}]`}`)
         }
 
         if(online)
@@ -51,11 +52,11 @@ class Device
         this.last_seen = +Date.now();
     }
 
-    get_online() {
+    async get_online() {
         return this.online;
     }
 
-    get_last_seen() {
+    async get_last_seen() {
         return this.last_seen;
     }
 
@@ -63,7 +64,7 @@ class Device
         try {
             return this['get_' + attr]().then((val) => this.update_data(attr, val));
         } catch (e) {
-            console.error(`Device Error: ${this.id} get ${attr}\n${e}`);
+            console.error(`device ${this.id} error get ${attr}\n${e}`);
         }
     }
 
@@ -71,8 +72,16 @@ class Device
         try {
             return this['set_' + attr](val).then(() => this.update_data(attr, val));
         } catch (e) {
-            console.error(`Device Error: ${this.id} set ${attr}`);
+            console.error(`device ${this.id} error set ${attr}`);
         }
+    }
+
+    store(key, value) {
+        Storage.set(`${this.type}_${this.addr}_${key}`, value);
+    }
+
+    load(key, value=null) {
+        return Storage.get(`${this.type}_${this.addr}_${key}`, value);
     }
 
     map_attrs(attr, value) {
@@ -141,7 +150,7 @@ class Device
     }
 }
 
-class HttpDevice extends Device 
+class HttpDevice extends Device
 {
     ping_path = '/'
 
@@ -178,7 +187,7 @@ class HttpDevice extends Device
     }
 }
 
-class SerialDevice extends Device 
+class SerialDevice extends Device
 {
     constructor(config) { 
         super(config);
@@ -233,7 +242,6 @@ const drivers = {
             this.online = false;
             this.frequency = undefined;
             this.path = config.path;
-            
         }
 
         start() {
@@ -322,7 +330,7 @@ const drivers = {
             data = data.trim()
             console.log(`cul rx ${data.trim()}`);
 
-            // S300HT and similar
+            // S300TH and similar
             if (data[0] === 'K') {
       
                 const firstbyte = parseInt(data[1], 16);
@@ -335,42 +343,53 @@ const drivers = {
                 const t = sgn * parseFloat(`${data[6]}${data[3]}.${data[4]}`);
                 const h = parseFloat(`${data[7]}${data[8]}.${data[5]}`);
 
-                const id = firstbyte & 7;
+                const addr = firstbyte & 7;
 
-                let device = Devices.find('s300th', id);
+                let device = Devices.find('s300th', addr);
                 if (device) {
                     device.message(t, h);
-                    console.log(`S300TH rx id=${id} temp=${t}°C humid=${h}%`);
+                    console.log(`S300TH rx addr=${addr} temp=${t}°C humid=${h}%`);
                 } else {
-                    console.warn(`S300TH rx unknown device address ${id}`);
+                    console.warn(`S300TH rx unknown device address ${addr}`);
                 }
                 
             // FS20
             } else if (data[0] === 'F') {
 
-                let code = data.slice(1,5);
+                let addr = data.slice(1,5);
                 let id = data.slice(6,7);
                 let cmd = data.slice(8,9);
                 
-                let device = Devices.find('fs20', code, id);
+                let device = Devices.find('fs20', addr, id);
                 if (device) {
                     device.message(cmd);
-                    console.log(`FS20 rx hcode=${code} dev=${id} cmd=${cmd}`);
+                    console.log(`FS20 rx addr=${addr} dev=${id} cmd=${cmd}`);
                 } else {
-                    console.warn(`FS20 rx unknown device addr=${code} dev=${id}`);
+                    console.warn(`FS20 rx unknown device addr=${addr} dev=${id}`);
                 }
             
             // EM1000
             } else if (data[0] === 'E') {                                
-                // device code
-                const code = parseInt(data.slice(3, 5), 16);     
+                const addr = parseInt(data.slice(3, 5), 16);     
 
-                let device = Devices.find('em1000', code);
+                let device = Devices.find('em1000', addr);
                 if (device) {
                     device.message(data);
-                    console.log(`EM1000 rx code=${code}`);
+                    console.log(`EM1000 rx addr=${addr}`);
                 } else {
-                    console.warn(`EM1000 rx unknown device addr=${code}`);
+                    console.warn(`EM1000 rx unknown device address ${addr}`);
+                }
+            
+            // ESA1000
+            } else if (data[0] === 'S') {                                
+                const addr = data.slice(3, 7);   
+
+                let device = Devices.find('esa1000', addr);
+                if (device) {
+                    device.message(data);
+                    console.log(`ESA1000 rx addr=${addr}`);
+                } else {
+                    console.warn(`ESA1000 rx unknown device address ${addr}`);
                 }
             }
         }
@@ -412,12 +431,12 @@ const drivers = {
     // ELRO / INTERTECHNO
     //
     
-    'elro' : class Elro extends Device 
+    'elro' : class Elro extends Device
     {
         constructor(config) { 
             super(config);
 
-            this.add_getter(['info', 'state']);
+            this.add_getter(['state']);
             this.add_setter(['state', 'flip']);
 
             this.addr = config.addr.trim().toUpperCase();
@@ -451,20 +470,6 @@ const drivers = {
                 console.error('Cannot send: no CUL433 device available');
         }
 
-        // return info on how to set the dip switches :)
-        async get_info() {
-            const { house, unit } = this.parse_addr(this.addr);
-            const houseNibble = this.TRI[house];
-            const unitNibble  = this.TRI[unit];
-            
-            // 10 DIP switches: 1–5 (house), A–E (unit). 
-            // Fifth in each row is typically unused -> 0.
-            const houseRow = houseNibble.padEnd(5, '0');
-            const unitRow  = unitNibble.padEnd(5, '0');
-            
-            return '\n12345ABCDE\n' + houseRow + unitRow;
-        }
-
         async get_state () {}
 
     },
@@ -473,7 +478,7 @@ const drivers = {
     // FS20
     //
 
-    'fs20' : class FS20 extends Device 
+    'fs20' : class FS20 extends Device
     {
         static subtypes = ['fs20s4']; 
 
@@ -517,7 +522,7 @@ const drivers = {
     // S3000TH
     //
 
-    's300th' : class S300TH extends Device 
+    's300th' : class S300TH extends Device
     {
         constructor(config) { 
             super(config);
@@ -535,14 +540,14 @@ const drivers = {
     },
 
     //
-    // ELV EM1000
+    // ELV EM1000 power meter optical disc rotation counter
     //
 
-    em1000 : class EM1000 extends Device 
+    em1000 : class EM1000 extends Device
     {
         constructor(config) { 
             super(config);
-            this.add_getter(['info', 'power', 'energy', 'energy_t', 'energy_y']);
+            this.add_getter(['info', 'power', 'energy', 'energy_t', 'meter_kwh']);
 
             this.kwhPerRev = 1.0 / config.revolutions;
 
@@ -614,8 +619,6 @@ const drivers = {
 
             const total_kWh = total_rev * this.corr2;
 
-            console.log(`>>>> total_rev=${total_rev} current_kW=${current_kW} peak_kW=${peak_kW} total_kWh=${total_kWh}`)
-
             // power in watts
             const power = current_kW * 1000.0;
 
@@ -624,9 +627,134 @@ const drivers = {
             const energy_t = total_kWh;
 
             this.update_data('power', power);
-            this.update_data('energy_t', energy_t);
             Events.message(this, 'power', power);
-            Events.message(this, 'energy_t', energy_t);
+
+            this.update_data('energy', total_kWh);
+            Events.message(this, 'energy', total_kWh);
+
+            if (this._basisCnt > 0) {
+                this.update_data('meter_kwh', total_kWh);
+                Events.message(this, 'meter_kwh', total_kWh);
+            }
+        }
+    },
+
+
+    //
+    // ELV ESA1000 gas meter impulse counter
+    //
+
+    esa1000 : class ESA1000 extends Device
+    {
+        constructor(config) { 
+            super(config);
+            this.add_getter(['info', 'power', 'energy', 'meter_cbm']);
+
+            this.defaultTicks = null;
+            this.overrideTicks = null;
+            this.corr = this.load('corr', 0)
+        
+            // Internal running state (mirrors FHEM readings):
+            this._basisCnt = this.load('meter_cbm', 0);
+            this._lastTotalCnt = 0;
+        
+            // For avg power:
+            this._lastTotalCntAvg = 0;
+            this._lastTimestampAvg = 0;
+        
+            // If user didn’t specify a threshold, pick sensible default:
+            //   GAS-like (overrideTicks set like in FHEM GAS): 0
+            //   otherwise: 130
+            this.timestampDiffThreshold = this.overrideTicks != null ? 0 : 130;
+        }
+
+        message(raw) {
+            //  frame like: "S6E003D011E00037650001102C1DA07D01D"
+            //               S820543011E00000000000000001F000F29  
+            //               S010543011E000000000000000011000F38
+            if (!/^S[0-9A-F]+$/.test(raw) || raw.length < 33) {
+                console.error('received invalid ESA1000 data frame');
+                return;
+            }
+
+            const a = raw.split(""); // nibble-wise like the FHEM parser
+
+            // Layout (nibbles / hex digits), per your patch:
+            // S [1..2]=seq  [3..6]=type  [7..10]=id  [11..18]=total_cnt(32b)
+            //   [19..22]=current_cnt(16b) [23..28]=timestamp(24b, 10s units)
+            //   [29..32]=ticks(16b)
+
+            const seqno = parseInt(a[1] + a[2], 16);                // sequence #
+            const id    = parseInt(a[3] + a[4] + a[5] + a[6], 16);  // device id
+            const type  = a[7] + a[8] + a[9] + a[10]; // device type
+            
+            if (type !== '011E')
+            {
+                console.warning(`Unknown ESA1000 device type "${type}"`)
+            }
+
+            // TODO could check sequence number here
+
+
+            let total_cnt     = parseInt(a.slice(11, 19).join(""), 16); // 8 hex
+            let current_cnt   = parseInt(a.slice(19, 23).join(""), 16); // 4 hex
+            const timestamp   = parseInt(a.slice(23, 29).join(""), 16); // 6 hex
+            let ticksReported = parseInt(a.slice(29, 33).join(""), 16); // 4 hex
+
+            // Choose ticks (override > default > reported):
+            let ticks = this.overrideTicks ?? this.defaultTicks ?? ticksReported;
+            if (!ticks || ticks <= 0) {
+                console.error('Ticks must be provided (overrideTicks, constructor ticks, or frame)');
+                return;
+            }
+
+            // Wraparound handling (like FHEM):
+            if (total_cnt < this._lastTotalCnt) {
+                this._basisCnt += this._lastTotalCnt;
+                // Reset “avg” anchors on wrap:
+                this._lastTimestampAvg = 0;
+                this._lastTotalCntAvg = 0;
+                this._lastTotalCnt = 0;
+            }
+            this._lastTotalCnt = total_cnt;
+
+            // Convert to final units:
+            // - current (instantaneous-ish) rate over last device aggregation
+            const totalUnits   = (this._basisCnt + total_cnt) / ticks * this.corr;
+            const currentRate  = current_cnt / ticks * this.corr;
+
+            // Average power using timestamp deltas:
+            const tsDiff   = timestamp - this._lastTimestampAvg;     // in 10-second steps
+            const cntDiff  = total_cnt - this._lastTotalCntAvg;
+            let avgPower   = null; // same unit per-hour as currentRate
+
+            // Compute if (ts advanced AND count advanced) OR (ts advanced a lot)
+            if ((tsDiff > 0 && cntDiff > 0) || tsDiff > this.timestampDiffThreshold) {
+                // 10 sec units → hours: tsDiff * 10 / 3600
+                const hours = (tsDiff * 10) / 3600;
+                avgPower = (cntDiff / ticks) / hours * this.corr;
+
+                // Move “avg” anchors forward after using them
+                this._lastTotalCntAvg = total_cnt;
+                this._lastTimestampAvg = timestamp;
+            } else if (tsDiff <= 0 || cntDiff <= 0) {
+                // Keep anchors in sync with device even if we didn't compute avgPower
+                this._lastTotalCntAvg = total_cnt;
+                this._lastTimestampAvg = timestamp;
+            }
+
+            console.log({
+                total_cnt,
+                current_cnt,
+                timestamp_10s: timestamp,
+                ticksReported,
+                ticksUsed: ticks,
+              })
+
+            this.update_data('meter_cbm', total_cnt);
+            Events.message(this, 'meter_cbm', total_cnt);
+
+            this.store('meter_cbm', meter_cbm);
         }
     },
 
@@ -789,7 +917,8 @@ const drivers = {
     
                 // TODO need to translate values somehow, also should know about the type?
                 if (attr.startsWith('state')) {
-                    val = val ? "ON" : "OFF";
+                    if (typeof val === 'boolean')
+                        val = val ? "ON" : "OFF";
                 }
 
                 mqtt.publish(`zigbee2mqtt/${this.addr}/set`, { [attr]: val } );
@@ -843,7 +972,7 @@ const drivers = {
     // TASMOTA
     //
 
-    'tasmota' : class Tasmota extends HttpDevice 
+    'tasmota' : class Tasmota extends HttpDevice
     {
         constructor(config) { 
             super(config);
@@ -930,7 +1059,7 @@ const drivers = {
     // WLED (JSON API)
     //
 
-    'wled' : class WLED extends HttpDevice 
+    'wled' : class WLED extends HttpDevice
     {
         constructor(config)  { 
             super(config);
@@ -983,10 +1112,10 @@ const drivers = {
     },
 
     //
-    // nomraw
+    // nomframe
     //
 
-    'nomraw' : class NomFrame extends HttpDevice 
+    'nomframe' : class NomFrame extends HttpDevice 
     {
         constructor(config) { 
             super(config);
