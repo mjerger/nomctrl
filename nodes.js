@@ -102,9 +102,7 @@ class Nodes
             let device = Devices.get(cfg.device);
             if (device) {
                 this.nodes.set(cfg.id, new Node(cfg));
-            }
-            else
-            {
+            } else {
                 console.error(`Config Error: Node '${cfg.id}' has unknown device '${cfg.device}'`)
             }
         }
@@ -153,10 +151,9 @@ class Nodes
             this.groups.set(cfg.id,  resolve(cfg));
         }
 
-        // Add a node if device hat none
+        // Add a node for device, if it doesn't clash with other defined nodes
         for (const dev of Devices.all()) {
-            const found = [...this.nodes.entries()].filter(([k,v]) => v.device == dev.id);
-            if (found.length == 0 && !this.nodes.has(dev.id)) {
+            if (!this.nodes.has(dev.id)) {
                 const cfg = { "id" : dev.id, "device" : dev.id };
                 this.nodes.set(dev.id, new Node(cfg));
             }
