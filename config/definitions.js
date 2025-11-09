@@ -7,7 +7,7 @@ module.exports = {
 
         setup_cul_on_connect: false,
 
-        storage: '/opt/nomctrl/data/storage.json'
+        storage: 'data/storage.json'
     },
 
     loc: { 
