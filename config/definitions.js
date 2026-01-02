@@ -56,7 +56,7 @@ module.exports = {
             { host: 'tasmota-s3' },
             { host: 'tasmota-s4' },
             { host: 'tasmota-s5' },
-            { host: 'tasmota-s6', enabled: false }
+            { host: 'tasmota-s6' }
         ],
         
         wled: [
@@ -65,7 +65,11 @@ module.exports = {
             { host: 'wled-tv'       },
             { host: 'wled-bed-ceil' },
             { host: 'wled-string-1' },
-            { host: 'wled-string-2' }
+            { host: 'wled-string-2' },
+            { host: 'wled-string-3' },
+            { host: 'wled-string-4' },
+            { host: 'wled-kitty'    },
+            { host: 'wled-pika'     }
         ],
 
         nomframe: [
@@ -154,27 +158,34 @@ module.exports = {
         { id: 'terra'    , device: 'tasmota-s3' },
         { id: 'grow'     , device: 'tasmota-s4' },
         { id: 'growbox'  , device: 'tasmota-s5' },
+        { id: 'growy'    , device: 'tasmota-s6' },
         { id: 'fairy-1'  , device: 'elro-n1', thresh: 80 },
         { id: 'humid-gen', device: 'elro-n2'},
+        { id: 'tree'     , device: 'elro-n4', thresh: 80 },
         { id: 'desk'         , device: 'wled-desk'  },
         { id: 'stuff-light'  , device: 'wled-stuff' },
         { id: 'tv-light'     , device: 'wled-tv'    },
         { id: 'bedroom-light', device: 'wled-bed-ceil' },
         { id: 'string-1'     , device: 'wled-string-1' },
         { id: 'string-2'     , device: 'wled-string-2' },
-        { id: 'usb-1'        , device: 'usb-1', thresh: 10 }
+        { id: 'string-3'     , device: 'wled-string-3' },
+        { id: 'string-4'     , device: 'wled-string-4' },
+        { id: 'pika'         , device: 'wled-pika'  },
+        { id: 'kitty'        , device: 'wled-kitty' },
+        { id: 'usb-1'        , device: 'usb-1', thresh: 10 },
     ],
 
     groups: [
-        { id: 'living'   , nodes: [ 'desk', 'amp', 'plants', 'terra', 'stuff-light', 'tv-light', 'grow', 'usb-1'], groups: [ 'xmas' ] },
-        { id: 'sleep'    , nodes: [ 'bedroom-light', 'growbox' ] },
-        { id: 'xmas'     , nodes: [ 'string-1', 'string-2', 'fairy-1'] },
+        { id: 'living'   , nodes: [ 'desk', 'amp', 'plants', 'terra', 'stuff-light', 'tv-light', 'grow', 'usb-1', 'string-1', 'string-2', 'kitty', 'pika'], groups: [ 'xmas' ] },
+        { id: 'sleep'    , nodes: [ 'bedroom-light'] },
+        { id: 'xmas'     , nodes: [ 'string-3', 'string-4', 'tree', 'fairy-1'] },
         { id: 'all'      , groups: [ 'living', 'sleep'] }
     ],
 
     timers: [
         { id: 'grow',    node: 'grow',    on: '08:00',         off: '23:00', strict: true },
         { id: 'growbox', node: 'growbox', on: '11:00',         off: '23:00', strict: true },
+        { id: 'growy',   node: 'growy',   on: '08:00',         off: '23:00', strict: true },
         { id: 'plants',  node: 'plants',  on: 'sunriseEnd+1h', off: '21:00', strict: true },
         { id: 'terra',   node: 'terra',   on: 'sunriseEnd+1h', off: '22:00', strict: true }
     ],
@@ -204,12 +215,14 @@ module.exports = {
         { event: 'quadro-4.action.single', set: 'amp on' },
         { event: 'quadro-4.action.long',   set: 'amp off' },
 
-        //{ event: 'cube.action.shake', set: 'all random-color'},
-        //{ event: 'cube.action.throw', do: 'set usb-1 on for 2s'},
         { event: 'cube.action.flip90', set: 'all random-color'},
 
-        { event: 'presence-4.occupancy', forward: 'lamp-1'},
-        { event: 'presence-5.occupancy', forward: 'lamp-2'},
+        { event: 'presence-4.occupancy', forward: 'lamp-1'},  // hallway
+        { event: 'presence-5.occupancy', forward: 'lamp-2'},  // toilet
+        { event: 'presence-2.occupancy', forward: 'elro-n3'}, // kitchen
+
+        { event: 'temp-1.humid', cond: 'temp-1.humid < 60', set: 'humid-gen on' },
+        { event: 'temp-1.humid', cond: 'temp-1.humid > 70', set: 'humid-gen off' }
     ],
 
     colors: [
