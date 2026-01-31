@@ -69,7 +69,7 @@ module.exports = {
             { host: 'wled-string-3' },
             { host: 'wled-string-4' },
             { host: 'wled-kitty'    },
-            { host: 'wled-pika'     }
+            { host: 'wled-pika', enabled: false  }
         ],
 
         nomframe: [
@@ -135,13 +135,13 @@ module.exports = {
             { id: 'temp-4' },
             { id: 'temp-5' },
             { id: 'air-2', log: false },
-            { id: 'contact-1',   map: { contact: 'action', action: { true: 'close', false: 'open' } } },
-            { id: 'contact-2',   map: { contact: 'action', action: { true: 'close', false: 'open' } } },
+            { id: 'contact-1', map: { contact: 'action', action: { true: 'close', false: 'open' } } },
+            { id: 'door-contact', addr: 'contact-2',   map: { contact: 'action', action: { true: 'close', false: 'open' } } },
             { id: 'vibration-1', map: { alarm_1: 'action', action: { true: 'move', false: 'rest'  } } },
             { id: 'cube', map: { power: 'ignore' } },
             { id: 'soil-1' },
-            { id: 'lamp-1', setter: ['state'] },
-            { id: 'lamp-2', setter: ['state'] },
+            { id: 'hallway-light', addr: 'lamp-1', setter: ['state'] },
+            { id: 'toilet-light',  addr: 'lamp-2', setter: ['state'] },
             { id: 'usb-1', addr: 'usb-switch-1', setter: ['state'], map: { state_l1 : 'state' } },
             { id: 'usb-2', addr: 'usb-switch-1', setter: ['state'], map: { state_l2 : 'state' } },
             { id: 'usb-3', addr: 'usb-switch-1', setter: ['state'], map: { state_l3 : 'state' } },
@@ -159,9 +159,10 @@ module.exports = {
         { id: 'grow'     , device: 'tasmota-s4' },
         { id: 'growbox'  , device: 'tasmota-s5' },
         { id: 'growy'    , device: 'tasmota-s6' },
-        { id: 'fairy-1'  , device: 'elro-n1', thresh: 80 },
-        { id: 'humid-gen', device: 'elro-n2'},
-        { id: 'tree'     , device: 'elro-n4', thresh: 80 },
+        { id: 'fairy-1'  ,    device: 'elro-n1', thresh: 80 },
+        { id: 'humid-gen',    device: 'elro-n2'},
+        { id: 'kitchen-light', device: 'elro-n3'},
+        { id: 'star'         , device: 'elro-n4', thresh: 50 },
         { id: 'desk'         , device: 'wled-desk'  },
         { id: 'stuff-light'  , device: 'wled-stuff' },
         { id: 'tv-light'     , device: 'wled-tv'    },
@@ -178,14 +179,14 @@ module.exports = {
     groups: [
         { id: 'living'   , nodes: [ 'desk', 'amp', 'plants', 'terra', 'stuff-light', 'tv-light', 'grow', 'usb-1', 'string-1', 'string-2', 'kitty', 'pika'], groups: [ 'xmas' ] },
         { id: 'sleep'    , nodes: [ 'bedroom-light'] },
-        { id: 'xmas'     , nodes: [ 'string-3', 'string-4', 'tree', 'fairy-1'] },
+        { id: 'xmas'     , nodes: [ 'string-3', 'string-4', 'star', 'fairy-1'] },
         { id: 'all'      , groups: [ 'living', 'sleep'] }
     ],
 
     timers: [
         { id: 'grow',    node: 'grow',    on: '08:00',         off: '23:00', strict: true },
         { id: 'growbox', node: 'growbox', on: '11:00',         off: '23:00', strict: true },
-        { id: 'growy',   node: 'growy',   on: '08:00',         off: '23:00', strict: true },
+        { id: 'growy',   node: 'growy',   on: '11:00',         off: '23:00', strict: true },
         { id: 'plants',  node: 'plants',  on: 'sunriseEnd+1h', off: '21:00', strict: true },
         { id: 'terra',   node: 'terra',   on: 'sunriseEnd+1h', off: '22:00', strict: true }
     ],
@@ -195,8 +196,8 @@ module.exports = {
         { id: 'morning', event: '10:00' , set: 'sleep morning 5%' },
         { id: 'day'    , event: '12:00' , set: [ 'sleep off', 'living day 50%', 'nomframe 100%' ] },
         { id: 'evening', event: 'sunset', set: [ 'all evening', 'living 100%', 'sleep 25%', 'nomframe off'  ] },
-        { id: 'night'  , event: '22:00' , set: [ 'all night', 'living 50%', 'nomframe off', 'sleep 25%' ] },
-        { id: 'late'  ,                   set: [ 'all sun', 'living 50%', 'nomframe off', 'sleep 25%' ] },
+        { id: 'night'  , event: '22:00' , set: [ 'all night',   'living 50%', 'nomframe off', 'sleep 25%' ] },
+        { id: 'late'  ,                   set: [ 'all sun',     'living 50%', 'nomframe off', 'sleep 25%' ] },
         
         { event: 'button-1.action.single',   set: 'sleep toggle' },
         { event: 'button-1.action.double',   set: 'sleep morning 10%' },
@@ -206,23 +207,31 @@ module.exports = {
         { event: 'button-2.action.double',   set: 'all off' },
         { event: 'button-2.action.long',     set: 'amp toggle' },
 
-        { event: 'buttons-1.action.1_single', set: 'all random-color' },
-
+        { event: 'buttons-1.action.1_single', set: 'living on 100' },
+        { event: 'buttons-1.action.1_double', set: 'living off' },
+        { event: 'buttons-1.action.2_single', set: 'living 60' },
+        { event: 'buttons-1.action.3_single', set: 'amp on' },
+        { event: 'buttons-1.action.3_double', set: 'amp off' },
+        { event: 'buttons-1.action.4_single', set: 'living 23' },
+        
         { event: 'quadro-1.action.single', set: 'living on 100' },
         { event: 'quadro-1.action.long',   set: 'living off' },
         { event: 'quadro-2.action.single', set: 'living 60' },
-        { event: 'quadro-3.action.single', set: 'living 20' },
-        { event: 'quadro-4.action.single', set: 'amp on' },
-        { event: 'quadro-4.action.long',   set: 'amp off' },
-
+        { event: 'quadro-3.action.single', set: 'amp on' },
+        { event: 'quadro-3.action.long',   set: 'amp off' },
+        { event: 'quadro-4.action.single', set: 'living 23' },
+        
         { event: 'cube.action.flip90', set: 'all random-color'},
 
-        { event: 'presence-4.occupancy', forward: 'lamp-1'},  // hallway
-        { event: 'presence-5.occupancy', forward: 'lamp-2'},  // toilet
-        { event: 'presence-2.occupancy', forward: 'elro-n3'}, // kitchen
+        { event: 'presence-4.occupancy', forward: 'hallway-light'},
+        { event: 'presence-5.occupancy', forward: 'toilet-light'},
+        { event: 'presence-2.occupancy', forward: 'kitchen-light'},
 
         { event: 'temp-1.humid', cond: 'temp-1.humid < 60', set: 'humid-gen on' },
-        { event: 'temp-1.humid', cond: 'temp-1.humid > 70', set: 'humid-gen off' }
+        { event: 'temp-1.humid', cond: 'temp-1.humid > 70', set: 'humid-gen off' },
+
+        { event: 'door-contact.open', set: 'hallway-light on for 2m'},
+        { event: 'door-contact.close', set: 'hallway-light off'}
     ],
 
     colors: [
