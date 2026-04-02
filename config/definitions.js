@@ -184,9 +184,9 @@ module.exports = {
     ],
 
     timers: [
-        { id: 'grow',    node: 'grow',    on: '08:00',         off: '23:00', strict: true },
+        { id: 'grow',    node: 'grow',    on: '11:00',         off: '23:00', strict: true },
         { id: 'growbox', node: 'growbox', on: '11:00',         off: '23:00', strict: true },
-        { id: 'growy',   node: 'growy',   on: '11:00',         off: '23:00', strict: true },
+        { id: 'growy',   node: 'growy',   on: '07:00',         off: '01:00', strict: true },
         { id: 'plants',  node: 'plants',  on: 'sunriseEnd+1h', off: '21:00', strict: true },
         { id: 'terra',   node: 'terra',   on: 'sunriseEnd+1h', off: '22:00', strict: true }
     ],
