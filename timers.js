@@ -67,7 +67,7 @@ class SingleShotTimer extends Timer
 
     is_triggered (time) {
         const when = this.events[0][0];
-        return (nc.Utils.parseTime(when) < time);
+        return (nc.utils.parse_time(when) < time);
     }
 
     get_command () {
@@ -103,12 +103,12 @@ class Fader
         if (this.attr === 'color') {
             let rgb = [];
             for (let i=0; i<3; i++) {
-                rgb[i] = Math.floor(nc.Utils.lerp(this.from[i], this.to[i], fac));
+                rgb[i] = Math.floor(nc.utils.lerp(this.from[i], this.to[i], fac));
             }
             return rgb;
 
         } else if (this.attr === 'brightness') {
-            const val = Math.floor(nc.Utils.lerp(this.from, this.to, fac));
+            const val = Math.floor(nc.utils.lerp(this.from, this.to, fac));
             return val;
         }
 
@@ -131,156 +131,156 @@ class Fader
     }
 }
 
-class Timers
-{
-    static timers = new Map();
-    static faders = [];
+const timers = new Map();
+const faders = new Array();
+let execute = undefined;
 
-    static init(cfg_timers, execute) {
-        this.execute = execute;
+function init(cfg_timers, exe) {
+    execute = exe;
 
-        console.log ('Loading timers...');
-        this.timers.clear();
-        let error = false;
+    console.log ('Loading timers...');
+    timers.clear();
+    let error = false;
 
-        // timer definitions
-        for (const cfg of cfg_timers) {
-            const id = cfg.id
-            if (this.timers.has(id)) {
-                // merge timer definitions
-                if ('node' in cfg && this.timers.get(id).node === cfg.node) {
-                    this.timers.set(id, merge(cfg));
-                } else {
-                    console.error(`Config Error: incompatible timer configuration on timer '${id}'`);
-                    error = true;
-                }
+    // timer definitions
+    for (const cfg of cfg_timers) {
+        const id = cfg.id
+        if (timers.has(id)) {
+            // merge timer definitions
+            if ('node' in cfg && timers.get(id).node === cfg.node) {
+                timers.set(id, merge(cfg));
             } else {
-                this.timers.set(id, new Timer(cfg));
+                console.error(`Config Error: incompatible timer configuration on timer '${id}'`);
+                error = true;
             }
-        }
-
-        return error;
-    }
-    
-    static async start() {
-        console.log ('Starting timers...');
-        setTimeout(this.tick_static_timers.bind(this), 100);
-        setTimeout(this.tick_faders.bind(this), 100);
-    }
-
-    static getTimer(id) {
-        return this.timers.get(id);
-    }
-    
-    static getTimerIds() {
-        return this.timers.keys();
-    }
-
-    static addFader(node, attr, from, to, duration) {
-        this.removeFader(node, attr);
-        this.faders.push(new Fader(node, attr, from, to, duration));
-        this.tick_faders();
-    }
-
-    static removeFader(node, attr) {
-        this.faders = this.faders.filter(f => !(f.node === node && f.attr === attr));
-    }
-
-    static addSingleShot(node, attr, command, when) {
-        this.removeSingleShot(node, attr);
-        const timer = new SingleShotTimer(node, attr, command, when);
-        this.timers.set(timer.id, timer);
-        this.tick_singleshot_timers();
-    }
-
-    static removeSingleShot(node, attr) {
-        for (const id of this.timers.keys()) {
-            const timer = this.timers.get(id);
-            if (timer && timer.single && timer.node === node && timer.attr === attr) {
-                this.timers.delete(id);
-            }
+        } else {
+            timers.set(id, new Timer(cfg));
         }
     }
 
-    static async tick_faders() {
-        const now = Date.now();
+    return error;
+}
 
-        // remove stopped
-        this.faders = this.faders.filter(f => f.is_active(now));
+async function start() {
+    console.log ('Starting timers...');
+    setTimeout(tick_static_timers, 100);
+    setTimeout(tick_faders, 100);
+}
 
-        if (this.faders.length == 0) 
-            return;
-            
-        // get new values, if any
-        let logged = false;
-        let setter = [];
-        for (const fader of this.faders) {
-            if (fader.has_new_value(now)) {
-                // hacky log order
-                if (!logged) {
-                    console.log('Fading...');
-                    logged = true;
-                }
-                const new_value = fader.get_value(now);
-                setter.push(nc.Nodes.get(fader.node).set(fader.attr, new_value));
-                fader.last_value = new_value;
-            }
+function add_fader(node, attr, from, to, duration) {
+    remove_fader(node, attr);
+    faders.push(new Fader(node, attr, from, to, duration));
+    tick_faders();
+}
+
+function remove_fader(node, attr) {
+    for (const id of faders.keys()) {
+        const fader = fader.get(id);
+        if (fader && !fader.node === node && fader.attr === attr) {
+            faders.delete(id);
         }
-
-        // do it
-        if (setter.length > 0) {
-            await Promise.all(setter);
-        }
-
-        // tick again
-        setTimeout(this.tick_faders.bind(this), 2000);
-    }
-
-    // handle single shot timers
-    static async tick_singleshot_timers() {
-        if (this.timers.size == 0)
-            return;
-
-        for (const id of this.timers.keys()) {
-            let timer = this.timers.get(id);
-            if (!timer.single)
-                continue;
-            
-            if (timer.is_triggered(Date.now())) {
-                this.timers.delete(timer.id);
-
-                const cmd = timer.get_command();
-                console.log(`timer ${timer.id} single`);
-                await this.execute(cmd, {'include_timed' : true});
-            }
-        }
-
-        // tick again
-        setTimeout(this.tick_singleshot_timers.bind(this),1000);
-    }
-
-    // handle strict timers
-    static async tick_static_timers() {
-        for (const timer of this.timers.values()) {
-            if (!timer.strict || timer.single)
-                continue;
-            
-            // we have take into account the events for yesterday, so timers can behave correctly during midnight
-            const times_today = timer.events.map(e => nc.Utils.parseTime(e[0]));
-            const times_yesterday = times_today.map(t => t - (3600*24*1000));
-            const times = times_yesterday.concat(times_today);
-
-            let cmds = timer.events.map(e => e[1]);
-            cmds = cmds.concat(cmds);
-            const currentStateCmd = nc.Utils.findClosest(times, cmds, Date.now());
-
-            console.log(`timer ${timer.id} strict`);
-            await this.execute(currentStateCmd, {'include_timed' : true});
-        }
-
-        // tick again
-        setTimeout(this.tick_static_timers.bind(this),nc.Config.app.timer_interval * 1000);
     }
 }
 
-module.exports = Timers;
+function add_single_shot(node, attr, command, when) {
+    remove_single_shot(node, attr);
+    const timer = new SingleShotTimer(node, attr, command, when);
+    timers.set(timer.id, timer);
+    tick_singleshot_timers();
+}
+
+function remove_single_shot(node, attr) {
+    for (const id of timers.keys()) {
+        const timer = timers.get(id);
+        if (timer && timer.single && timer.node === node && timer.attr === attr) {
+            timers.delete(id);
+        }
+    }
+}
+
+async function tick_faders() {
+    const now = Date.now();
+
+    // remove stopped
+    for (const id of faders.keys()) {
+        const fader = fader.get(id);
+        if (fader && !fader.is_active(now)) {
+            faders.delete(id);
+        }
+    }
+
+    if (faders.length == 0) 
+        return;
+        
+    // get new values, if any
+    let logged = false;
+    let setter = [];
+    for (const fader of faders) {
+        if (fader.has_new_value(now)) {
+            // hacky log order
+            if (!logged) {
+                console.log('Fading...');
+                logged = true;
+            }
+            const new_value = fader.get_value(now);
+            setter.push(nc.nodes.get(fader.node).set(fader.attr, new_value));
+            fader.last_value = new_value;
+        }
+    }
+
+    // do it
+    if (setter.length > 0) {
+        await Promise.all(setter);
+    }
+
+    // tick again
+    setTimeout(tick_faders, 2000);
+}
+
+// handle single shot timers
+async function tick_singleshot_timers() {
+    if (timers.size == 0)
+        return;
+
+    for (const id of timers.keys()) {
+        let timer = timers.get(id);
+        if (!timer.single)
+            continue;
+        
+        if (timer.is_triggered(Date.now())) {
+            timers.delete(timer.id);
+
+            const cmd = timer.get_command();
+            console.log(`timer ${timer.id} single`);
+            await execute(cmd, {'include_timed' : true});
+        }
+    }
+
+    // tick again
+    setTimeout(tick_singleshot_timers,1000);
+}
+
+// handle strict timers
+async function tick_static_timers() {
+    for (const timer of timers.values()) {
+        if (!timer.strict || timer.single)
+            continue;
+        
+        // we have take into account the events for yesterday, so timers can behave correctly during midnight
+        const times_today = timer.events.map(e => nc.utils.parse_time(e[0]));
+        const times_yesterday = times_today.map(t => t - (3600*24*1000));
+        const times = times_yesterday.concat(times_today);
+
+        let cmds = timer.events.map(e => e[1]);
+        cmds = cmds.concat(cmds);
+        const currentStateCmd = nc.utils.parse_closest(times, cmds, Date.now());
+
+        console.log(`timer ${timer.id} strict`);
+        await execute(currentStateCmd, {'include_timed' : true});
+    }
+
+    // tick again
+    setTimeout(tick_static_timers,nc.config.app.timer_interval * 1000);
+}
+
+module.exports = { init, start, add_fader, remove_fader, add_single_shot, remove_single_shot };

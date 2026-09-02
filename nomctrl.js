@@ -1,33 +1,34 @@
 const nc = module.exports;
 
-const Config   = require('./config/definitions.js');
-const Utils    = require('./utils.js');
-const Storage  = require('./storage.js');
-const Devices  = require('./devices.js');
-const Nodes    = require('./nodes.js');
-const Logger   = require('./logger.js');
-const Timers   = require('./timers.js');
-const Events   = require('./events.js');
-const Commands = require('./commands.js');
+const config   = require('./config/definitions.js');
+const utils    = require('./utils.js');
+const storage  = require('./storage.js');
+const devices  = require('./devices.js');
+const nodes    = require('./nodes.js');
+const logger   = require('./logger.js');
+const timers   = require('./timers.js');
+const events   = require('./events.js');
+const commands = require('./commands.js');
 
-nc.Utils    = Utils;
-nc.Config   = Config;
-nc.Storage  = Storage;
-nc.Devices  = Devices;
-nc.Nodes    = Nodes;
-nc.Logger   = Logger;  
-nc.Timers   = Timers;  
-nc.Events   = Events;  
-nc.Commands = Commands;
+nc.utils    = utils;
+nc.config   = config;
+nc.storage  = storage;
+nc.devices  = devices;
+nc.nodes    = nodes;
+nc.logger   = logger;
+nc.log      = logger.log
+nc.timers   = timers;  
+nc.events   = events;  
+nc.commands = commands;
 
 const express = require("express");
-const bodyParser = require('body-parser');
+const parser = require('body-parser');
 
 const app = express();
 
-app.listen(Config.app.port, function () {
+app.listen(config.app.port, function () {
     app.use(express.static('data/www'))
-    app.use(bodyParser.json());
+    app.use(parser.json());
     app.use(express.urlencoded())
 
     console.log ("Loading config...");
@@ -35,21 +36,21 @@ app.listen(Config.app.port, function () {
     if (!success) 
         process.exit(-1);
 
-    const line = "~".repeat(26+(""+Config.app.port).length)
+    const line = "~".repeat(26+(""+config.app.port).length)
     console.log(line);
-    console.log(`nomctrl listening on port ${Config.app.port}`);
+    console.log(`nomctrl listening on port ${config.app.port}`);
     console.log(line);
 
-    Storage.init(Config.app);
-    Devices.init(Config.devices);
-    Nodes.init(Config.nodes, Config.groups);
-    Logger.init(Config.log);
-    Timers.init(Config.timers, execute);
-    Events.init(Config.actions, execute);
+    storage.init(config.app);
+    devices.init(config.devices);
+    nodes  .init(config.nodes, config.groups);
+    logger .init(config.log);
+    timers .init(config.timers,  execute);
+    events .init(config.actions, execute);
 
-    Devices.start();
-    Timers.start();
-    Events.start();
+    devices.start();
+    timers.start();
+    events.start();
 });
 
 function validate_config() {
@@ -60,15 +61,15 @@ function validate_config() {
     function all_unique(item) { 
         if(ids.has(item.id)) {
             unique = false;
-            console.error(`Config Error: duplicate id ${item.id}`);
+            console.error(`config Error: duplicate id ${item.id}`);
         } else {
             if (item.id) ids.add(item.id);
         }
     }
 
-    Config.nodes.forEach(all_unique);
-    Config.groups.forEach(all_unique);
-    Config.colors.forEach(all_unique);
+    config.nodes.forEach(all_unique);
+    config.groups.forEach(all_unique);
+    config.colors.forEach(all_unique);
 
     return unique;
 }
@@ -84,7 +85,7 @@ app.get("/status", async (req, res) => {
     res.send(await execute("status"));
 });
 
-app.post("/cmd", bodyParser.text({type:"*/*"}), async (req, res) => {
+app.post("/cmd", parser.text({type:"*/*"}), async (req, res) => {
     console.log(`cmd: ${req.body}`);
     res.send(await execute(req.body));
 });
@@ -94,7 +95,7 @@ app.get("/cmd/:cmd", async (req, res) => {
     res.send(await execute(req.params.cmd));
 });
 
-app.post("/do", bodyParser.text({type:"*/*"}), async (req, res) => {
+app.post("/do", parser.text({type:"*/*"}), async (req, res) => {
     console.log(`do: ${req.body}`)
     res.send(await execute(`do ${req.body}`));
 });
@@ -141,8 +142,8 @@ async function execute(cmds, opts={}) {
     // parse all cmds into todos
     let todo = {};
     for (const cmd of cmds) {
-         let res = nc.Commands.parse(cmd, opts);
-         todo = nc.Utils.merge(todo, res);
+         let res = nc.commands.parse(cmd, opts);
+         todo = nc.utils.merge(todo, res);
     }
 
     if (todo.errors) results.errors = todo.errors 
@@ -154,7 +155,7 @@ async function execute(cmds, opts={}) {
     if (todo.getter) {
 
         // every getter only once
-        todo.getter = nc.Utils.removeDuplicates(todo.getter);
+        todo.getter = nc.utils.remove_duplicates(todo.getter);
         
         // call getters
         let get_results = {};
@@ -162,7 +163,7 @@ async function execute(cmds, opts={}) {
             const [id, attr] = g;
             if (!(id in get_results))
                 get_results[id] = {};
-            get_results[id][attr] = nc.Nodes.get(id).get(attr)
+            get_results[id][attr] = nc.nodes.get(id).get(attr)
         }
 
         // await results
@@ -198,7 +199,7 @@ async function execute(cmds, opts={}) {
                         const val = get_results[id][attr]; 
                         if (val != null) {
                             if (typeof val != 'number') {
-                                results = nc.Utils.merge(results, { errors : [`Value type '${typeof val}' of attribute '${attr}' not supported by '${todo.calc}'`]});
+                                results = nc.utils.merge(results, { errors : [`Value type '${typeof val}' of attribute '${attr}' not supported by '${todo.calc}'`]});
                                 continue;
                             }
 
@@ -249,12 +250,12 @@ async function execute(cmds, opts={}) {
         for (const [id, attr, val] of todo.setter) {
             if (id && attr) {
                 if (val == undefined) {
-                    set_results.push(nc.Nodes.get(id).set(attr));
+                    set_results.push(nc.nodes.get(id).set(attr));
                 } else {
-                    set_results.push(nc.Nodes.get(id).set(attr, val));
+                    set_results.push(nc.nodes.get(id).set(attr, val));
                 }
 
-                nc.Timers.removeFader(id, attr);
+                nc.timers.remove_fader(id, attr);
             }
         }
 
@@ -267,7 +268,7 @@ async function execute(cmds, opts={}) {
     //
     if (todo.faders) {
         for (const [node, attr, from, to, duration] of todo.faders) {
-            nc.Timers.addFader(node, attr, from, to, duration)
+            nc.timers.add_fader(node, attr, from, to, duration)
         }
     }
 
@@ -276,7 +277,7 @@ async function execute(cmds, opts={}) {
     //
     if (todo.set_at) {
         for (const [node, attr, value, time] of todo.set_at) {
-            nc.Timers.addSingleShot(node, attr, `set ${node} ${attr}${value !== undefined ? ' '+value : ''}`, time);
+            nc.timers.add_single_shot(node, attr, `set ${node} ${attr}${value !== undefined ? ' '+value : ''}`, time);
         }
     }
 

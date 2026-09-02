@@ -46,502 +46,498 @@ function next(list = []) {
     return item;
 }
 
-class Commands {
+// parse one command
+function parse (cmd = '', opts = {}) {
 
-    // parse one command
-    static parse (cmd = '', opts = {}) {
+    let args = cmd.split(/\s+/).filter(a => a);
+    let arg = next(args);
+    let results;
+    if (!arg)
+        return { errors: ['Empty command'] };
 
-        let args = cmd.split(/\s+/).filter(a => a);
-        let arg = next(args);
-        let results;
-        if (!arg)
-            return { errors: ['Empty command'] };
-
-        // STATUS
-        if (arg.match(CMDS.STATUS)) {
-            arg = next(args);
-            results = this.parse_status(arg, args, opts);
-
-        // DO
-        } else if (arg.match(CMDS.DO)) {
-            arg = next(args);
-            results = this.parse_do(arg, args, opts);
-
-        // GET
-        } else if (arg.match(CMDS.GET)) {
-            arg = next(args);
-            opts['include_timed'] = true;
-            results = this.parse_get(arg, args, opts);
-            
-        // SET
-        } else if (arg.match(CMDS.SET)) {
-            arg = next(args);
-            results = this.parse_set(arg, args, opts);
-
-        // FADE
-        } else if (arg.match(CMDS.FADE)) {
-            arg = next(args);
-            results = this.parse_fade(arg, args, opts);
-        }
-
-        if (args.length > 0)
-            results = nc.Utils.merge(results, { errors : `Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}` });
-
-        return results;
-    }
-
-
-    static parse_status(arg, args, opts = {}) {
-        let getter = [];
-        let errors = [];
-
-        // just show online state of all devices
-        if (!arg) {
-            const nodes = nc.Nodes.all();
-            for (const node of nc.Nodes.all()) {
-                getter.push([node.id, 'online']);
-            }
-        } else {
-            // status of nodes
-            let nodes = this.parse_nodes(arg, args, opts);
-            nodes = nodes.filter(n => n.has_get('info'));
-            if (nodes.length > 0) {
-                getter = getter.concat(nodes.map(node => [node.id, 'info']));
-                getter = getter.concat(nodes.map(node => [node.id, 'online']));
-            } else {
-                errors.push(`'${arg}' is not a node or status command`); 
-            }
-
-            // TODO other special status commands
-        }
-        
-        let results = {}
-        if (getter.length > 0) results.getter = getter;
-        if (errors.length > 0) results.errors = errors;
-
-        return results;
-    }
-
-
-    static parse_do (arg, args, opts = {})  {
-        let todo = {};
-
-        while (arg) {
-            const action = nc.Events.events.find(e => e.id === arg);
-            if (!action) {
-                if (todo.errors == undefined) todo.errors = [];
-                todo.errors.push(`Action '${action}' not found.`);
-                arg = next(args);
-                continue;
-            }
-
-            for (const cmd of action.get_commands()) {
-                todo = nc.Utils.merge(todo, this.parse(cmd, opts));
-            }
-
-            arg = next(args);
-        }
-
-        return todo;
-    }
-
-
-    static parse_get (arg, args, opts = {}) {
-        let getter = [];
-        let errors = [];
-        let calc;
-
-        // optional calc function comes first
-        if (arg) {
-            for (const func of Object.entries(FUNCS)) {
-                if (arg.match(func[1])) {
-                    calc = func[0].toLowerCase();
-                    arg = next(args);
-                    break;
-                }
-            }
-        }
-
-        // read args until its not a node or group
-        let nodes = this.parse_nodes(arg, args, opts);
+    // STATUS
+    if (arg.match(CMDS.STATUS)) {
         arg = next(args);
-        if (!nodes || nodes.length == 0) {
-            return {errors : ['No nodes found.']};
+        results = parse_status(arg, args, opts);
+
+    // DO
+    } else if (arg.match(CMDS.DO)) {
+        arg = next(args);
+        results = parse_do(arg, args, opts);
+
+    // GET
+    } else if (arg.match(CMDS.GET)) {
+        arg = next(args);
+        opts['include_timed'] = true;
+        results = parse_get(arg, args, opts);
+        
+    // SET
+    } else if (arg.match(CMDS.SET)) {
+        arg = next(args);
+        results = parse_set(arg, args, opts);
+
+    // FADE
+    } else if (arg.match(CMDS.FADE)) {
+        arg = next(args);
+        results = parse_fade(arg, args, opts);
+    }
+
+    if (args.length > 0)
+        results = nc.utils.merge(results, { errors : `Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}` });
+
+    return results;
+}
+
+
+function parse_status(arg, args, opts = {}) {
+    let getter = [];
+    let errors = [];
+
+    // just show online state of all devices
+    if (!arg) {
+        const nodes = nc.nodes.all();
+        for (const node of nc.nodes.all()) {
+            getter.push([node.id, 'online']);
+        }
+    } else {
+        // status of nodes
+        let nodes = parse_nodes(arg, args, opts);
+        nodes = nodes.filter(n => n.has_get('info'));
+        if (nodes.length > 0) {
+            getter = getter.concat(nodes.map(node => [node.id, 'info']));
+            getter = getter.concat(nodes.map(node => [node.id, 'online']));
+        } else {
+            errors.push(`'${arg}' is not a node or status command`); 
         }
 
-        // No attribute arg? get all getters of all nodes
-        if (!arg) {
+        // TODO other special status commands
+    }
+    
+    let results = {}
+    if (getter.length > 0) results.getter = getter;
+    if (errors.length > 0) results.errors = errors;
+
+    return results;
+}
+
+
+function parse_do (arg, args, opts = {})  {
+    let todo = {};
+
+    while (arg) {
+        const action = nc.events.all().find(e => e.id === arg);
+        if (!action) {
+            if (todo.errors == undefined) todo.errors = [];
+            todo.errors.push(`Action '${action}' not found.`);
+            arg = next(args);
+            continue;
+        }
+
+        for (const cmd of action.get_commands()) {
+            todo = nc.utils.merge(todo, parse(cmd, opts));
+        }
+
+        arg = next(args);
+    }
+
+    return todo;
+}
+
+
+function parse_get (arg, args, opts = {}) {
+    let getter = [];
+    let errors = [];
+    let calc;
+
+    // optional calc function comes first
+    if (arg) {
+        for (const func of Object.entries(FUNCS)) {
+            if (arg.match(func[1])) {
+                calc = func[0].toLowerCase();
+                arg = next(args);
+                break;
+            }
+        }
+    }
+
+    // read args until its not a node or group
+    let nodes = parse_nodes(arg, args, opts);
+    arg = next(args);
+    if (!nodes || nodes.length == 0) {
+        return {errors : ['No nodes found.']};
+    }
+
+    // No attribute arg? get all getters of all nodes
+    if (!arg) {
+        for (const node of nodes) {
+            for (const g of node.getter()) {
+                getter.push([node.id, g]);
+            }
+        }
+    } else {
+        while (arg)
+        {
             for (const node of nodes) {
-                for (const g of node.getter()) {
-                    getter.push([node.id, g]);
-                }
+                if (node.has_get(arg))
+                    getter.push([node.id, arg]);
+                else if(nodes.length == 1)
+                    errors.push(`Node '${node.id}' does not have a getter '${arg}'`);
             }
-        } else {
-            while (arg)
-            {
-                for (const node of nodes) {
-                    if (node.has_get(arg))
-                        getter.push([node.id, arg]);
-                    else if(nodes.length == 1)
-                        errors.push(`Node '${node.id}' does not have a getter '${arg}'`);
-                }
-                arg = next(args);
-            }
+            arg = next(args);
         }
-
-        if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
-
-        let results = {}
-        if (getter.length > 0) results.getter = getter;
-        if (errors.length > 0) results.errors = errors;
-        if (calc) results.calc = calc;
-
-        return results;
     }
 
+    if (arg)
+        errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
 
-    static parse_set (arg, args, opts = {}) {
-        let setter = [];
-        let set_at = [];
-        let errors = [];
+    let results = {}
+    if (getter.length > 0) results.getter = getter;
+    if (errors.length > 0) results.errors = errors;
+    if (calc) results.calc = calc;
 
-        // read nodes
-        let nodes = this.parse_nodes(arg, args, opts);
+    return results;
+}
+
+
+function parse_set (arg, args, opts = {}) {
+    let setter = [];
+    let set_at = [];
+    let errors = [];
+
+    // read nodes
+    let nodes = parse_nodes(arg, args, opts);
+    arg = next(args);
+    if (!nodes || nodes.length == 0) {
+        return {errors : ['No nodes found.']};
+    }
+
+    // STATE arg is optional
+    let state;
+    if (arg && arg.match(TOKENS.STATE))
         arg = next(args);
-        if (!nodes || nodes.length == 0) {
-            return {errors : ['No nodes found.']};
+
+    // ON / OFF / FLIP
+    if (arg) {
+        let attr, val;
+        if (arg.match(TOKENS.ON)) {
+            attr = 'state';
+            val = true;
+        } else if (arg.match(TOKENS.OFF)) {
+            attr = 'state';
+            val = false;
+        } else if (arg.match(TOKENS.FLIP)) {
+            attr = 'flip';
         }
 
-        // STATE arg is optional
-        let state;
-        if (arg && arg.match(TOKENS.STATE))
-            arg = next(args);
-
-        // ON / OFF / FLIP
-        if (arg) {
-            let attr, val;
-            if (arg.match(TOKENS.ON)) {
-                attr = 'state';
-                val = true;
-            } else if (arg.match(TOKENS.OFF)) {
-                attr = 'state';
-                val = false;
-            } else if (arg.match(TOKENS.FLIP)) {
-                attr = 'flip';
-            }
-
-            if (attr) {
-                for (const node of nodes) {
-                    const device = nc.Devices.get(node.device);
-                    if (device.has_set(attr)) {
-                        setter.push([node.id, attr, val]);
-                    }
+        if (attr) {
+            for (const node of nodes) {
+                const device = nc.devices.get(node.device);
+                if (device.has_set(attr)) {
+                    setter.push([node.id, attr, val]);
                 }
-                arg = next(args);
             }
-        }
-        
-        // COLOR arg is optional
-        let color;
-        if (arg && arg.match(TOKENS.COLOR))
             arg = next(args);
-        if (arg) {
-            color = this.parse_color(arg);
-            if (color) {
-                arg = next(args)
-                for (const node of nodes) {
-                    const id = node.device;
-                    const device = nc.Devices.get(id);
+        }
+    }
+    
+    // COLOR arg is optional
+    let color;
+    if (arg && arg.match(TOKENS.COLOR))
+        arg = next(args);
+    if (arg) {
+        color = parse_color(arg);
+        if (color) {
+            arg = next(args)
+            for (const node of nodes) {
+                const id = node.device;
+                const device = nc.devices.get(id);
 
-                    // set rgb only if device supports it
-                    if (device.has_set('color')) {
-                        setter.push([node.id, 'color', color]);
-                    } else if (nodes.length == 1) { 
-                        errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
-                    }
+                // set rgb only if device supports it
+                if (device.has_set('color')) {
+                    setter.push([node.id, 'color', color]);
+                } else if (nodes.length == 1) { 
+                    errors.push(`Device ${id} type ${device.type} of node ${node.id} does not support color.`);
                 }
             }
         }
-        
-        // BRIGHTNESS percentage and on/off commands for lights
-        if (arg && arg.match(TOKENS.BRIGHTNESS))
+    }
+    
+    // BRIGHTNESS percentage and on/off commands for lights
+    if (arg && arg.match(TOKENS.BRIGHTNESS))
+        arg = next(args);
+    if (arg)  {
+        var percent = parse_percent(arg);
+
+        // set brightness on all nodes
+        if (percent !== null) {
             arg = next(args);
-        if (arg)  {
-            var percent = this.parse_percent(arg);
 
-            // set brightness on all nodes
-            if (percent !== null) {
+            // Clamp
+            percent = Math.max(Math.min(Math.round(percent), 100), 0);
+
+            for (const node of nodes) {
+                const id = node.device;
+                const device = nc.devices.get(id);
+
+                // set brightness if device supports it
+                if (device.has_set('brightness')) {
+                    setter.push([node.id, 'brightness', percent]);
+
+                // no brightness, but has 'on': use threshold
+                } else if (node.thresh && percent > node.thresh && device.has_set('state') && node.class !== 'power') {
+                    setter.push([node.id, 'state', true]);
+
+                // no brightness, but has 'off': use threshold
+                } else if (node.thresh && percent <= node.thresh && device.has_set('state') && node.class !== 'power') {
+                    setter.push([node.id, 'state', false]);
+
+                } else if (nodes.length == 1) {
+                    errors.push(`Device ${id} of node ${node.id} does not support brightness control.`);
+                    console.log(node.thresh, percent >= node.thresh, device.has_set('state'), node.class);
+                }
+            };
+        }
+
+        // timed setters
+        if (arg) {
+
+            // execute setter at specified time
+            if (arg.match(TOKENS.AT)) {
                 arg = next(args);
-
-                // Clamp
-                percent = Math.max(Math.min(Math.round(percent), 100), 0);
-
-                for (const node of nodes) {
-                    const id = node.device;
-                    const device = nc.Devices.get(id);
-
-                    // set brightness if device supports it
-                    if (device.has_set('brightness')) {
-                        setter.push([node.id, 'brightness', percent]);
-
-                    // no brightness, but has 'on': use threshold
-                    } else if (node.thresh && percent > node.thresh && device.has_set('state') && node.class !== 'power') {
-                        setter.push([node.id, 'state', true]);
-
-                    // no brightness, but has 'off': use threshold
-                    } else if (node.thresh && percent <= node.thresh && device.has_set('state') && node.class !== 'power') {
-                        setter.push([node.id, 'state', false]);
-
-                    } else if (nodes.length == 1) {
-                        errors.push(`Device ${id} of node ${node.id} does not support brightness control.`);
-                        console.log(node.thresh, percent >= node.thresh, device.has_set('state'), node.class);
-                    }
-                };
-            }
-
-            // timed setters
-            if (arg) {
-
-                // execute setter at specified time
-                if (arg.match(TOKENS.AT)) {
+                if (arg && arg.match(TOKENS.TIME)) {
+                    const time = nc.utils.parse_time(arg);
                     arg = next(args);
-                    if (arg && arg.match(TOKENS.TIME)) {
-                        const time = nc.Utils.parseTime(arg);
-                        arg = next(args);
-                        
-                        // move setters to set_at, with time
-                        for (const set of setter) {
-                            set.push(time);
-                            set_at.push(set);
-                        }
-                        setter = [];
+                    
+                    // move setters to set_at, with time
+                    for (const set of setter) {
+                        set.push(time);
+                        set_at.push(set);
+                    }
+                    setter = [];
 
+                } else {
+                    return { errors : ['Missing time argument.'] };
+                }
+
+            // execute setter in x seconds
+            } else if (arg.match(TOKENS.IN)) {
+                arg = next(args);
+                if (arg && arg.match(TOKENS.DURATION)) {
+                    const duration = nc.utils.parse_duration(arg);
+                    const time = Date.now() + duration*1000;
+                    arg = next(args);
+
+                    // move setters to set_at, with time
+                    for (const [node, attr, val] of setter) {
+                        set_at.push([node, attr, val, time]);
+                    }
+                    setter = [];
+
+                } else {
+                    return { errors : ['Missing duration argument.'] };
+                }
+            
+            // set now and undo at specified time
+            } else if (arg.match(TOKENS.UNTIL) || arg.match(TOKENS.FOR)) {
+                let time;
+                if (arg.match(TOKENS.UNTIL)) {
+                    arg = next(args);
+                    
+                    if (arg !== undefined && arg.match(TOKENS.TIME)) {
+                        time = nc.utils.parse_time(arg);
+                        arg = next(args);
                     } else {
                         return { errors : ['Missing time argument.'] };
                     }
-
-                // execute setter in x seconds
-                } else if (arg.match(TOKENS.IN)) {
+                } else if (arg.match(TOKENS.FOR)) {
                     arg = next(args);
-                    if (arg && arg.match(TOKENS.DURATION)) {
-                        const duration = nc.Utils.parseDuration(arg);
-                        const time = Date.now() + duration*1000;
+                    
+                    if (arg !== undefined && arg.match(TOKENS.DURATION)) {
+                        const ms = nc.utils.parse_duration(arg);
+                        time = Date.now() + ms;
                         arg = next(args);
+                    }
+                } else {
+                    return { errors : ['Missing duration argument.'] };
+                }
 
-                        // move setters to set_at, with time
-                        for (const [node, attr, val] of setter) {
-                            set_at.push([node, attr, val, time]);
-                        }
-                        setter = [];
 
+                // add setters with current value at specified time
+                for (const [node, attr, val] of setter) {
+                    // determine unset-value
+                    let undo_val;
+                    if (attr === 'state') {
+                        undo_val = !val;    // flip bool state
                     } else {
-                        return { errors : ['Missing duration argument.'] };
-                    }
-                
-                // set now and undo at specified time
-                } else if (arg.match(TOKENS.UNTIL) || arg.match(TOKENS.FOR)) {
-                    let time;
-                    if (arg.match(TOKENS.UNTIL)) {
-                        arg = next(args);
-                        
-                        if (arg !== undefined && arg.match(TOKENS.TIME)) {
-                            time = nc.Utils.parseTime(arg);
-                            arg = next(args);
-                        } else {
-                            return { errors : ['Missing time argument.'] };
-                        }
-                    } else if (arg.match(TOKENS.FOR)) {
-                        arg = next(args);
-                        
-                        if (arg !== undefined && arg.match(TOKENS.DURATION)) {
-                            const ms = nc.Utils.parseDuration(arg);
-                            time = Date.now() + ms;
-                            arg = next(args);
-                        }
-                    } else {
-                        return { errors : ['Missing duration argument.'] };
+                        // use node's current value, leads to unintuitive behavior when using command repeatedly
+                        undo_val = nc.nodes.get(node).get_current(attr); 
                     }
 
-
-                    // add setters with current value at specified time
-                    for (const [node, attr, val] of setter) {
-                        // determine unset-value
-                        let undo_val;
-                        if (attr === 'state') {
-                            undo_val = !val;    // flip bool state
-                        } else {
-                            // use node's current value, this leads to unintuitive behavior when using this command repeatedly
-                            undo_val = nc.Nodes.get(node).get_current(attr); 
-                        }
-
-                        set_at.push([node, attr, undo_val, time]);
-                    }
+                    set_at.push([node, attr, undo_val, time]);
                 }
             }
         }
-
-        if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
-
-        let results = {}
-        if (setter.length > 0) results.setter = setter;
-        if (set_at.length > 0) results.set_at = set_at;
-        if (errors.length > 0) results.errors = errors;
-
-        return results;
     }
 
+    if (arg)
+        errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
 
-    static parse_fade (arg, args, opts = {}) {
-        let faders = [];
-        let errors = [];
+    let results = {}
+    if (setter.length > 0) results.setter = setter;
+    if (set_at.length > 0) results.set_at = set_at;
+    if (errors.length > 0) results.errors = errors;
 
-        // read nodes
-        let nodes = this.parse_nodes(arg, args, opts);
-        arg = next(args);
-        if (nodes.length == 0) {
-            return {errors : ['No nodes found.']};
-        }
-
-        // first color and or brightness
-        const color1 = this.parse_color(arg, args);
-        const brightness1 = this.parse_percent(arg, args);
-
-        if (color1 == null && brightness1 == null)
-        {
-            return { errors : [`Invalid color or brightness ${arg}`] };
-        }
-        
-        // to
-        arg = next(args);
-        if (arg && arg.match(TOKENS.TO)) 
-            arg = next(args);
-
-        let color2 = null;
-        let brightness2 = null;
-        if (arg) {
-            color2 = this.parse_color(arg, args);
-            brightness2 = this.parse_percent(arg, args);
-
-            if (color2 != null || brightness2 != null)
-            {
-                arg = next(args);
-            }
-        }
-
-        // for / over
-        if (arg && arg.match(TOKENS.FOR_OVER)) 
-            arg = next(args);
-
-        // duration
-        const duration = nc.Utils.parseDuration(arg, args);
-
-        if (duration <= 0) {
-            errors.push("Missing duration");
-        }
-        else
-        {
-            if (color1 !== null && color2 !== null) {
-                for (const node of nodes) {
-                    if (node.has_set('color')) {
-                        faders.push([node.id, 'color', color1, color2, duration]);
-                    }
-                }
-            } 
-            
-            if (brightness1 !== null && brightness2 !== null) {
-                for (const node of nodes) {
-                    if (node.has_set('brightness')) {
-                        faders.push([node.id, 'brightness', brightness1, brightness2, duration]);
-                    }
-                }
-            }
-        }
-
-        if (arg)
-            errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
-
-        let results = {}
-        if (faders.length > 0) results.faders = faders;
-        if (errors.length > 0) results.errors = errors;
-
-        return results;
-    }
-
-    //
-    // Helpers
-    //
-
-    static parse_nodes(arg, args, opts = {}) {
-        let nodes = [];
-
-        let nodesForArg;
-        while (arg && (nodesForArg = nc.Nodes.getNodes(arg, opts)).length > 0) {
-            if (nodesForArg.includes(false)) // arg not a valid node, we done reading
-                break;
-            nodes = nodes.concat(nodesForArg.filter(n => n !== null))
-            arg = next(args)
-        } 
-
-        args.unshift(arg);
-        return nodes;
-    }
-    
-    static parse_percent(arg) {
-        if (arg !== undefined) {
-            if (arg.match(TOKENS.PERCENT)) {
-                return parseInt(arg);
-            } else if (arg.match(TOKENS.ON)) {
-                return 100;
-            } else if (arg.match(TOKENS.OFF)) {
-                return 0;
-            }
-        }
-        return null;
-    }
-
-    static parse_color(arg) {
-
-        // alias resolver
-        function resolve(color) {
-            if (color.color) 
-                return resolve(nc.Config.colors.find(c => c.id === color.color));
-            else
-                return color;
-        }
-
-            // random nice color
-        if (arg === 'random-color') {
-            let h = Math.random();
-            let s = Math.random() / 2 + 0.5;
-            let l = 0.5;
-            return nc.Utils.hslToRgb(h, s, l);
-        }
-        
-        // try to find it in config
-        let color = nc.Config.colors.find(c => c.id === arg);
-        if (color) {
-            color = resolve(color);
-            if (color.rgb) 
-                return color.rgb
-            else if (color.hex) 
-                return nc.Utils.hexToRGB(color.hex);
-        }
-
-        // try raw hex value
-        if (color = nc.Utils.hexToRGB(arg))
-            return color;
-
-        // try rgb
-        if (color = nc.Utils.parseRGB(arg)) {
-            return color;
-        }
-
-        // not found
-        return null;
-    }
-    
+    return results;
 }
 
-module.exports = Commands;
+
+function parse_fade (arg, args, opts = {}) {
+    let faders = [];
+    let errors = [];
+
+    // read nodes
+    let nodes = parse_nodes(arg, args, opts);
+    arg = next(args);
+    if (nodes.length == 0) {
+        return {errors : ['No nodes found.']};
+    }
+
+    // first color and or brightness
+    const color1 = parse_color(arg, args);
+    const brightness1 = parse_percent(arg, args);
+
+    if (color1 == null && brightness1 == null)
+    {
+        return { errors : [`Invalid color or brightness ${arg}`] };
+    }
+    
+    // to
+    arg = next(args);
+    if (arg && arg.match(TOKENS.TO)) 
+        arg = next(args);
+
+    let color2 = null;
+    let brightness2 = null;
+    if (arg) {
+        color2 = parse_color(arg, args);
+        brightness2 = parse_percent(arg, args);
+
+        if (color2 != null || brightness2 != null)
+        {
+            arg = next(args);
+        }
+    }
+
+    // for / over
+    if (arg && arg.match(TOKENS.FOR_OVER)) 
+        arg = next(args);
+
+    // duration
+    const duration = nc.utils.parse_duration(arg, args);
+
+    if (duration <= 0) {
+        errors.push("Missing duration");
+    }
+    else
+    {
+        if (color1 !== null && color2 !== null) {
+            for (const node of nodes) {
+                if (node.has_set('color')) {
+                    faders.push([node.id, 'color', color1, color2, duration]);
+                }
+            }
+        } 
+        
+        if (brightness1 !== null && brightness2 !== null) {
+            for (const node of nodes) {
+                if (node.has_set('brightness')) {
+                    faders.push([node.id, 'brightness', brightness1, brightness2, duration]);
+                }
+            }
+        }
+    }
+
+    if (arg)
+        errors.push(`Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}`);
+
+    let results = {}
+    if (faders.length > 0) results.faders = faders;
+    if (errors.length > 0) results.errors = errors;
+
+    return results;
+}
+
+//
+// Helpers
+//
+
+function parse_nodes(arg, args, opts = {}) {
+    let nodes = [];
+
+    let nodesForArg;
+    while (arg && (nodesForArg = nc.nodes.get_nodes(arg, opts)).length > 0) {
+        if (nodesForArg.includes(false)) // arg not a valid node, we done reading
+            break;
+        nodes = nodes.concat(nodesForArg.filter(n => n !== null))
+        arg = next(args)
+    } 
+
+    args.unshift(arg);
+    return nodes;
+}
+
+function parse_percent(arg) {
+    if (arg !== undefined) {
+        if (arg.match(TOKENS.PERCENT)) {
+            return parseInt(arg);
+        } else if (arg.match(TOKENS.ON)) {
+            return 100;
+        } else if (arg.match(TOKENS.OFF)) {
+            return 0;
+        }
+    }
+    return null;
+}
+
+function parse_color(arg) {
+
+    // alias resolver
+    function resolve(color) {
+        if (color.color) 
+            return resolve(nc.config.colors.find(c => c.id === color.color));
+        else
+            return color;
+    }
+
+        // random nice color
+    if (arg === 'random-color') {
+        let h = Math.random();
+        let s = Math.random() / 2 + 0.5;
+        let l = 0.5;
+        return nc.utils.hsl2rgb(h, s, l);
+    }
+    
+    // try to find it in config
+    let color = nc.config.colors.find(c => c.id === arg);
+    if (color) {
+        color = resolve(color);
+        if (color.rgb) 
+            return color.rgb
+        else if (color.hex) 
+            return nc.utils.hex2rgb(color.hex);
+    }
+
+    // try raw hex value
+    if (color = nc.utils.hex2rgb(arg))
+        return color;
+
+    // try rgb
+    if (color = nc.utils.parse_rgb(arg)) {
+        return color;
+    }
+
+    // not found
+    return null;
+}
+
+module.exports = { parse };

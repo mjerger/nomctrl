@@ -73,11 +73,11 @@ class Device
     }
 
     store(key, value) {
-        nc.Storage.set(`${this.type}_${this.addr}_${key}`, value);
+        nc.storage.set(`${this.type}_${this.addr}_${key}`, value);
     }
 
     load(key, value=null) {
-        return nc.Storage.get(`${this.type}_${this.addr}_${key}`, value);
+        return nc.storage.get(`${this.type}_${this.addr}_${key}`, value);
     }
 
     map_attrs(attr, value) {
@@ -140,7 +140,7 @@ class Device
 
         this.last_log = Date.now();
 
-        nc.Logger.log(this, mapped.attr, mapped.val);
+        nc.log(this, mapped.attr, mapped.val);
 
         return mapped;
     }
@@ -162,7 +162,7 @@ class HttpDevice extends Device
 
     async check_online() {
         if (this.ping) this.ping();
-        setTimeout(this.check_online.bind(this), nc.Config.app.poll_interval * 1000);
+        setTimeout(this.check_online.bind(this), nc.config.app.poll_interval * 1000);
     }
 
     async ping() {
@@ -171,13 +171,13 @@ class HttpDevice extends Device
     }
 
     async http_get(path) {
-        const res = nc.Utils.get(this.host, path)
+        const res = nc.utils.get(this.host, path)
         this.set_online(!!res); 
         return res;
     }
 
     async http_post(path, json) {
-        const res = nc.Utils.post(this.host, path, json);
+        const res = nc.utils.post(this.host, path, json);
         this.set_online(!!res);
         return res;
     }
@@ -284,7 +284,7 @@ const drivers = {
 
                 // (re)config the stick
                 // Note: writes to eeprom, no need to do it everytime
-                if (nc.Config.app.setup_cul_on_connect) {
+                if (nc.config.app.setup_cul_on_connect) {
 
                     // set frequency 
                     this.set_freq(this.freq);
@@ -341,7 +341,7 @@ const drivers = {
 
                 const addr = firstbyte & 7;
 
-                let device = nc.Devices.find('s300th', addr);
+                let device = nc.devices.find('s300th', addr);
                 if (device) {
                     device.message(t, h);
                     console.log(`S300TH rx addr=${addr} temp=${t}°C humid=${h}%`);
@@ -356,7 +356,7 @@ const drivers = {
                 let id = data.slice(6,7);
                 let cmd = data.slice(8,9);
                 
-                let device = nc.Devices.find('fs20', addr, id);
+                let device = nc.devices.find('fs20', addr, id);
                 if (device) {
                     device.message(cmd);
                     console.log(`FS20 rx addr=${addr} dev=${id} cmd=${cmd}`);
@@ -368,7 +368,7 @@ const drivers = {
             } else if (data[0] === 'E') {                                
                 const addr = parseInt(data.slice(3, 5), 16);     
 
-                let device = nc.Devices.find('em1000', addr);
+                let device = nc.devices.find('em1000', addr);
                 if (device) {
                     device.message(data);
                     console.log(`EM1000 rx addr=${addr}`);
@@ -380,7 +380,7 @@ const drivers = {
             } else if (data[0] === 'S') {                                
                 const addr = data.slice(3, 7);   
 
-                let device = nc.Devices.find('esa1000', addr);
+                let device = nc.devices.find('esa1000', addr);
                 if (device) {
                     device.message(data);
                     console.log(`ESA1000 rx addr=${addr}`);
@@ -459,7 +459,7 @@ const drivers = {
             const { house, unit } = this.parse_addr(this.addr);
             const payload = this.TRI[house] + this.TRI[unit] + '0F' + (enabled ? 'FF' : 'F0');
             
-            const device = nc.Devices.get_subtype('cul', '433');
+            const device = nc.devices.get_subtype('cul', '433');
             if (device && device.is_online())
                 await device.send('is' + payload);
             else
@@ -507,7 +507,7 @@ const drivers = {
                 attr = mapped.attr;
                 val = mapped.val;
                 
-                nc.Events.message(this, attr, val);
+                nc.events.message(this, attr, val);
             }
         }
 
@@ -529,8 +529,8 @@ const drivers = {
             this.update_data('temperature', temp);
             this.update_data('humidity', humid);
 
-            nc.Events.message(this, 'temperature', temp);
-            nc.Events.message(this, 'humidity', humid);
+            nc.events.message(this, 'temperature', temp);
+            nc.events.message(this, 'humidity', humid);
         }
         // TODO fix getters
     },
@@ -623,14 +623,14 @@ const drivers = {
             const energy_t = total_kWh;
 
             this.update_data('power', power);
-            nc.Events.message(this, 'power', power);
+            nc.events.message(this, 'power', power);
 
             this.update_data('energy', total_kWh);
-            nc.Events.message(this, 'energy', total_kWh);
+            nc.events.message(this, 'energy', total_kWh);
 
             if (this._basisCnt > 0) {
                 this.update_data('meter_kwh', total_kWh);
-                nc.Events.message(this, 'meter_kwh', total_kWh);
+                nc.events.message(this, 'meter_kwh', total_kWh);
             }
         }
     },
@@ -748,7 +748,7 @@ const drivers = {
               })
 
             this.update_data('meter_cbm', total_cnt);
-            nc.Events.message(this, 'meter_cbm', total_cnt);
+            nc.events.message(this, 'meter_cbm', total_cnt);
 
             this.store('meter_cbm', meter_cbm);
         }
@@ -826,7 +826,7 @@ const drivers = {
                         return;
                     }
 
-                    let device = nc.Devices.find('zigbee', id);
+                    let device = nc.devices.find('zigbee', id);
                     if (device) {
                         const entries = Object.entries(data);
                         for (let [attr, val] of entries)
@@ -856,7 +856,7 @@ const drivers = {
                             return;
                         }
                         
-                        let device = nc.Devices.find('airgradient', id);
+                        let device = nc.devices.find('airgradient', id);
                         if (device) {
                             const entries = Object.entries(data);
                             for (let [attr, val] of entries)
@@ -892,7 +892,7 @@ const drivers = {
             attr = mapped.attr;
             value = mapped.val;
 
-            nc.Events.message(this, attr, value);
+            nc.events.message(this, attr, value);
 
             this.update_last_seen();
 
@@ -904,7 +904,7 @@ const drivers = {
         async get(attr) { return this.data.get(attr); }
 
         async set(attr, val) {
-            let mqtt = nc.Devices.find('mqtt')
+            let mqtt = nc.devices.find('mqtt')
             if (mqtt) {
 
                 const unmapped = this.unmap_attrs(attr, val);
@@ -952,7 +952,7 @@ const drivers = {
             attr = mapped.attr;
             value = mapped.val;
 
-            nc.Events.message(this, attr, value);
+            nc.events.message(this, attr, value);
 
             this.update_last_seen();
 
@@ -1096,14 +1096,14 @@ const drivers = {
         // GET
         async get_info       ()            { return this._get(); }
         async get_state      ()            { const val = await this._get('status', 'on'); return val ? val : false; }
-        async get_brightness ()            { const val = await this._get('bri');          return val ? Math.round(nc.Utils.map_range(val, 0, 255, 0, 100)) : null; }
+        async get_brightness ()            { const val = await this._get('bri');          return val ? Math.round(nc.utils.map_range(val, 0, 255, 0, 100)) : null; }
         async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
 
         // SET
         async set_state      (enabled)     { return this._post({ 'on' : !!enabled  }) }
         async set_flip       ()            { return this._post({ 'on' : 't'   }) }
         async set_color      (color)       { return this._post({ 'seg' : [ { 'col' : [color] } ] }) }
-        async set_brightness (percent)     { return this._post({ 'bri' : Math.round(nc.Utils.map_range(percent, 0, 100, 0, 255)) }) }
+        async set_brightness (percent)     { return this._post({ 'bri' : Math.round(nc.utils.map_range(percent, 0, 100, 0, 255)) }) }
         async set_effect     (effect)      { return this._post({ 'seg' : [ { 'fx' : get_effect(effect).fx } ] }) }
     },
 
@@ -1125,84 +1125,74 @@ const drivers = {
     }                
 }
 
-class Devices
-{
-    static devices = new Array();
 
-    static init(config) {
-        console.log ('Loading devices...');
-        
-        let err = false;
+const devices = new Array();
 
-        const types = Object.keys(config);
-        for (const type of types) {
-            if (type in drivers && typeof config[type] === 'object') {
-                if (Array.isArray(config[type])) {
-                    for (const cfg of config[type]) {
-                        if (cfg.enabled === false) continue;
-                        cfg.type = type;
-                        this.devices.push(new drivers[type](cfg));
-                    }
-                } else  {
-                    const subtypes = Object.keys(config[type]);
-                    for (const subtype of subtypes) {
-                        const array = config[type][subtype]
-                        if (drivers[type].subtypes.includes(subtype) && Array.isArray(array)) 
-                        {
-                            for (const cfg of array) {
-                                if (cfg.enabled === false) continue;
-                                cfg.type = type;
-                                cfg.subtype = subtype
-                                this.devices.push(new drivers[type](cfg));
-                            }
-                        } else {
-                            console.error(`Config Error: Unknown device subtype ${subtype}.`);
+function init(config) {
+    console.log ('Loading devices...');
+    
+    let err = false;
+
+    const types = Object.keys(config);
+    for (const type of types) {
+        if (type in drivers && typeof config[type] === 'object') {
+            if (Array.isArray(config[type])) {
+                for (const cfg of config[type]) {
+                    if (cfg.enabled === false) continue;
+                    cfg.type = type;
+                    devices.push(new drivers[type](cfg));
+                }
+            } else  {
+                const subtypes = Object.keys(config[type]);
+                for (const subtype of subtypes) {
+                    const array = config[type][subtype]
+                    if (drivers[type].subtypes.includes(subtype) && Array.isArray(array)) 
+                    {
+                        for (const cfg of array) {
+                            if (cfg.enabled === false) continue;
+                            cfg.type = type;
+                            cfg.subtype = subtype
+                            devices.push(new drivers[type](cfg));
                         }
+                    } else {
+                        console.error(`Config Error: Unknown device subtype ${subtype}.`);
                     }
                 }
-            } else {
-                console.error(`Config Error: Unknown device type ${type}.`);
-                err = true;
             }
+        } else {
+            console.error(`Config Error: Unknown device type ${type}.`);
+            err = true;
         }
-
-        return err;
     }
 
-    static all() {
-        return this.devices;
-    }
-
-    static get(id) {
-        return this.devices.find(d => d.id === id);
-    } 
-
-    static get_subtype(type, subtype) {
-        return this.devices.find(d => d.type === type && d.subtype === subtype);
-    }
-
-    // find device of type, returns first
-    static find(type) {
-        return this.devices.find(d => d.type == type);
-    } 
-
-    // find device of type with address
-    static find(type, addr) {
-        return this.devices.find(d => d.type == type && d.addr == addr);
-    } 
-
-    // find device of type with address and internal device id
-    static find(type, addr, dev) {
-        return this.devices.find(d => d.type == type && 
-                                      d.addr == addr && 
-                                      d.dev  == dev);
-    } 
-
-    static async start() {
-        for (var device of this.all())
-            if (device.start) 
-                await device.start();
-    }
+    return err;
 }
 
-module.exports = Devices;
+function all() {
+    return devices;
+}
+
+function get(id) {
+    return devices.find(d => d.id === id);
+} 
+
+function get_subtype(type, subtype) {
+    return devices.find(d => d.type === type && d.subtype === subtype);
+}
+
+// find device, returns first one found
+function find(type, addr = undefined, dev = undefined) {
+    return devices.find(d => 
+        d.type == type &&
+        (addr === undefined || d.addr == addr) &&
+        (dev === undefined || d.dev == dev)
+    );
+}
+
+async function start() {
+    for (var device of devices)
+        if (device.start) 
+            await device.start();
+}
+
+module.exports = { init, start, all, get, get_subtype, find };
