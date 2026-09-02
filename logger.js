@@ -1,6 +1,6 @@
-const { InfluxDB } = require('influx');
+const nc = require('./nomctrl.js');
 
-const Utils   = require('./utils.js');
+const { InfluxDB } = require('influx');
 
 class Logger
 {
@@ -77,15 +77,19 @@ class Logger
             tags.type = `${device.type}.${device.subtype}`;
 
         // log it
-        await this.influx.writePoints(
-            [
-                {
-                    measurement : group,
-                    tags : tags, 
-                    fields: { [attr]: val },
-                },
-            ]
-        );
+        try {
+            await this.influx.writePoints(
+                [
+                    {
+                        measurement : group,
+                        tags : tags,
+                        fields: { [attr]: val },
+                    },
+                ]
+            );
+        } catch (err) {
+            console.error(`InfluxDB write failed: ${err.message}`);
+        }
 
     }
 

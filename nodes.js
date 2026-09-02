@@ -1,6 +1,4 @@
-const Config  = require('./config.js');
-const Devices = require('./devices.js');
-const Events  = require('./events.js');
+const nc = require('./nomctrl.js');
 
 class Node 
 {
@@ -14,27 +12,27 @@ class Node
     }
 
     getter() {
-        return Devices.get(this.device).getter;
+        return nc.Devices.get(this.device).getter;
     }
     
     setter() {
-        return Devices.get(this.device).setter;
+        return nc.Devices.get(this.device).setter;
     }
     
     has_set(attr) {
-        const device = Devices.get(this.device);
+        const device = nc.Devices.get(this.device);
         return device && device.has_set(attr);
     }
 
     has_get(attr) {
-        const device = Devices.get(this.device);
+        const device = nc.Devices.get(this.device);
         return device && device.has_get(attr);
     }
 
     async get (attr) {
         console.log(`> get ${this.id} ${attr}`);
 
-        const device = Devices.get(this.device);
+        const device = nc.Devices.get(this.device);
         let val = await device.get(attr, null);
 
         // on success, update value
@@ -48,7 +46,7 @@ class Node
     async set (attr, val) {
         console.log(`> set ${this.id} ${attr}${val !== undefined & val !== null ? ' ' + val : ''}`);
 
-        const device = Devices.get(this.device);
+        const device = nc.Devices.get(this.device);
         let result = await device.set(attr, val);
         
         // on success, cache value if we have a getter for this attribute
@@ -70,7 +68,7 @@ class Node
             // trigger events if value has changed
             if (this.values.get(attr) !== val) {
                 this.values.set(attr, val);
-                Events.trigger(`${this.id}.${attr}`, val);
+                nc.Events.trigger(`${this.id}.${attr}`, val);
             }
         } else {
             this.values.set(attr, val);
@@ -78,7 +76,7 @@ class Node
     }
 
     is_online () {
-        return Devices.get(this.device).online;
+        return nc.Devices.get(this.device).online;
     }
 }
 
@@ -99,7 +97,7 @@ class Nodes
         for (const cfg of cfg_nodes) {
 
             // device must exist
-            let device = Devices.get(cfg.device);
+            let device = nc.Devices.get(cfg.device);
             if (device) {
                 this.nodes.set(cfg.id, new Node(cfg));
             } else {
@@ -114,7 +112,7 @@ class Nodes
             // group references
             if (cfg_group.groups) {
                 for (const id of cfg_group.groups) {
-                    const cfg = Config.groups().find(g => g.id === id);
+                    const cfg = nc.Config.groups.find(g => g.id === id);
                     if (!cfg) {
                         console.error(`Config Error: Group '${cfg_group.id}' contains reference to invalid group '${id}'`)
                     } else if (group_ids.includes(id)) {
@@ -132,7 +130,7 @@ class Nodes
             // node references
             if (cfg_group.nodes) {
                 for (const id of cfg_group.nodes) {
-                    if (!Nodes.get(id)) {
+                    if (!nc.Nodes.get(id)) {
                         console.error(`Config Error: Group '${cfg_group.id}' contains reference to invalid node '${id}'`)
                         error = true;
                     } else {
@@ -152,7 +150,7 @@ class Nodes
         }
 
         // Add a node for device, if it doesn't clash with other defined nodes
-        for (const dev of Devices.all()) {
+        for (const dev of nc.Devices.all()) {
             if (!this.nodes.has(dev.id)) {
                 const cfg = { "id" : dev.id, "device" : dev.id };
                 this.nodes.set(dev.id, new Node(cfg));
@@ -186,12 +184,11 @@ class Nodes
 
         // filter
         if (!('include_timed' in opts)) {
-            found_nodes = found_nodes.filter(n => !Config.timers().find(t => t.node === n.id && t.strict && t.strict === true))
+            found_nodes = found_nodes.filter(n => !nc.Config.timers.find(t => t.node === n.id && t.strict && t.strict === true))
         }
 
         return found_nodes;
     }
-
 }
 
 module.exports = Nodes;

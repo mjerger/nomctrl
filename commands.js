@@ -1,8 +1,4 @@
-const Config  = require('./config.js');
-const Utils   = require('./utils.js');
-const Devices = require('./devices.js');
-const Nodes   = require('./nodes.js');
-const Events  = require('./events.js');
+const nc = require('./nomctrl.js');
 
 const CMDS = {
     STATUS : 'status',      // return full status of a node
@@ -89,7 +85,7 @@ class Commands {
         }
 
         if (args.length > 0)
-            results = Utils.merge(results, { errors : `Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}` });
+            results = nc.Utils.merge(results, { errors : `Did not parse all arguments. Remaining: ${[arg].concat(args.join(' ')).join(' ')}` });
 
         return results;
     }
@@ -101,8 +97,8 @@ class Commands {
 
         // just show online state of all devices
         if (!arg) {
-            const nodes = Nodes.all();
-            for (const node of Nodes.all()) {
+            const nodes = nc.Nodes.all();
+            for (const node of nc.Nodes.all()) {
                 getter.push([node.id, 'online']);
             }
         } else {
@@ -131,7 +127,7 @@ class Commands {
         let todo = {};
 
         while (arg) {
-            const action = Events.events.find(e => e.id === arg);
+            const action = nc.Events.events.find(e => e.id === arg);
             if (!action) {
                 if (todo.errors == undefined) todo.errors = [];
                 todo.errors.push(`Action '${action}' not found.`);
@@ -140,7 +136,7 @@ class Commands {
             }
 
             for (const cmd of action.get_commands()) {
-                todo = Utils.merge(todo, this.parse(cmd, opts));
+                todo = nc.Utils.merge(todo, this.parse(cmd, opts));
             }
 
             arg = next(args);
@@ -237,7 +233,7 @@ class Commands {
 
             if (attr) {
                 for (const node of nodes) {
-                    const device = Devices.get(node.device);
+                    const device = nc.Devices.get(node.device);
                     if (device.has_set(attr)) {
                         setter.push([node.id, attr, val]);
                     }
@@ -256,7 +252,7 @@ class Commands {
                 arg = next(args)
                 for (const node of nodes) {
                     const id = node.device;
-                    const device = Devices.get(id);
+                    const device = nc.Devices.get(id);
 
                     // set rgb only if device supports it
                     if (device.has_set('color')) {
@@ -283,7 +279,7 @@ class Commands {
 
                 for (const node of nodes) {
                     const id = node.device;
-                    const device = Devices.get(id);
+                    const device = nc.Devices.get(id);
 
                     // set brightness if device supports it
                     if (device.has_set('brightness')) {
@@ -311,7 +307,7 @@ class Commands {
                 if (arg.match(TOKENS.AT)) {
                     arg = next(args);
                     if (arg && arg.match(TOKENS.TIME)) {
-                        const time = Utils.parseTime(arg);
+                        const time = nc.Utils.parseTime(arg);
                         arg = next(args);
                         
                         // move setters to set_at, with time
@@ -329,7 +325,7 @@ class Commands {
                 } else if (arg.match(TOKENS.IN)) {
                     arg = next(args);
                     if (arg && arg.match(TOKENS.DURATION)) {
-                        const duration = Utils.parseDuration(arg);
+                        const duration = nc.Utils.parseDuration(arg);
                         const time = Date.now() + duration*1000;
                         arg = next(args);
 
@@ -350,7 +346,7 @@ class Commands {
                         arg = next(args);
                         
                         if (arg !== undefined && arg.match(TOKENS.TIME)) {
-                            time = Utils.parseTime(arg);
+                            time = nc.Utils.parseTime(arg);
                             arg = next(args);
                         } else {
                             return { errors : ['Missing time argument.'] };
@@ -359,7 +355,7 @@ class Commands {
                         arg = next(args);
                         
                         if (arg !== undefined && arg.match(TOKENS.DURATION)) {
-                            const ms = Utils.parseDuration(arg);
+                            const ms = nc.Utils.parseDuration(arg);
                             time = Date.now() + ms;
                             arg = next(args);
                         }
@@ -376,7 +372,7 @@ class Commands {
                             undo_val = !val;    // flip bool state
                         } else {
                             // use node's current value, this leads to unintuitive behavior when using this command repeatedly
-                            undo_val = Nodes.get(node).get_current(attr); 
+                            undo_val = nc.Nodes.get(node).get_current(attr); 
                         }
 
                         set_at.push([node, attr, undo_val, time]);
@@ -439,7 +435,7 @@ class Commands {
             arg = next(args);
 
         // duration
-        const duration = Utils.parseDuration(arg, args);
+        const duration = nc.Utils.parseDuration(arg, args);
 
         if (duration <= 0) {
             errors.push("Missing duration");
@@ -481,7 +477,7 @@ class Commands {
         let nodes = [];
 
         let nodesForArg;
-        while (arg && (nodesForArg = Nodes.getNodes(arg, opts)).length > 0) {
+        while (arg && (nodesForArg = nc.Nodes.getNodes(arg, opts)).length > 0) {
             if (nodesForArg.includes(false)) // arg not a valid node, we done reading
                 break;
             nodes = nodes.concat(nodesForArg.filter(n => n !== null))
@@ -510,7 +506,7 @@ class Commands {
         // alias resolver
         function resolve(color) {
             if (color.color) 
-                return resolve(Config.colors().find(c => c.id === color.color));
+                return resolve(nc.Config.colors.find(c => c.id === color.color));
             else
                 return color;
         }
@@ -520,25 +516,25 @@ class Commands {
             let h = Math.random();
             let s = Math.random() / 2 + 0.5;
             let l = 0.5;
-            return Utils.hslToRgb(h, s, l);
+            return nc.Utils.hslToRgb(h, s, l);
         }
         
         // try to find it in config
-        let color = Config.colors().find(c => c.id === arg);
+        let color = nc.Config.colors.find(c => c.id === arg);
         if (color) {
             color = resolve(color);
             if (color.rgb) 
                 return color.rgb
             else if (color.hex) 
-                return Utils.hexToRGB(color.hex);
+                return nc.Utils.hexToRGB(color.hex);
         }
 
         // try raw hex value
-        if (color = Utils.hexToRGB(arg))
+        if (color = nc.Utils.hexToRGB(arg))
             return color;
 
         // try rgb
-        if (color = Utils.parseRGB(arg)) {
+        if (color = nc.Utils.parseRGB(arg)) {
             return color;
         }
 

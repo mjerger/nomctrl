@@ -1,6 +1,5 @@
-const Config  = require('./config.js');
-const Utils   = require('./utils.js');
-const Nodes   = require('./nodes.js');
+const nc = require('./nomctrl.js');
+
 const crypto = require('crypto');
 
 class Timer 
@@ -34,6 +33,13 @@ class Timer
         if (cfg.flip)
             this.events.push([cfg.flip, `set ${cfg.node} off`]);
 
+        for (var i of [1,2,3,4]) {
+            if (cfg['on_'+i])
+                this.events.push([cfg['on_'+i], `set ${cfg.node} on`]);
+            if (cfg['off_'+i])
+                this.events.push([cfg['off_'+i], `set ${cfg.node} off`]);
+        }
+
         // longer syntax
         if (cfg.at) {
             if (cfg.set)
@@ -61,7 +67,7 @@ class SingleShotTimer extends Timer
 
     is_triggered (time) {
         const when = this.events[0][0];
-        return (Utils.parseTime(when) < time);
+        return (nc.Utils.parseTime(when) < time);
     }
 
     get_command () {
@@ -97,12 +103,12 @@ class Fader
         if (this.attr === 'color') {
             let rgb = [];
             for (let i=0; i<3; i++) {
-                rgb[i] = Math.floor(Utils.lerp(this.from[i], this.to[i], fac));
+                rgb[i] = Math.floor(nc.Utils.lerp(this.from[i], this.to[i], fac));
             }
             return rgb;
 
         } else if (this.attr === 'brightness') {
-            const val = Math.floor(Utils.lerp(this.from, this.to, fac));
+            const val = Math.floor(nc.Utils.lerp(this.from, this.to, fac));
             return val;
         }
 
@@ -216,7 +222,7 @@ class Timers
                     logged = true;
                 }
                 const new_value = fader.get_value(now);
-                setter.push(Nodes.get(fader.node).set(fader.attr, new_value));
+                setter.push(nc.Nodes.get(fader.node).set(fader.attr, new_value));
                 fader.last_value = new_value;
             }
         }
@@ -260,20 +266,20 @@ class Timers
                 continue;
             
             // we have take into account the events for yesterday, so timers can behave correctly during midnight
-            const times_today = timer.events.map(e => Utils.parseTime(e[0]));
+            const times_today = timer.events.map(e => nc.Utils.parseTime(e[0]));
             const times_yesterday = times_today.map(t => t - (3600*24*1000));
             const times = times_yesterday.concat(times_today);
 
             let cmds = timer.events.map(e => e[1]);
             cmds = cmds.concat(cmds);
-            const currentStateCmd = Utils.findClosest(times, cmds, Date.now());
+            const currentStateCmd = nc.Utils.findClosest(times, cmds, Date.now());
 
             console.log(`timer ${timer.id} strict`);
             await this.execute(currentStateCmd, {'include_timed' : true});
         }
 
         // tick again
-        setTimeout(this.tick_static_timers.bind(this),Config.app().timer_interval * 1000);
+        setTimeout(this.tick_static_timers.bind(this),nc.Config.app.timer_interval * 1000);
     }
 }
 

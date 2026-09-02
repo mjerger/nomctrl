@@ -1,4 +1,4 @@
-const Utils   = require('./utils.js');
+const nc = require('./nomctrl.js');
 
 class Event
 {
@@ -62,7 +62,7 @@ class Events
         // actions
         for (const cfg of cfg_actions) {
             let event;
-            if (Utils.parseTime(cfg.event)) {
+            if (nc.Utils.parseTime(cfg.event)) {
                 // shorthand for time events
                 event = new Event('time', cfg.event, cfg);
             } else {

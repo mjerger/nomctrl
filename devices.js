@@ -1,8 +1,4 @@
-const Config  = require('./config.js');
-const Storage = require('./storage.js');
-const Utils   = require('./utils.js');
-const Events  = require('./events.js');
-const Logger  = require('./logger.js');
+const nc = require('./nomctrl.js');
 
 const { SerialPort } = require('serialport')
 const fs = require('fs');
@@ -77,11 +73,11 @@ class Device
     }
 
     store(key, value) {
-        Storage.set(`${this.type}_${this.addr}_${key}`, value);
+        nc.Storage.set(`${this.type}_${this.addr}_${key}`, value);
     }
 
     load(key, value=null) {
-        return Storage.get(`${this.type}_${this.addr}_${key}`, value);
+        return nc.Storage.get(`${this.type}_${this.addr}_${key}`, value);
     }
 
     map_attrs(attr, value) {
@@ -144,7 +140,7 @@ class Device
 
         this.last_log = Date.now();
 
-        Logger.log(this, mapped.attr, mapped.val);
+        nc.Logger.log(this, mapped.attr, mapped.val);
 
         return mapped;
     }
@@ -166,7 +162,7 @@ class HttpDevice extends Device
 
     async check_online() {
         if (this.ping) this.ping();
-        setTimeout(this.check_online.bind(this), Config.app().poll_interval * 1000);
+        setTimeout(this.check_online.bind(this), nc.Config.app.poll_interval * 1000);
     }
 
     async ping() {
@@ -175,13 +171,13 @@ class HttpDevice extends Device
     }
 
     async http_get(path) {
-        const res = Utils.get(this.host, path)
+        const res = nc.Utils.get(this.host, path)
         this.set_online(!!res); 
         return res;
     }
 
     async http_post(path, json) {
-        const res = Utils.post(this.host, path, json);
+        const res = nc.Utils.post(this.host, path, json);
         this.set_online(!!res);
         return res;
     }
@@ -288,7 +284,7 @@ const drivers = {
 
                 // (re)config the stick
                 // Note: writes to eeprom, no need to do it everytime
-                if (Config.app().setup_cul_on_connect) {
+                if (nc.Config.app.setup_cul_on_connect) {
 
                     // set frequency 
                     this.set_freq(this.freq);
@@ -345,7 +341,7 @@ const drivers = {
 
                 const addr = firstbyte & 7;
 
-                let device = Devices.find('s300th', addr);
+                let device = nc.Devices.find('s300th', addr);
                 if (device) {
                     device.message(t, h);
                     console.log(`S300TH rx addr=${addr} temp=${t}°C humid=${h}%`);
@@ -360,7 +356,7 @@ const drivers = {
                 let id = data.slice(6,7);
                 let cmd = data.slice(8,9);
                 
-                let device = Devices.find('fs20', addr, id);
+                let device = nc.Devices.find('fs20', addr, id);
                 if (device) {
                     device.message(cmd);
                     console.log(`FS20 rx addr=${addr} dev=${id} cmd=${cmd}`);
@@ -372,7 +368,7 @@ const drivers = {
             } else if (data[0] === 'E') {                                
                 const addr = parseInt(data.slice(3, 5), 16);     
 
-                let device = Devices.find('em1000', addr);
+                let device = nc.Devices.find('em1000', addr);
                 if (device) {
                     device.message(data);
                     console.log(`EM1000 rx addr=${addr}`);
@@ -384,7 +380,7 @@ const drivers = {
             } else if (data[0] === 'S') {                                
                 const addr = data.slice(3, 7);   
 
-                let device = Devices.find('esa1000', addr);
+                let device = nc.Devices.find('esa1000', addr);
                 if (device) {
                     device.message(data);
                     console.log(`ESA1000 rx addr=${addr}`);
@@ -463,7 +459,7 @@ const drivers = {
             const { house, unit } = this.parse_addr(this.addr);
             const payload = this.TRI[house] + this.TRI[unit] + '0F' + (enabled ? 'FF' : 'F0');
             
-            const device = Devices.get_subtype('cul', '433');
+            const device = nc.Devices.get_subtype('cul', '433');
             if (device && device.is_online())
                 await device.send('is' + payload);
             else
@@ -511,7 +507,7 @@ const drivers = {
                 attr = mapped.attr;
                 val = mapped.val;
                 
-                Events.message(this, attr, val);
+                nc.Events.message(this, attr, val);
             }
         }
 
@@ -533,8 +529,8 @@ const drivers = {
             this.update_data('temperature', temp);
             this.update_data('humidity', humid);
 
-            Events.message(this, 'temperature', temp);
-            Events.message(this, 'humidity', humid);
+            nc.Events.message(this, 'temperature', temp);
+            nc.Events.message(this, 'humidity', humid);
         }
         // TODO fix getters
     },
@@ -627,14 +623,14 @@ const drivers = {
             const energy_t = total_kWh;
 
             this.update_data('power', power);
-            Events.message(this, 'power', power);
+            nc.Events.message(this, 'power', power);
 
             this.update_data('energy', total_kWh);
-            Events.message(this, 'energy', total_kWh);
+            nc.Events.message(this, 'energy', total_kWh);
 
             if (this._basisCnt > 0) {
                 this.update_data('meter_kwh', total_kWh);
-                Events.message(this, 'meter_kwh', total_kWh);
+                nc.Events.message(this, 'meter_kwh', total_kWh);
             }
         }
     },
@@ -752,7 +748,7 @@ const drivers = {
               })
 
             this.update_data('meter_cbm', total_cnt);
-            Events.message(this, 'meter_cbm', total_cnt);
+            nc.Events.message(this, 'meter_cbm', total_cnt);
 
             this.store('meter_cbm', meter_cbm);
         }
@@ -830,7 +826,7 @@ const drivers = {
                         return;
                     }
 
-                    let device = Devices.find('zigbee', id);
+                    let device = nc.Devices.find('zigbee', id);
                     if (device) {
                         const entries = Object.entries(data);
                         for (let [attr, val] of entries)
@@ -860,7 +856,7 @@ const drivers = {
                             return;
                         }
                         
-                        let device = Devices.find('airgradient', id);
+                        let device = nc.Devices.find('airgradient', id);
                         if (device) {
                             const entries = Object.entries(data);
                             for (let [attr, val] of entries)
@@ -896,7 +892,7 @@ const drivers = {
             attr = mapped.attr;
             value = mapped.val;
 
-            Events.message(this, attr, value);
+            nc.Events.message(this, attr, value);
 
             this.update_last_seen();
 
@@ -908,7 +904,7 @@ const drivers = {
         async get(attr) { return this.data.get(attr); }
 
         async set(attr, val) {
-            let mqtt = Devices.find('mqtt')
+            let mqtt = nc.Devices.find('mqtt')
             if (mqtt) {
 
                 const unmapped = this.unmap_attrs(attr, val);
@@ -956,7 +952,7 @@ const drivers = {
             attr = mapped.attr;
             value = mapped.val;
 
-            Events.message(this, attr, value);
+            nc.Events.message(this, attr, value);
 
             this.update_last_seen();
 
@@ -1100,14 +1096,14 @@ const drivers = {
         // GET
         async get_info       ()            { return this._get(); }
         async get_state      ()            { const val = await this._get('status', 'on'); return val ? val : false; }
-        async get_brightness ()            { const val = await this._get('bri');          return val ? Math.round(Utils.map_range(val, 0, 255, 0, 100)) : null; }
+        async get_brightness ()            { const val = await this._get('bri');          return val ? Math.round(nc.Utils.map_range(val, 0, 255, 0, 100)) : null; }
         async get_color      ()            { const val = await this._get_segment();       return val ? val.col[0] : null; }
 
         // SET
         async set_state      (enabled)     { return this._post({ 'on' : !!enabled  }) }
         async set_flip       ()            { return this._post({ 'on' : 't'   }) }
         async set_color      (color)       { return this._post({ 'seg' : [ { 'col' : [color] } ] }) }
-        async set_brightness (percent)     { return this._post({ 'bri' : Math.round(Utils.map_range(percent, 0, 100, 0, 255)) }) }
+        async set_brightness (percent)     { return this._post({ 'bri' : Math.round(nc.Utils.map_range(percent, 0, 100, 0, 255)) }) }
         async set_effect     (effect)      { return this._post({ 'seg' : [ { 'fx' : get_effect(effect).fx } ] }) }
     },
 

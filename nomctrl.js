@@ -1,5 +1,7 @@
+const nc = module.exports;
+
+const Config   = require('./config/definitions.js');
 const Utils    = require('./utils.js');
-const Config   = require('./config.js');
 const Storage  = require('./storage.js');
 const Devices  = require('./devices.js');
 const Nodes    = require('./nodes.js');
@@ -8,37 +10,68 @@ const Timers   = require('./timers.js');
 const Events   = require('./events.js');
 const Commands = require('./commands.js');
 
+nc.Utils    = Utils;
+nc.Config   = Config;
+nc.Storage  = Storage;
+nc.Devices  = Devices;
+nc.Nodes    = Nodes;
+nc.Logger   = Logger;  
+nc.Timers   = Timers;  
+nc.Events   = Events;  
+nc.Commands = Commands;
+
 const express = require("express");
 const bodyParser = require('body-parser');
+
 const app = express();
 
-// STARTUP
-
-app.listen(Config.app().port, function () {
+app.listen(Config.app.port, function () {
     app.use(express.static('data/www'))
     app.use(bodyParser.json());
     app.use(express.urlencoded())
 
     console.log ("Loading config...");
-    let success = Config.validate();
-    if (!success) process.exit(-1);
+    let success = validate_config();
+    if (!success) 
+        process.exit(-1);
 
-    const line = "~".repeat(26+(""+Config.app().port).length)
+    const line = "~".repeat(26+(""+Config.app.port).length)
     console.log(line);
-    console.log(`nomctrl listening on port ${Config.app().port}`);
+    console.log(`nomctrl listening on port ${Config.app.port}`);
     console.log(line);
 
-    Storage.init(Config.app());
-    Devices.init(Config.devices());
-    Nodes.init(Config.nodes(), Config.groups());
-    Logger.init(Config.log());
-    Timers.init(Config.timers(), execute);
-    Events.init(Config.actions(), execute);
+    Storage.init(Config.app);
+    Devices.init(Config.devices);
+    Nodes.init(Config.nodes, Config.groups);
+    Logger.init(Config.log);
+    Timers.init(Config.timers, execute);
+    Events.init(Config.actions, execute);
 
     Devices.start();
     Timers.start();
     Events.start();
 });
+
+function validate_config() {
+        
+    // unique ids for devices, nodes, groups and colors
+    let ids = new Set();
+    let unique = true;
+    function all_unique(item) { 
+        if(ids.has(item.id)) {
+            unique = false;
+            console.error(`Config Error: duplicate id ${item.id}`);
+        } else {
+            if (item.id) ids.add(item.id);
+        }
+    }
+
+    Config.nodes.forEach(all_unique);
+    Config.groups.forEach(all_unique);
+    Config.colors.forEach(all_unique);
+
+    return unique;
+}
 
 // ROUTES
 
@@ -108,8 +141,8 @@ async function execute(cmds, opts={}) {
     // parse all cmds into todos
     let todo = {};
     for (const cmd of cmds) {
-         let res = Commands.parse(cmd, opts);
-         todo = Utils.merge(todo, res);
+         let res = nc.Commands.parse(cmd, opts);
+         todo = nc.Utils.merge(todo, res);
     }
 
     if (todo.errors) results.errors = todo.errors 
@@ -121,7 +154,7 @@ async function execute(cmds, opts={}) {
     if (todo.getter) {
 
         // every getter only once
-        todo.getter = Utils.removeDuplicates(todo.getter);
+        todo.getter = nc.Utils.removeDuplicates(todo.getter);
         
         // call getters
         let get_results = {};
@@ -129,7 +162,7 @@ async function execute(cmds, opts={}) {
             const [id, attr] = g;
             if (!(id in get_results))
                 get_results[id] = {};
-            get_results[id][attr] = Nodes.get(id).get(attr)
+            get_results[id][attr] = nc.Nodes.get(id).get(attr)
         }
 
         // await results
@@ -165,7 +198,7 @@ async function execute(cmds, opts={}) {
                         const val = get_results[id][attr]; 
                         if (val != null) {
                             if (typeof val != 'number') {
-                                results = Utils.merge(results, { errors : [`Value type '${typeof val}' of attribute '${attr}' not supported by '${todo.calc}'`]});
+                                results = nc.Utils.merge(results, { errors : [`Value type '${typeof val}' of attribute '${attr}' not supported by '${todo.calc}'`]});
                                 continue;
                             }
 
@@ -216,12 +249,12 @@ async function execute(cmds, opts={}) {
         for (const [id, attr, val] of todo.setter) {
             if (id && attr) {
                 if (val == undefined) {
-                    set_results.push(Nodes.get(id).set(attr));
+                    set_results.push(nc.Nodes.get(id).set(attr));
                 } else {
-                    set_results.push(Nodes.get(id).set(attr, val));
+                    set_results.push(nc.Nodes.get(id).set(attr, val));
                 }
 
-                Timers.removeFader(id, attr);
+                nc.Timers.removeFader(id, attr);
             }
         }
 
@@ -234,7 +267,7 @@ async function execute(cmds, opts={}) {
     //
     if (todo.faders) {
         for (const [node, attr, from, to, duration] of todo.faders) {
-            Timers.addFader(node, attr, from, to, duration)
+            nc.Timers.addFader(node, attr, from, to, duration)
         }
     }
 
@@ -243,7 +276,7 @@ async function execute(cmds, opts={}) {
     //
     if (todo.set_at) {
         for (const [node, attr, value, time] of todo.set_at) {
-            Timers.addSingleShot(node, attr, `set ${node} ${attr}${value !== undefined ? ' '+value : ''}`, time);
+            nc.Timers.addSingleShot(node, attr, `set ${node} ${attr}${value !== undefined ? ' '+value : ''}`, time);
         }
     }
 
