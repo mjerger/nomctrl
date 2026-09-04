@@ -66,10 +66,10 @@ module.exports = {
             { host: 'wled-bed-ceil' },
             { host: 'wled-string-1' },
             { host: 'wled-string-2' },
-            { host: 'wled-string-3' },
-            { host: 'wled-string-4' },
+            //{ host: 'wled-string-3' },
+            //{ host: 'wled-string-4' },
             { host: 'wled-kitty'    },
-            { host: 'wled-pika', enabled: false  }
+            //{ host: 'wled-pika', enabled: false  }
         ],
 
         nomframe: [
@@ -221,7 +221,7 @@ module.exports = {
         { event: 'quadro-3.action.long',   set: 'amp off' },
         { event: 'quadro-4.action.single', set: 'living 23' },
         
-        { event: 'cube.action.flip90', set: 'all random-color'},
+        { event: 'cube.action.shake', set: 'all random-color'},
 
         { event: 'presence-4.occupancy', forward: 'hallway-light'},
         { event: 'presence-5.occupancy', forward: 'toilet-light'},
