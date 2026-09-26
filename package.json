@@ -2,7 +2,7 @@
   "name": "nomctrl",
   "version": "1.0.0",
   "description": "",
-  "main": "nomctrl.js",
+  "main": "src/nomctrl.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
